@@ -1,0 +1,3 @@
+# nlohmann
+
+INCLUDEPATH += $$PWD/

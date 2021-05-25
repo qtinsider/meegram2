@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Name=MeeGram
+Exec=/usr/bin/invoker --type=d -s /opt/meegram2/bin/meegram2
+Icon=/usr/share/icons/hicolor/80x80/apps/meegram2.png
+X-Window-Icon=
+X-HildonDesk-ShowInToolbar=true
+X-Osso-Type=application/x-executable
