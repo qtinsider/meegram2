@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file>i18n/meegram_en.qm</file>
+        <file>qml/ArchivedChatPage.qml</file>
+        <file>qml/AuthenticationPage.qml</file>
+        <file>qml/components/AboutDialog.qml</file>
+        <file>qml/components/MessageBubble.qml</file>
+        <file>qml/components/MessageDelegate.qml</file>
+        <file>qml/components/TextBubble.qml</file>
+        <file>qml/components/TopBar.qml</file>
+        <file>qml/fontello.ttf</file>
+        <file>qml/images/incoming-normal.png</file>
+        <file>qml/images/incoming-pressed.png</file>
+        <file>qml/images/messaging-textedit-background.png</file>
+        <file>qml/images/notification.png</file>
+        <file>qml/images/outgoing-normal.png</file>
+        <file>qml/images/outgoing-pressed.png</file>
+        <file>qml/main.qml</file>
+        <file>qml/MainPage.qml</file>
+        <file>qml/MessagePage.qml</file>
+        <file>qml/SettingsPage.qml</file>
+        <file>qml/images/help-icon.png</file>
+    </qresource>
+</RCC>
