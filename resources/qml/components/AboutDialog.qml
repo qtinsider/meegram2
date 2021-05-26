@@ -58,7 +58,7 @@ Dialog {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 color: "white"
-                text: "Sponsor or Support this project<br/><a href='https://www.patreon.com/chukwudi'>www.patreon.com/chukwudi</a><br/><a href='https://www.buymeacoffee.com/nwutobo'>www.buymeacoffee.com/nwutobo</a>"
+                text: "Donate<br/><a href='https://www.patreon.com/chukwudi'>www.patreon.com/chukwudi</a><br/><a href='https://liberapay.com/chukwudi'>liberapay.com/chukwudi</a><br/><a href='https://www.buymeacoffee.com/nwutobo'>www.buymeacoffee.com/nwutobo</a>"
                 onLinkActivated: Qt.openUrlExternally(link)
             }
 
