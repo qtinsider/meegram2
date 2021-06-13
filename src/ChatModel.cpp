@@ -1,5 +1,6 @@
 #include "ChatModel.hpp"
 
+#include "Common.hpp"
 #include "Utils.hpp"
 
 #include <fnv-cpp/fnv.h>
@@ -14,8 +15,7 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
     auto chatListType = chatList.value("@type").toByteArray();
     switch (fnv::hashRuntime(chatListType.constData()))
     {
-        case fnv::hash("chatListMain"):
-        {
+        case fnv::hash("chatListMain"): {
             if (auto it = std::ranges::find_if(positions,
                                                [](const auto &x) {
                                                    auto list = x.toMap().value("list").toMap();
@@ -24,8 +24,7 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
                 it != positions.end())
                 return it->toMap();
         }
-        case fnv::hash("chatListArchive"):
-        {
+        case fnv::hash("chatListArchive"): {
             if (auto it = std::ranges::find_if(positions,
                                                [](const auto &x) {
                                                    auto list = x.toMap().value("list").toMap();
@@ -34,8 +33,7 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
                 it != positions.end())
                 return it->toMap();
         }
-        case fnv::hash("chatListFilter"):
-        {
+        case fnv::hash("chatListFilter"): {
             if (auto it = std::ranges::find_if(positions,
                                                [chatList](const auto &x) {
                                                    auto list = x.toMap().value("list").toMap();
@@ -49,6 +47,7 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
 
     return {};
 }
+
 }  // namespace
 
 class ChatSorter
@@ -59,12 +58,12 @@ public:
     {
     }
 
-    bool operator()(const QVariantMap &a, const QVariantMap &b) const noexcept
+    bool operator()(const QVariantMap &first, const QVariantMap &second) const noexcept
     {
-        const auto &p1 = getChatPosition(a, m_chatList);
-        const auto &p2 = getChatPosition(b, m_chatList);
+        auto order1 = getChatPosition(first, m_chatList).value("order").toLongLong();
+        auto order2 = getChatPosition(second, m_chatList).value("order").toLongLong();
 
-        return p1.value("order").toLongLong() > p2.value("order").toLongLong();
+        return std::cmp_greater(order1, order2);
     }
 
 private:
@@ -140,8 +139,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return chat.value("type").toMap();
         case TitleRole:
             return Utils::getChatTitle(chat);
-        case PhotoRole:
-        {
+        case PhotoRole: {
             // TODO(strawberry):
             auto chatPhoto = chat.value("photo").toMap();
             if (!chat.value("photo").isNull() &&
@@ -176,7 +174,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case LastReadInboxMessageIdRole:
             return chat.value("last_read_inbox_message_id").toString();
         case LastReadOutboxMessageIdRole:
-            return chat.value("last_read_outbox_message_id").toMap();
+            return chat.value("last_read_outbox_message_id").toString();
         case UnreadMentionCountRole:
             return chat.value("unread_mention_count").toMap();
         case NotificationSettingsRole:
@@ -194,18 +192,24 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case ClientDataRole:
             return chat.value("client_data").toMap();
 
-        case IsMuteRole:
-        {
+        case ChatListRole: {
+            const auto position = getChatPosition(chat, getChatList(m_chatList));
+            return position.value("list").toMap();
+        }
+        case IsMuteRole: {
             auto notificationSettings = chat.value("notification_settings").toMap();
             return notificationSettings.value("mute_for").toInt() > 0;
         }
-        case LastMessageAuthorRole:
-        {
+        case IsPinnedRole: {
+            const auto position = getChatPosition(chat, getChatList(m_chatList));
+            return position.value("is_pinned").toBool();
+        }
+        case LastMessageAuthorRole: {
             // TODO(strawberry):
-            return Utils::getMessageSenderName(chat.value("last_message").toMap());
+            return Utils::getMessageSenderName(chat, chat.value("last_message").toMap());
         }
         case LastMessageContentRole:
-            return Utils::getContent(chat.value("last_message").toMap());
+            return Utils::getContent(chat);
         case LastMessageDateRole:
             return Utils::getMessageDate(chat.value("last_message").toMap());
     }
@@ -243,7 +247,9 @@ QHash<int, QByteArray> ChatModel::roleNames() const noexcept
     roles[DraftMessageRole] = "draftMessage";
     roles[ClientDataRole] = "clientData";
 
+    roles[ChatListRole] = "chatList";
     roles[IsMuteRole] = "isMute";
+    roles[IsPinnedRole] = "isPinned";
     roles[LastMessageAuthorRole] = "lastMessageAuthor";
     roles[LastMessageContentRole] = "lastMessageContent";
     roles[LastMessageDateRole] = "lastMessageDate";
@@ -255,9 +261,17 @@ int ChatModel::count() const noexcept
     return m_chats.count();
 }
 
-bool ChatModel::loading() const noexcept
+QVariantMap ChatModel::get(qint64 chatId) const noexcept
 {
-    return m_loading;
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &message) { return message.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        auto index = std::distance(m_chats.begin(), it);
+        return m_chats.value(index);
+    }
+
+    return {};
 }
 
 void ChatModel::loadChats() noexcept
@@ -268,23 +282,10 @@ void ChatModel::loadChats() noexcept
     {
         auto &&[offsetChatId, offsetOrder] = getChatOrder(m_lastChatId, chatList);
 
-        TdApi::getInstance().getChats(chatList, offsetOrder, offsetChatId, 20);
+        TdApi::getInstance().getChats(chatList, offsetOrder, offsetChatId, ChatSliceLimit);
     }
     else
-        TdApi::getInstance().getChats(chatList, std::numeric_limits<std::int64_t>::max(), 0, 20);
-}
-
-bool ChatModel::isChatPinned(qint64 chatId) const noexcept
-{
-    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
-
-    if (it != m_chats.end())
-    {
-        const auto position = getChatPosition(*it, getChatList(m_chatList));
-        return position.value("is_pinned").toBool();
-    }
-
-    return {};
+        TdApi::getInstance().getChats(chatList, std::numeric_limits<std::int64_t>::max(), 0, ChatSliceLimit);
 }
 
 TdApi::ChatList ChatModel::chatList() const noexcept
@@ -308,9 +309,6 @@ int ChatModel::chatFilterId() const noexcept
 
 void ChatModel::setChatFilterId(int chatFilterId) noexcept
 {
-    if (m_chatFilterId == chatFilterId)
-        return;
-
     m_chatFilterId = chatFilterId;
     m_chatList = TdApi::ChatListFilter;
 
@@ -476,8 +474,6 @@ void ChatModel::handleChatNotificationSettings(qint64 chatId, const QVariantMap 
     }
 }
 
-#include <QDebug>
-
 void ChatModel::handleChat(const QVariantMap &chat)
 {
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
@@ -492,7 +488,6 @@ void ChatModel::handleChat(const QVariantMap &chat)
 
     endInsertRows();
 
-    // TODO(strawberry):
     auto chatPhoto = chat.value("photo").toMap();
     if (!chat.value("photo").isNull() &&
         !chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())

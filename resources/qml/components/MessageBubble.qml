@@ -4,11 +4,9 @@ import com.nokia.meego 1.1
 Item {
     id: root
 
-    property string sender
-    property string date
-    property bool isOutgoing: false
-
-    property bool isServiceMessage: false
+    property string sender: model.sender
+    property string date: model.date
+    property bool isOutgoing: model.isOutgoing
 
     property alias content: contentItem.children
 
@@ -17,17 +15,17 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: isServiceMessage ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderName.text !== "" ? senderName.height : 0) + (isOutgoing ? 28 : 30);
-    width: screen.currentOrientation === Screen.Portrait ? 480 : 854
+    height: contentItem.children[0].height + messageDate.height + (senderName.text !== "" ? senderName.height : 0) + (isOutgoing ? 28 : 30);
+    width: isPortrait ? 480 : 854
 
     BorderImage {
         height: parent.height + (isOutgoing ? 2 : 0)
         width: Math.max(childrenWidth, messageDate.paintedWidth + (isOutgoing ? 28 : 0),  senderName.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: isOutgoing ? 10 : !isServiceMessage ? parent.width - width - 10 : (parent.width - width) / 2
+            leftMargin: isOutgoing ? 10 : parent.width - width - 10
             top: parent.top
-            topMargin: isServiceMessage ? 2 : isOutgoing ? 8 : 1
+            topMargin: isOutgoing ? 8 : 1
         }
 
         source: internal.getBubbleImage();
@@ -57,7 +55,7 @@ Item {
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
         horizontalAlignment: Text.AlignRight
-        visible: senderName.text !== "" && !isServiceMessage
+        visible: senderName.text !== ""
     }
 
     Item {
@@ -66,7 +64,7 @@ Item {
         height: contentItem.children[0].height
         anchors {
             top: parent.top
-            topMargin: isServiceMessage ? 18 : senderName.text === "" ? 16 : 46
+            topMargin: senderName.text === "" ? 16 : 46
         }
     }
 
@@ -85,7 +83,6 @@ Item {
         font.pixelSize: 16
         font.weight: Font.Light
         horizontalAlignment: isOutgoing ? Text.AlignLeft : Text.AlignRight
-        visible: !isServiceMessage
     }
 
     QtObject {
@@ -93,12 +90,10 @@ Item {
 
         function getBubbleImage() {
             var imageSrc = "../images/";
-            if (isServiceMessage) {
-                imageSrc += "notification"
-            } else {
-                imageSrc += isOutgoing ? "outgoing" : "incoming"
-                imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
-            }
+
+            imageSrc += isOutgoing ? "outgoing" : "incoming"
+            imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
+
             imageSrc += ".png"
 
             return imageSrc;

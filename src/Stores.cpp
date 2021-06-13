@@ -60,22 +60,12 @@ void ChatStore::initialize(TdApi *controller)
     connect(controller, SIGNAL(updateChatReplyMarkup(qint64, qint64)), SLOT(handleChatReplyMarkup(qint64, qint64)));
     connect(controller, SIGNAL(updateChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)));
-
-    connect(controller, SIGNAL(updateChatOnlineMemberCount(qint64, int)), SLOT(handleChatOnlineMemberCount(qint64, int)));
 }
 
 QVariantMap ChatStore::get(qint64 chatId) const
 {
     if (m_chats.contains(chatId))
         return m_chats.value(chatId);
-
-    return {};
-}
-
-int ChatStore::getOnlineMemberCount(qint64 chatId) const
-{
-    if (m_onlineMemberCount.contains(chatId))
-        return m_onlineMemberCount.value(chatId);
 
     return {};
 }
@@ -202,15 +192,9 @@ void ChatStore::handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMe
     }
 }
 
-void ChatStore::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount)
-{
-    m_onlineMemberCount.insert(chatId, onlineMemberCount);
-}
-
 void FileStore::initialize(TdApi *controller)
 {
-    connect(controller, SIGNAL(updateFile(const QVariantMap &)),
-            SLOT(handleUpdateFile(const QVariantMap &)));
+    connect(controller, SIGNAL(updateFile(const QVariantMap &)), SLOT(handleUpdateFile(const QVariantMap &)));
 }
 
 QVariantMap FileStore::get(int fileId) const

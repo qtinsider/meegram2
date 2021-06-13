@@ -17,10 +17,11 @@ inline constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
 #if defined(MEEGO_EDITION_HARMATTAN)
 inline constexpr auto DatabaseDirectory = "/.meegram2/tdlib";
 #else
-inline constexpr auto DatabaseDirectory = "/.tdlib1";
+inline constexpr auto DatabaseDirectory = "/.tdlib";
 #endif
 
 inline constexpr auto WaitTimeout = 30.0;  // 30 sec
 
 inline constexpr auto ServiceNotificationsUserIds = {42777, 333000, 777000};
-inline constexpr auto MessageSliceLimit = 10;
+inline constexpr auto ChatSliceLimit = 20;
+inline constexpr auto MessageSliceLimit = 15;

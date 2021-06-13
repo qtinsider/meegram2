@@ -94,6 +94,7 @@ public:
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
+    Q_INVOKABLE void toggleChatIsPinned(const QVariantMap &chatList, qint64 chatId, bool isPinned);
     Q_INVOKABLE void viewMessages(qint64 chatId, qint64 messageThreadId, const QList<qint64> &messageIds, bool forceRead);
 
     BasicGroupStore *const basicGroupStore{};

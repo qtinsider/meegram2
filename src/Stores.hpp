@@ -44,7 +44,6 @@ public:
     void initialize(TdApi *controller) override;
 
     Q_INVOKABLE QVariantMap get(qint64 chatId) const;
-    Q_INVOKABLE int getOnlineMemberCount(qint64 chatId) const;
 
 private slots:
     void handleNewChat(const QVariantMap &chat);
@@ -63,11 +62,9 @@ private slots:
     void handleChatActionBar(qint64 chatId, const QVariantMap &actionBar);
     void handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId);
     void handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions);
-    void handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount);
 
 private:
     QHash<qint64, QVariantMap> m_chats;
-    QHash<qint64, int> m_onlineMemberCount;;
 };
 
 class FileStore : public Store

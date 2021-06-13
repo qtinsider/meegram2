@@ -26,6 +26,7 @@ include(lib/warnings.pri)
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += \
     src/ChatModel.cpp \
+    src/CountryModel.cpp \
     src/ImageProviders.cpp \
     src/Lottie.cpp \
     src/main.cpp \
@@ -37,6 +38,7 @@ SOURCES += \
 HEADERS += \
     src/ChatModel.hpp \
     src/Common.hpp \
+    src/CountryModel.hpp \
     src/ImageProviders.hpp \
     src/Lottie.hpp \
     src/MessageModel.hpp \

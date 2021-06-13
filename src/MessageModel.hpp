@@ -7,8 +7,12 @@
 class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
+
+    Q_PROPERTY(QVariantMap chat READ getChat WRITE openChat NOTIFY chatChanged)
+    Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
+    Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(bool refreshing READ refreshing NOTIFY refreshingChanged)
+
 public:
     explicit MessageModel(QObject *parent = nullptr);
 
@@ -61,23 +65,26 @@ public:
 
     int count() const noexcept;
 
-    bool refreshing() const noexcept;
+    QVariantMap getChat() const noexcept;
+    QString getChatSubtitle() const noexcept;
+    QString getChatTitle() const noexcept;
 
     Q_INVOKABLE void loadHistory() noexcept;
 
-    Q_INVOKABLE void openChat(qint64 chatId) noexcept;
-    Q_INVOKABLE void closeChat(qint64 chatId) noexcept;
+    Q_INVOKABLE void openChat(const QVariantMap &chat) noexcept;
+    Q_INVOKABLE void closeChat() noexcept;
 
     Q_INVOKABLE void deleteMessage(qint64 messageId) noexcept;
     Q_INVOKABLE void viewMessage(qint64 messageId) noexcept;
 
     Q_INVOKABLE QVariantMap get(qint64 messageId) const noexcept;
-    Q_INVOKABLE int indexOf(qint64 messageId) const noexcept;
-    Q_INVOKABLE void scrollToMessage(qint64 messageId) noexcept;
+    Q_INVOKABLE int getIndex(qint64 messageId) const noexcept;
 
 signals:
+    void chatChanged();
     void countChanged();
-    void refreshingChanged();
+    void moreHistoriesLoaded(int modelIndex);
+    void statusChanged();
 
 public slots:
     void clearAll() noexcept;
@@ -92,6 +99,8 @@ private slots:
     void handleMessageInteractionInfo(qint64 chatId, qint64 messageId, const QVariantMap &interactionInfo);
     void handleDeleteMessages(qint64 chatId, const QVariantList &messageIds, bool isPermanent, bool fromCache);
 
+    void handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount);
+
     void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
     void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
 
@@ -100,14 +109,24 @@ private slots:
 
 private:
     void insertMessages(const QVariantList &messages);
-    void itemChanged(int64_t index);
 
-    qint64 m_chatId{};
+    QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) const noexcept;
+    QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
+    QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
+
+    static QString getUserStatus(const QVariantMap &user) noexcept;
+
+    static QString getMessageDate(int64_t time) noexcept;
+
+    void itemChanged(int64_t index);
 
     QVariantMap m_chat;
     QList<QVariantMap> m_messages;
 
-    bool m_refreshing{true};
+    qint64 m_chatId{};
+
+    bool m_loading{};
+    bool m_loadingHistory{};
 
     std::unordered_set<int64_t> m_uniqueIds;
 };

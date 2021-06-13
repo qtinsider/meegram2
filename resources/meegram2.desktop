@@ -4,7 +4,8 @@ Version=1.0
 Type=Application
 Terminal=false
 Name=MeeGram
-Exec=/usr/bin/invoker --type=d -s /opt/meegram2/bin/meegram2
+TryExec=/opt/meegram2/bin/meegram2
+Exec=/opt/meegram2/bin/meegram2 %U
 Icon=/usr/share/icons/hicolor/80x80/apps/meegram2.png
 X-Window-Icon=
 X-HildonDesk-ShowInToolbar=true

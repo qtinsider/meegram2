@@ -6,7 +6,9 @@ Item {
     z: 100
 
     property alias text: titleLabel.text
-    property color barColor: theme.selectionColor
+    property bool isArchived: false
+
+    property color __color: isArchived ? "#424345" :  theme.selectionColor
 
     anchors {
         top: parent.top
@@ -14,14 +16,14 @@ Item {
         right: parent.right
     }
 
-    height: screen.currentOrientation === Screen.Portrait ? 72 : 64
+    height: isPortrait ? 72 : 64
 
     Rectangle {
         id: background
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: barColor }
-            GradientStop { position: 1.0; color: Qt.darker(barColor) }
+            GradientStop { position: 0.0; color: __color }
+            GradientStop { position: 1.0; color: Qt.darker(__color) }
         }
     }
 
@@ -30,8 +32,8 @@ Item {
         anchors {
             top: parent.top
             bottom: parent.bottom
-            topMargin: screen.currentOrientation == Screen.Portrait ? 16 : 12
-            bottomMargin: screen.currentOrientation == Screen.Portrait ? 24 : 20
+            topMargin: isPortrait ? 16 : 12
+            bottomMargin: isPortrait ? 24 : 20
             left: parent.left
             right: parent.right
             leftMargin: 16

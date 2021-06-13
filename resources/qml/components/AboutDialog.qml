@@ -58,7 +58,7 @@ Dialog {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 color: "white"
-                text: "Donate<br/><a href='https://www.patreon.com/chukwudi'>www.patreon.com/chukwudi</a><br/><a href='https://liberapay.com/chukwudi'>liberapay.com/chukwudi</a><br/><a href='https://www.buymeacoffee.com/nwutobo'>www.buymeacoffee.com/nwutobo</a>"
+                text: "<b>Donation</b><br/>If you like my work you can buy me a coffee.<br/><a href='https://www.buymeacoffee.com/nwutobo'>www.buymeacoffee.com/nwutobo</a>"
                 onLinkActivated: Qt.openUrlExternally(link)
             }
 
@@ -70,8 +70,6 @@ Dialog {
                 text: "Copyright \u00a9 2021 Chukwudi Nwutobo<br/>Contact: <a href='mailto:nwutobo@outlook.com?subject=Meegram'>nwutobo@outlook.com</a>"
                 onLinkActivated: Qt.openUrlExternally(link)
             }
-
-
         }
     }
 }

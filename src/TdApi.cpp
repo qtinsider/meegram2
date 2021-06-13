@@ -489,6 +489,18 @@ void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
     json.sendObject(clientId);
 }
 
+void TdApi::toggleChatIsPinned(const QVariantMap &chatList, qint64 chatId, bool isPinned)
+{
+    JsonClient json{
+        {"@type", "toggleChatIsPinned"},
+        {"chat_list", chatList},
+        {"chat_id", chatId},
+        {"is_pinned", isPinned},
+    };
+
+    json.sendObject(clientId);
+}
+
 void TdApi::viewMessages(qint64 chatId, qint64 messageThreadId, const QList<qint64> &messageIds, bool forceRead)
 {
     // clang-format off
@@ -801,7 +813,7 @@ void TdApi::initEvents()
 
     m_events.emplace("updateChatOnlineMemberCount", [this](const QVariantMap &data) {
         auto chatId = data.value("chat_id").toLongLong();
-        auto onlineMemberCount = data.value("onlineMemberCount").toInt();
+        auto onlineMemberCount = data.value("online_member_count").toInt();
         emit updateChatOnlineMemberCount(chatId, onlineMemberCount);
     });
 

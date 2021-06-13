@@ -3,12 +3,14 @@
 #include <QDeclarativeEngine>
 #include <QDeclarativeView>
 #include <QFile>
+#include <QFontDatabase>
 #include <QLocale>
 #include <QTextCodec>
 #include <QTranslator>
 
 #include "ChatModel.hpp"
 #include "Common.hpp"
+#include "CountryModel.hpp"
 #include "ImageProviders.hpp"
 #include "Lottie.hpp"
 #include "MessageModel.hpp"
@@ -23,17 +25,21 @@
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
 #ifdef MEEGO_EDITION_HARMATTAN
-    QApplication *app = MDeclarativeCache::qApplication(argc, argv);
+    QScopedPointer<QApplication> app(MDeclarativeCache::qApplication(argc, argv));
 
-    QDeclarativeView *viewer = MDeclarativeCache::qDeclarativeView();
+    QScopedPointer<QDeclarativeView> viewer(MDeclarativeCache::qDeclarativeView());
 #else
-    QApplication *app = new QApplication(argc, argv);
+    QScopedPointer<QApplication> app(new QApplication(argc, argv));
 
-    QDeclarativeView *viewer = new QDeclarativeView();
+    QScopedPointer<QDeclarativeView> viewer(new QDeclarativeView);
 #endif
 
     QCoreApplication::setApplicationName(AppName);
     QCoreApplication::setApplicationVersion(AppVersion);
+
+    QFontDatabase::addApplicationFont(":/fonts/fontello.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/NotoEmoji-Regular.ttf");
+    QFontDatabase::addApplicationFont(":/fonts/NotoSansSymbols-Regular.ttf");
 
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 
@@ -51,9 +57,8 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     }
     app->installTranslator(&translator);
 
-    viewer->setResizeMode(QDeclarativeView::SizeRootObjectToView);
-
     QScopedPointer<ChatModel> myChatModel(new ChatModel);
+    QScopedPointer<CountryModel> myCountryModel(new CountryModel);
     QScopedPointer<MessageModel> myMessageModel(new MessageModel);
 
     QScopedPointer<Utils> utils(new Utils);
@@ -61,10 +66,11 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
 
-    qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
+    qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 0, 1, "TdApi", "TdApi should not be created in QML");
 
     viewer->rootContext()->setContextProperty("tdapi", &TdApi::getInstance());
     viewer->rootContext()->setContextProperty("myChatModel", myChatModel.data());
+    viewer->rootContext()->setContextProperty("myCountryModel", myCountryModel.data());
     viewer->rootContext()->setContextProperty("myMessageModel", myMessageModel.data());
 
     viewer->engine()->addImageProvider("telegram", new TdImageProvider);
@@ -80,9 +86,10 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     viewer->rootContext()->setContextProperty("AppVersion", AppVersion);
 
-    QObject::connect(viewer->engine(), SIGNAL(quit()), viewer, SLOT(close()));
-    QObject::connect(app, SIGNAL(aboutToQuit()), &TdApi::getInstance(), SLOT(close()));
+    QObject::connect(viewer->engine(), SIGNAL(quit()), viewer.data(), SLOT(close()));
+    QObject::connect(app.data(), SIGNAL(aboutToQuit()), &TdApi::getInstance(), SLOT(close()));
 
+    viewer->setResizeMode(QDeclarativeView::SizeRootObjectToView);
     viewer->setSource(QUrl("qrc:/qml/main.qml"));
 
     TdApi::getInstance().initialize();

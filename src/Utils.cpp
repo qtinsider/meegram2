@@ -148,13 +148,11 @@ QString getUserFullName(int userId) noexcept
     switch (fnv::hashRuntime(userType.constData()))
     {
         case fnv::hash("userTypeBot"):
-        case fnv::hash("userTypeRegular"):
-        {
+        case fnv::hash("userTypeRegular"): {
             return firstName % " " % lastName;
         }
         case fnv::hash("userTypeDeleted"):
-        case fnv::hash("userTypeUnknown"):
-        {
+        case fnv::hash("userTypeUnknown"): {
             return QObject::tr("HiddenName");
         }
     }
@@ -248,139 +246,6 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
     return result;
 }
 
-QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) noexcept
-{
-    auto status = basicGroup.value("status").toMap();
-    auto count = basicGroup.value("member_count").toInt();
-
-    if (status.value("@type").toByteArray() == "chatMemberStatusBanned")
-        return QObject::tr("YouWereKicked");
-
-    if (count <= 1)
-        return QObject::tr("Members", "", count);
-
-    auto onlineCount = TdApi::getInstance().chatStore->getOnlineMemberCount(chat.value("id").toLongLong());
-    if (onlineCount > 1)
-    {
-        return QObject::tr("Members", "", count) % " " % QObject::tr("OnlineCount", "", onlineCount);
-    }
-
-    return QObject::tr("Members", "", count);
-}
-
-QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) noexcept
-{
-    auto status = supergroup.value("status").toMap();
-    auto count = supergroup.value("member_count").toInt();
-    auto username = supergroup.value("username").toString();
-
-    if (!supergroup.value("is_channel").toBool())
-        return QString();
-
-    if (count <= 0)
-    {
-        return !username.isEmpty() ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
-    }
-
-    if (count <= 1)
-        return QObject::tr("Subscribers", "", 1);
-
-    auto onlineCount = TdApi::getInstance().chatStore->getOnlineMemberCount(chat.value("id").toLongLong());
-    if (onlineCount > 1)
-    {
-        return QObject::tr("Subscribers", "", count) % " " % QObject::tr("OnlineCount", "", onlineCount);
-    }
-
-    return QObject::tr("Subscribers", "", count);
-}
-
-QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) noexcept
-{
-    auto status = supergroup.value("status").toMap();
-    auto count = supergroup.value("member_count").toInt();
-    auto username = supergroup.value("username").toString();
-    auto hasLocation = supergroup.value("has_location").toBool();
-
-    if (status.value("@type").toByteArray() == "chatMemberStatusBanned")
-        return QObject::tr("YouWereKicked");
-
-    if (count <= 0)
-    {
-        if (hasLocation)
-            return QObject::tr("MegaLocation");
-
-        return !username.isEmpty() ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
-    }
-
-    if (count <= 1)
-        return QObject::tr("Members", "", count);
-
-    auto onlineCount = TdApi::getInstance().chatStore->getOnlineMemberCount(chat.value("id").toLongLong());
-    if (onlineCount > 1)
-    {
-        return QObject::tr("Members", "", count) % " " % QObject::tr("OnlineCount", "", onlineCount);
-    }
-
-    return QObject::tr("Members", "", count);
-}
-
-QString getUserStatus(const QVariantMap &user) noexcept
-{
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](int userId) { return userId == user.value("id").toInt(); }))
-    {
-        return QObject::tr("ServiceNotifications");
-    }
-
-    if (user.value("is_support").toBool())
-        return QObject::tr("SupportStatus");
-
-    auto type = user.value("type").toMap();
-
-    if (type.value("@type").toByteArray() == "userTypeBot")
-        return QObject::tr("Bot");
-
-    auto status = user.value("status").toMap();
-
-    auto statusType = status.value("@type").toByteArray();
-    switch (fnv::hashRuntime(statusType.constData()))
-    {
-        case fnv::hash("userStatusEmpty"):
-            return QObject::tr("ALongTimeAgo");
-        case fnv::hash("userStatusLastMonth"):
-            return QObject::tr("WithinAMonth");
-        case fnv::hash("userStatusLastWeek"):
-            return QObject::tr("WithinAWeek");
-        case fnv::hash("userStatusOffline"):
-        {
-            auto was_online = status.value("was_online").toLongLong();
-            if (was_online == 0)
-                return QObject::tr("Invisible");
-
-            auto wasOnline = QDateTime::fromMSecsSinceEpoch(was_online * 1000);
-
-            if (QDate::currentDate() == wasOnline.date())  // TODAY
-                return QObject::tr("LastSeenFormatted")
-                    .append(QObject::tr("TodayAtFormatted"))
-                    .append(QLocale::system().toString(wasOnline.time(), QLocale::ShortFormat));
-
-            else if (wasOnline.date().daysTo(QDate::currentDate()) < 2)
-                return QObject::tr("LastSeenFormatted")
-                    .append(QObject::tr("YesterdayAtFormatted"))
-                    .append(QLocale::system().toString(wasOnline.time(), QLocale::ShortFormat));
-
-            return QObject::tr("formatDateAtTime")
-                .arg(QObject::tr("LastSeenDateFormatted"))
-                .arg(QLocale::system().toString(wasOnline.date(), QLocale::ShortFormat));
-        }
-        case fnv::hash("userStatusOnline"):
-            return QObject::tr("Online");
-        case fnv::hash("userStatusRecently"):
-            return QObject::tr("Lately");
-    }
-
-    return QString();
-}
-
 [[maybe_unused]] bool isUserBlocked(int userId) noexcept
 {
     auto fullInfo = TdApi::getInstance().userStore->getFullInfo(userId);
@@ -428,14 +293,12 @@ Utils::Utils(QObject *parent)
 {
 }
 
-QString Utils::getServiceMessageContent(const QVariantMap &message)
+QString Utils::getServiceMessageContent(const QVariantMap &chat, const QVariantMap &message)
 {
     auto ttl = message.value("ttl").toInt();
     auto sender = message.value("sender").toMap();
     auto content = message.value("content").toMap();
     auto isOutgoing = message.value("is_outgoing").toBool();
-
-    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
 
     auto isChannel = isChannelChat(chat);
     auto author = getMessageAuthor(chat, sender);
@@ -445,8 +308,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
     {
         switch (fnv::hashRuntime(contentType.constData()))
         {
-            case fnv::hash("messagePhoto"):
-            {
+            case fnv::hash("messagePhoto"): {
                 if (isOutgoing)
                 {
                     return QObject::tr("ActionYouSendTTLPhoto");
@@ -454,8 +316,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
                 return QObject::tr("ActionSendTTLPhoto").arg(author);
             }
-            case fnv::hash("messageVideo"):
-            {
+            case fnv::hash("messageVideo"): {
                 if (isOutgoing)
                 {
                     return QObject::tr("ActionYouSendTTLVideo");
@@ -468,16 +329,13 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
     switch (fnv::hashRuntime(contentType.constData()))
     {
-        case fnv::hash("messageExpiredPhoto"):
-        {
+        case fnv::hash("messageExpiredPhoto"): {
             return QObject::tr("AttachPhotoExpired");
         }
-        case fnv::hash("messageExpiredVideo"):
-        {
+        case fnv::hash("messageExpiredVideo"): {
             return QObject::tr("AttachVideoExpired");
         }
-        case fnv::hash("messageBasicGroupChatCreate"):
-        {
+        case fnv::hash("messageBasicGroupChatCreate"): {
             if (isOutgoing)
             {
                 return QObject::tr("ActionYouCreateGroup");
@@ -485,8 +343,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionCreateGroup").arg(author);
         }
-        case fnv::hash("messageSupergroupChatCreate"):
-        {
+        case fnv::hash("messageSupergroupChatCreate"): {
             if (isChannel)
             {
                 return QObject::tr("ActionCreateChannel");
@@ -494,8 +351,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionCreateMega");
         }
-        case fnv::hash("messageChatChangeTitle"):
-        {
+        case fnv::hash("messageChatChangeTitle"): {
             auto title = content.value("title").toString();
 
             if (isChannel)
@@ -510,8 +366,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionChangedTitle").arg(author).arg(title);
         }
-        case fnv::hash("messageChatChangePhoto"):
-        {
+        case fnv::hash("messageChatChangePhoto"): {
             if (isChannel)
             {
                 return QObject::tr("ActionChannelChangedPhoto");
@@ -524,8 +379,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionChangedPhoto").arg(author);
         }
-        case fnv::hash("messageChatDeletePhoto"):
-        {
+        case fnv::hash("messageChatDeletePhoto"): {
             if (isChannel)
             {
                 return QObject::tr("ActionChannelRemovedPhoto");
@@ -538,8 +392,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionRemovedPhoto").arg(author);
         }
-        case fnv::hash("messageChatAddMembers"):
-        {
+        case fnv::hash("messageChatAddMembers"): {
             auto singleMember = content.value("member_user_ids").toList().length() == 1;
 
             if (singleMember)
@@ -608,8 +461,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionAddUser").arg(author).arg(users);
         }
-        case fnv::hash("messageChatJoinByLink"):
-        {
+        case fnv::hash("messageChatJoinByLink"): {
             if (isOutgoing)
             {
                 return QObject::tr("ActionInviteYou");
@@ -617,8 +469,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionInviteUser").arg(author);
         }
-        case fnv::hash("messageChatDeleteMember"):
-        {
+        case fnv::hash("messageChatDeleteMember"): {
             if (content.value("user_id").toInt() == sender.value("user_id").toInt())
             {
                 if (isOutgoing)
@@ -640,20 +491,16 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionKickUser").arg(author).arg(getUserShortName(content.value("user_id").toInt()));
         }
-        case fnv::hash("messageChatUpgradeTo"):
-        {
+        case fnv::hash("messageChatUpgradeTo"): {
             return QObject::tr("ActionMigrateFromGroup");
         }
-        case fnv::hash("messageChatUpgradeFrom"):
-        {
+        case fnv::hash("messageChatUpgradeFrom"): {
             return QObject::tr("ActionMigrateFromGroup");
         }
-        case fnv::hash("messagePinMessage"):
-        {
+        case fnv::hash("messagePinMessage"): {
             return QObject::tr("ActionPinned").arg(author);
         }
-        case fnv::hash("messageScreenshotTaken"):
-        {
+        case fnv::hash("messageScreenshotTaken"): {
             if (isOutgoing)
             {
                 return QObject::tr("ActionTakeScreenshootYou");
@@ -661,8 +508,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("ActionTakeScreenshoot").arg(author);
         }
-        case fnv::hash("messageChatSetTtl"):
-        {
+        case fnv::hash("messageChatSetTtl"): {
             auto ttl_ = content.value("ttl").toInt();
             auto ttlString = getTTLString(ttl_);
 
@@ -679,21 +525,17 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             return QObject::tr("MessageLifetimeChanged").arg(getUserShortName(sender.value("user_id").toInt())).arg(ttlString);
         }
-        case fnv::hash("messageCustomServiceAction"):
-        {
+        case fnv::hash("messageCustomServiceAction"): {
             return content.value("text").toString();
         }
-        case fnv::hash("messageContactRegistered"):
-        {
+        case fnv::hash("messageContactRegistered"): {
             auto userName = getUserShortName(sender.value("user_id").toInt());
             return QObject::tr("NotificationContactJoined").arg(userName);
         }
-        case fnv::hash("messageWebsiteConnected"):
-        {
+        case fnv::hash("messageWebsiteConnected"): {
             return QObject::tr("ActionBotAllowed");
         }
-        case fnv::hash("messageUnsupported"):
-        {
+        case fnv::hash("messageUnsupported"): {
             return QObject::tr("UnsupportedMedia");
         }
     }
@@ -811,8 +653,10 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
     return QLocale::system().toString(date.date(), QLocale::ShortFormat);
 }
 
-QString Utils::getContent(const QVariantMap &message) noexcept
+QString Utils::getContent(const QVariantMap &chat) noexcept
 {
+    auto message = chat.value("last_message").toMap();
+
     auto content = message.value("content").toMap();
     auto sender = message.value("sender").toMap();
 
@@ -830,28 +674,24 @@ QString Utils::getContent(const QVariantMap &message) noexcept
     }
 
     if (message.value("ttl").toInt() > 0)
-        return Utils::getServiceMessageContent(message);
+        return Utils::getServiceMessageContent(chat, message);
 
     auto contentType = content.value("@type").toByteArray();
     switch (fnv::hashRuntime(contentType.constData()))
     {
-        case fnv::hash("messageAnimation"):
-        {
+        case fnv::hash("messageAnimation"): {
             return QObject::tr("AttachGif") % caption;
         }
-        case fnv::hash("messageAudio"):
-        {
+        case fnv::hash("messageAudio"): {
             auto audio = content.value("audio").toMap();
             auto title = getAudioTitle(audio).isEmpty() ? QObject::tr("AttachMusic") : getAudioTitle(audio);
 
             return title % caption;
         }
-        case fnv::hash("messageBasicGroupChatCreate"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageBasicGroupChatCreate"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageCall"):
-        {
+        case fnv::hash("messageCall"): {
             auto text = getCallContent(sender, content);
 
             auto duration = content.value("duration").toInt();
@@ -862,56 +702,43 @@ QString Utils::getContent(const QVariantMap &message) noexcept
 
             return text;
         }
-        case fnv::hash("messageChatAddMembers"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatAddMembers"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatChangePhoto"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatChangePhoto"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatChangeTitle"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatChangeTitle"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatDeleteMember"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatDeleteMember"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatDeletePhoto"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatDeletePhoto"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatJoinByLink"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatJoinByLink"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatSetTtl"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatSetTtl"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatUpgradeFrom"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatUpgradeFrom"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageChatUpgradeTo"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageChatUpgradeTo"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageContact"):
-        {
+        case fnv::hash("messageContact"): {
             return QObject::tr("AttachContact") % caption;
         }
-        case fnv::hash("messageContactRegistered"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageContactRegistered"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageCustomServiceAction"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageCustomServiceAction"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageDocument"):
-        {
+        case fnv::hash("messageDocument"): {
             auto document = content.value("document").toMap();
             auto fileName = document.value("file_name").toString();
             if (!fileName.isEmpty())
@@ -921,104 +748,81 @@ QString Utils::getContent(const QVariantMap &message) noexcept
 
             return QObject::tr("AttachDocument") % caption;
         }
-        case fnv::hash("messageExpiredPhoto"):
-        {
+        case fnv::hash("messageExpiredPhoto"): {
             return QObject::tr("AttachPhoto") % caption;
         }
-        case fnv::hash("messageExpiredVideo"):
-        {
+        case fnv::hash("messageExpiredVideo"): {
             return QObject::tr("AttachVideo") % caption;
         }
-        case fnv::hash("messageGame"):
-        {
+        case fnv::hash("messageGame"): {
             return QObject::tr("AttachGame") % caption;
         }
-        case fnv::hash("messageGameScore"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageGameScore"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageInvoice"):
-        {
+        case fnv::hash("messageInvoice"): {
             auto title = content.value("title").toString();
             return title % caption;
         }
-        case fnv::hash("messageLocation"):
-        {
+        case fnv::hash("messageLocation"): {
             return QObject::tr("AttachLocation").arg(caption);
         }
-        case fnv::hash("messagePassportDataReceived"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messagePassportDataReceived"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messagePassportDataSent"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messagePassportDataSent"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messagePaymentSuccessful"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messagePaymentSuccessful"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messagePaymentSuccessfulBot"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messagePaymentSuccessfulBot"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messagePhoto"):
-        {
+        case fnv::hash("messagePhoto"): {
             return QObject::tr("AttachPhoto") % caption;
         }
-        case fnv::hash("messagePoll"):
-        {
+        case fnv::hash("messagePoll"): {
             auto poll = content.value("poll").toMap();
             auto question = poll.value("question").toString();
 
             return QString::fromUtf8("\xf0\x9f\x93\x8a\x20") % question;
         }
-        case fnv::hash("messagePinMessage"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messagePinMessage"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageScreenshotTaken"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageScreenshotTaken"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageSticker"):
-        {
+        case fnv::hash("messageSticker"): {
             auto sticker = content.value("sticker").toMap();
             auto emoji = sticker.value("emoji").toString();
 
             return QObject::tr("AttachSticker") % ": " % emoji;
         }
-        case fnv::hash("messageSupergroupChatCreate"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageSupergroupChatCreate"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageText"):
-        {
+        case fnv::hash("messageText"): {
             return textOneLine(content.value("text").toMap().value("text").toString());
         }
-        case fnv::hash("messageUnsupported"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageUnsupported"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
-        case fnv::hash("messageVenue"):
-        {
+        case fnv::hash("messageVenue"): {
             return QObject::tr("AttachLocation") % caption;
         }
-        case fnv::hash("messageVideo"):
-        {
+        case fnv::hash("messageVideo"): {
             return QObject::tr("AttachVideo") % caption;
         }
-        case fnv::hash("messageVideoNote"):
-        {
+        case fnv::hash("messageVideoNote"): {
             return QObject::tr("AttachRound") % caption;
         }
-        case fnv::hash("messageVoiceNote"):
-        {
+        case fnv::hash("messageVoiceNote"): {
             return QObject::tr("AttachAudio") % caption;
         }
-        case fnv::hash("messageWebsiteConnected"):
-        {
-            return Utils::getServiceMessageContent(message);
+        case fnv::hash("messageWebsiteConnected"): {
+            return Utils::getServiceMessageContent(chat, message);
         }
     }
 
@@ -1043,25 +847,22 @@ bool Utils::isChatUnread(const QVariantMap &chat) noexcept
     return isMarkedAsUnread || unreadCount > 0;
 }
 
-QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
+QString Utils::getMessageSenderName(const QVariantMap &chat, const QVariantMap &message) noexcept
 {
     if (isServiceMessage(message))
         return QString();
 
-    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
     auto sender = message.value("sender").toMap();
 
     auto chatType = chat.value("type").toMap().value("@type").toByteArray();
     switch (fnv::hashRuntime(chatType.constData()))
     {
         case fnv::hash("chatTypePrivate"):
-        case fnv::hash("chatTypeSecret"):
-        {
+        case fnv::hash("chatTypeSecret"): {
             return QString();
         }
         case fnv::hash("chatTypeBasicGroup"):
-        case fnv::hash("chatTypeSupergroup"):
-        {
+        case fnv::hash("chatTypeSupergroup"): {
             if (isChannelChat(chat))
             {
                 return QString();
@@ -1070,15 +871,13 @@ QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
             auto senderType = sender.value("@type").toByteArray();
             switch (fnv::hashRuntime(senderType.constData()))
             {
-                case fnv::hash("messageSenderUser"):
-                {
+                case fnv::hash("messageSenderUser"): {
                     if (isMeUser(sender.value("user_id").toInt()))
                         return QObject::tr("FromYou");
 
                     return getUserFullName(sender.value("user_id").toInt());
                 }
-                case fnv::hash("messageSenderChat"):
-                {
+                case fnv::hash("messageSenderChat"): {
                     return getChatTitle(chat);
                 }
             }
@@ -1120,43 +919,36 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
         auto entityType = type.value("@type").toByteArray();
         switch (fnv::hashRuntime(entityType.constData()))
         {
-            case fnv::hash("textEntityTypeBold"):
-            {
+            case fnv::hash("textEntityTypeBold"): {
                 QTextCharFormat format;
                 format.setFontWeight(QFont::Bold);
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeBotCommand"):
-            {
+            case fnv::hash("textEntityTypeBotCommand"): {
                 break;
             }
-            case fnv::hash("textEntityTypeCashtag"):
-            {
+            case fnv::hash("textEntityTypeCashtag"): {
                 break;
             }
-            case fnv::hash("textEntityTypeEmailAddress"):
-            {
+            case fnv::hash("textEntityTypeEmailAddress"): {
                 QTextCharFormat format;
                 format.setAnchor(true);
                 format.setAnchorHref("mailto:" % entityText);
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeHashtag"):
-            {
+            case fnv::hash("textEntityTypeHashtag"): {
                 break;
             }
-            case fnv::hash("textEntityTypeItalic"):
-            {
+            case fnv::hash("textEntityTypeItalic"): {
                 QTextCharFormat format;
                 format.setFontItalic(true);
                 cursor.mergeCharFormat(format);
                 break;
             }
             case fnv::hash("textEntityTypeMentionName"):
-            case fnv::hash("textEntityTypeMention"):
-            {
+            case fnv::hash("textEntityTypeMention"): {
                 QTextCharFormat format;
                 format.setAnchor(true);
                 format.setAnchorHref(entityText);
@@ -1164,8 +956,7 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypePhoneNumber"):
-            {
+            case fnv::hash("textEntityTypePhoneNumber"): {
                 QTextCharFormat format;
                 format.setAnchor(true);
                 format.setAnchorHref("tel:" % entityText);
@@ -1175,22 +966,19 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
             }
             case fnv::hash("textEntityTypeCode"):
             case fnv::hash("textEntityTypePre"):
-            case fnv::hash("textEntityTypePreCode"):
-            {
+            case fnv::hash("textEntityTypePreCode"): {
                 QTextCharFormat format;
                 format.setFontFixedPitch(true);
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeStrikethrough"):
-            {
+            case fnv::hash("textEntityTypeStrikethrough"): {
                 QTextCharFormat format;
                 format.setFontStrikeOut(true);
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeTextUrl"):
-            {
+            case fnv::hash("textEntityTypeTextUrl"): {
                 auto url = type.value("url").toString().isEmpty() ? entityText : type.value("url").toString();
 
                 QTextCharFormat format;
@@ -1201,8 +989,7 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeUrl"):
-            {
+            case fnv::hash("textEntityTypeUrl"): {
                 QTextCharFormat format;
                 format.setAnchor(true);
                 format.setAnchorHref(entityText);
@@ -1211,8 +998,7 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
                 cursor.mergeCharFormat(format);
                 break;
             }
-            case fnv::hash("textEntityTypeUnderline"):
-            {
+            case fnv::hash("textEntityTypeUnderline"): {
                 QTextCharFormat format;
                 format.setFontUnderline(true);
                 cursor.mergeCharFormat(format);
@@ -1225,34 +1011,6 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
         return doc->toPlainText();
 
     return doc->toHtml();
-}
-
-QString Utils::getChatSubtitle(const QVariantMap &chat) noexcept
-{
-    auto type = chat.value("type").toMap();
-
-    auto chatType = type.value("@type").toByteArray();
-    switch (fnv::hashRuntime(chatType.constData()))
-    {
-        case fnv::hash("chatTypeBasicGroup"):
-        {
-            auto basicGroup = TdApi::getInstance().basicGroupStore->get(type.value("basic_group_id").toInt());
-            return getBasicGroupStatus(basicGroup, chat);
-        }
-        case fnv::hash("chatTypePrivate"):
-        case fnv::hash("chatTypeSecret"):
-        {
-            auto user = TdApi::getInstance().userStore->get(type.value("user_id").toInt());
-            return getUserStatus(user);
-        }
-        case fnv::hash("chatTypeSupergroup"):
-        {
-            auto supergroup = TdApi::getInstance().supergroupStore->get(type.value("supergroup_id").toInt());
-            return supergroup.value("is_channel").toBool() ? getChannelStatus(supergroup, chat) : getSupergroupStatus(supergroup, chat);
-        }
-    }
-
-    return QString();
 }
 
 void Utils::copyToClipboard(const QString &text) noexcept

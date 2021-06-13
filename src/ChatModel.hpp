@@ -9,10 +9,9 @@
 class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int chatFilterId READ chatFilterId WRITE setChatFilterId NOTIFY statusChanged)
     Q_PROPERTY(TdApi::ChatList chatList READ chatList WRITE setChatList NOTIFY statusChanged)
-    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
     explicit ChatModel(QObject *parent = nullptr);
@@ -45,7 +44,9 @@ public:
         DraftMessageRole,
         ClientDataRole,
 
+        ChatListRole,
         IsMuteRole,
+        IsPinnedRole,
         LastMessageAuthorRole,
         LastMessageContentRole,
         LastMessageDateRole,
@@ -61,10 +62,10 @@ public:
     QHash<int, QByteArray> roleNames() const noexcept;
 
     int count() const noexcept;
-    bool loading() const noexcept;
+
+    Q_INVOKABLE QVariantMap get(qint64 chatId) const noexcept;
 
     Q_INVOKABLE void loadChats() noexcept;
-    Q_INVOKABLE bool isChatPinned(qint64 chatId) const noexcept;
 
     TdApi::ChatList chatList() const noexcept;
     void setChatList(TdApi::ChatList chatList) noexcept;
@@ -76,11 +77,11 @@ public:
 
 signals:
     void countChanged();
-    void loadingChanged();
     void statusChanged();
 
 public slots:
     void clear() noexcept;
+    void refresh() noexcept;
     void sort(int column = 0, Qt::SortOrder order = Qt::DescendingOrder) override;
 
 private slots:
@@ -97,14 +98,10 @@ private slots:
 
     void handleChatPhoto(const QVariantMap &file);
 
-    void refresh() noexcept;
-
 private:
     void itemChanged(int64_t index);
 
-    bool m_loading{false};
-
-    bool m_canFetchMore{false};
+    bool m_canFetchMore{};
     int m_chatFilterId{};
     qint64 m_lastChatId{};
 
