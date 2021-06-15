@@ -128,5 +128,5 @@ private:
     bool m_loading{};
     bool m_loadingHistory{};
 
-    std::unordered_set<int64_t> m_uniqueIds;
+    std::unordered_set<int64_t> m_messageIds;
 };

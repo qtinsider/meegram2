@@ -28,7 +28,7 @@ build-stamp: configure-stamp
 
 	# Add here commands to compile the package.
 	# $(MAKE) # Uncomment this line for use without Qt Creator
-	#docbook-to-man debian/meegram2.sgml > meegram2.1
+	#docbook-to-man debian/meegram.sgml > meegram.1
 
 	touch $@
 
@@ -48,8 +48,8 @@ install: build
 	dh_clean -k 
 	dh_installdirs
 
-	# Add here commands to install the package into debian/meegram2.
-	$(MAKE) INSTALL_ROOT="$(CURDIR)"/debian/meegram2 install
+	# Add here commands to install the package into debian/meegram.
+	$(MAKE) INSTALL_ROOT="$(CURDIR)"/debian/meegram install
 
 
 # Build architecture-independent files here.

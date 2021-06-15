@@ -1,4 +1,6 @@
-#include "CountryModel.hpp"
+#include "SelectionModel.hpp"
+
+#include "TdApi.hpp"
 
 #include <QSystemNetworkInfo>
 
@@ -318,4 +320,80 @@ int CountryModel::getDefaultIndex() const noexcept
     }
 
     return {};
+}
+
+ChatFilterModel::ChatFilterModel(QObject *parent)
+{
+    QHash<int, QByteArray> roles;
+    roles.insert(IdRole, "id");
+    roles.insert(Qt::DisplayRole, "name");
+    roles.insert(IconNameRole, "iconName");
+
+    setRoleNames(roles);
+
+    connect(&TdApi::getInstance(), SIGNAL(updateChatFilters(const QVariantList &)), SLOT(handleChatFilters(const QVariantList &)));
+
+    QVariantMap chatFilter;
+    chatFilter.insert("id", 0);
+    chatFilter.insert("title", tr("FilterAllChats"));
+
+    m_items.clear();
+    m_items.append(chatFilter);
+}
+
+int ChatFilterModel::rowCount(const QModelIndex &index) const
+{
+    return m_items.count();
+}
+
+QVariant ChatFilterModel::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid())
+        return QVariant();
+
+    switch (auto item = m_items.value(index.row()); role)
+    {
+        case IdRole:
+            return item.toMap().value("id").toInt();
+        case Qt::DisplayRole:
+            return item.toMap().value("title").toString();
+        case IconNameRole:
+            return item.toMap().value("icon_name").toString();
+    }
+
+    return QVariant();
+}
+
+QVariantMap ChatFilterModel::get(int index) const noexcept
+{
+    QModelIndex modelIndex = createIndex(index, 0);
+
+    QVariantMap result;
+    result.insert("id", data(modelIndex, IdRole));
+    result.insert("name", data(modelIndex, Qt::DisplayRole));  // title
+    result.insert("iconName", data(modelIndex, IconNameRole));
+
+    return result;
+}
+
+int ChatFilterModel::count() const noexcept
+{
+    return m_items.count();
+}
+
+void ChatFilterModel::handleChatFilters(const QVariantList &chatFilters)
+{
+    std::ranges::for_each(chatFilters, [this](const auto &chatFilter) {
+        if (std::ranges::none_of(
+                m_items, [chatFilter](const auto &id) { return id.toMap().value("id").toInt() == chatFilter.toMap().value("id").toInt(); }))
+        {
+            beginInsertRows(QModelIndex(), rowCount(), rowCount());
+
+            m_items.append(chatFilter);
+
+            endInsertRows();
+        }
+    });
+
+    emit countChanged();
 }

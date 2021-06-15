@@ -1,8 +1,5 @@
 #include "TdApi.hpp"
 
-#include "Common.hpp"
-#include "Serialize.hpp"
-
 #include <fnv-cpp/fnv.h>
 #include <td/telegram/td_json_client.h>
 
@@ -11,6 +8,10 @@
 #include <QEventLoop>
 #include <QStringBuilder>
 #include <QTimer>
+#include <mutex>
+
+#include "Common.hpp"
+#include "Serialize.hpp"
 
 class JsonClient final
 {
@@ -310,6 +311,16 @@ void TdApi::getChats(const QVariantMap &chatList, qint64 offsetOrder, qint64 off
     json.sendObject(clientId);
 }
 
+void TdApi::getChatFilter(qint32 chatFilterId)
+{
+    JsonClient json{
+        {"@type", "getChatFilter"},
+        {"chat_filter_id", chatFilterId},
+    };
+
+    json.sendObject(clientId);
+}
+
 void TdApi::getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal)
 {
     // clang-format off
@@ -343,36 +354,6 @@ void TdApi::getMessages(qint64 chatId, const QList<qint64> &messageIds)
         {"chat_id", chatId},
         {"message_ids", messageIds},
     };
-    json.sendObject(clientId);
-}
-
-void TdApi::getSecretChat(qint32 secretChatId)
-{
-    JsonClient json{
-        {"@type", "getSecretChat"},
-        {"secret_chat_id", secretChatId},
-    };
-
-    json.sendObject(clientId);
-}
-
-void TdApi::getSupergroup(qint32 supergroupId)
-{
-    JsonClient json{
-        {"@type", "getSupergroup"},
-        {"supergroup_id", supergroupId},
-    };
-
-    json.sendObject(clientId);
-}
-
-void TdApi::getSupergroupFullInfo(qint32 supergroupId)
-{
-    JsonClient json{
-        {"@type", "getSupergroupFullInfo"},
-        {"supergroup_id", supergroupId},
-    };
-
     json.sendObject(clientId);
 }
 
@@ -560,6 +541,8 @@ void TdApi::listen()
                 auto document = nlohmann::json::parse(result);
                 auto type = document["@type"].get<std::string>();
 
+                std::shared_lock lock(mutex);
+
                 if (auto it = m_events.find(type); it != m_events.end())
                 {
                     it->second(document.get<QVariantMap>());
@@ -576,298 +559,319 @@ void TdApi::initEvents()
     // start the client by sending request to it
     td_send(clientId, R"({"@type":"getOption", "name":"version"})");
 
-    // clang-format off
-    m_events.emplace("updateAuthorizationState", [this](const QVariantMap &data) {
-        handleAuthorizationState(data);
-    });
+    std::unique_lock lock(mutex);
 
-    m_events.emplace("updateConnectionState", [this](const QVariantMap &data) {
-        emit updateConnectionState(data.value("state").toMap());
-    });
+    m_events.emplace("updateAuthorizationState", [this](const QVariantMap &data) { handleAuthorizationState(data); });
 
-    m_events.emplace("updateNewMessage", [this](const QVariantMap &data) {
-        emit updateNewMessage(data.value("message").toMap());
-    });
+    m_events.emplace("updateConnectionState", [this](const QVariantMap &data) { emit updateConnectionState(data.value("state").toMap()); });
+
+    m_events.emplace("updateNewMessage", [this](const QVariantMap &data) { emit updateNewMessage(data.value("message").toMap()); });
     m_events.emplace("updateMessageSendAcknowledged", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
 
         emit updateMessageSendAcknowledged(chatId, messageId);
     });
     m_events.emplace("updateMessageSendSucceeded", [this](const QVariantMap &data) {
-        auto message = data.value("message").toMap();
-        auto oldMessageId = data.value("old_message_id").toLongLong();
+        const auto message = data.value("message").toMap();
+        const auto oldMessageId = data.value("old_message_id").toLongLong();
 
         emit updateMessageSendSucceeded(message, oldMessageId);
     });
     m_events.emplace("updateMessageSendFailed", [this](const QVariantMap &data) {
-        auto message = data.value("chat_id").toMap();
-        auto oldMessageId = data.value("old_message_id").toLongLong();
-        auto errorCode = data.value("error_code").toInt();
-        auto errorMessage = data.value("error_message").toString();
+        const auto message = data.value("chat_id").toMap();
+        const auto oldMessageId = data.value("old_message_id").toLongLong();
+        const auto errorCode = data.value("error_code").toInt();
+        const auto errorMessage = data.value("error_message").toString();
 
         emit updateMessageSendFailed(message, oldMessageId, errorCode, errorMessage);
     });
     m_events.emplace("updateMessageContent", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
-        auto newContent = data.value("new_content").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
+        const auto newContent = data.value("new_content").toMap();
 
         emit updateMessageContent(chatId, messageId, newContent);
     });
     m_events.emplace("updateMessageEdited", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
-        auto editDate = data.value("edit_date").toInt();
-        auto replyMarkup = data.value("reply_markup").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
+        const auto editDate = data.value("edit_date").toInt();
+        const auto replyMarkup = data.value("reply_markup").toMap();
 
         emit updateMessageEdited(chatId, messageId, editDate, replyMarkup);
     });
     m_events.emplace("updateMessageIsPinned", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
-        auto isPinned = data.value("is_pinned").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
+        const auto isPinned = data.value("is_pinned").toBool();
 
         emit updateMessageIsPinned(chatId, messageId, isPinned);
     });
     m_events.emplace("updateMessageInteractionInfo", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
-        auto interactionInfo = data.value("interaction_info").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
+        const auto interactionInfo = data.value("interaction_info").toMap();
 
         emit updateMessageInteractionInfo(chatId, messageId, interactionInfo);
     });
     m_events.emplace("updateMessageContentOpened", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
 
         emit updateMessageContentOpened(chatId, messageId);
     });
     m_events.emplace("updateMessageMentionRead", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
-        auto unreadMentionCount = data.value("unread_mention_count").toInt();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
+        const auto unreadMentionCount = data.value("unread_mention_count").toInt();
 
         emit updateMessageMentionRead(chatId, messageId, unreadMentionCount);
     });
     m_events.emplace("updateMessageLiveLocationViewed", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageId = data.value("message_id").toLongLong();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageId = data.value("message_id").toLongLong();
 
         emit updateMessageLiveLocationViewed(chatId, messageId);
     });
 
     m_events.emplace("updateDeleteMessages", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageIds = data.value("message_ids").toList();
-        auto isPermanent = data.value("is_permanent").toBool();
-        auto fromCache = data.value("from_cache").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageIds = data.value("message_ids").toList();
+        const auto isPermanent = data.value("is_permanent").toBool();
+        const auto fromCache = data.value("from_cache").toBool();
 
         emit updateDeleteMessages(chatId, messageIds, isPermanent, fromCache);
     });
     m_events.emplace("updateUnreadMessageCount", [this](const QVariantMap &data) {
-        auto chatList = data.value("chat_list").toMap();
-        auto unreadCount = data.value("unread_count").toInt();
-        auto unreadUnmutedCount = data.value("unread_unmuted_count").toInt();
+        const auto chatList = data.value("chat_list").toMap();
+        const auto unreadCount = data.value("unread_count").toInt();
+        const auto unreadUnmutedCount = data.value("unread_unmuted_count").toInt();
 
         emit updateUnreadMessageCount(chatList, unreadCount, unreadUnmutedCount);
     });
     m_events.emplace("updateUnreadChatCount", [this](const QVariantMap &data) {
-        auto chatList = data.value("chat_list").toMap();
-        auto totalCount = data.value("total_count").toInt();
-        auto unreadCount = data.value("unread_count").toInt();
-        auto unreadUnmutedCount = data.value("unread_unmuted_count").toInt();
-        auto markedAsUnreadCount = data.value("marked_as_unread_count").toInt();
-        auto markedAsUnreadUnmutedCount = data.value("marked_as_unread_unmuted_count").toInt();
+        const auto chatList = data.value("chat_list").toMap();
+        const auto totalCount = data.value("total_count").toInt();
+        const auto unreadCount = data.value("unread_count").toInt();
+        const auto unreadUnmutedCount = data.value("unread_unmuted_count").toInt();
+        const auto markedAsUnreadCount = data.value("marked_as_unread_count").toInt();
+        const auto markedAsUnreadUnmutedCount = data.value("marked_as_unread_unmuted_count").toInt();
 
         emit updateUnreadChatCount(chatList, totalCount, unreadCount, unreadUnmutedCount, markedAsUnreadCount, markedAsUnreadUnmutedCount);
     });
-    m_events.emplace("updateActiveNotifications", [this](const QVariantMap &data) {
-        emit updateActiveNotifications(data.value("groups").toList());
-    });
+    m_events.emplace("updateActiveNotifications",
+                     [this](const QVariantMap &data) { emit updateActiveNotifications(data.value("groups").toList()); });
     m_events.emplace("updateNotificationGroup", [this](const QVariantMap &data) {
-        auto notificationGroupId = data.value("notification_group_id").toInt();
-        auto type = data.value("type").toMap();
-        auto chatId = data.value("chat_id").toLongLong();
-        auto notificationSettingsChatId = data.value("notification_settings_chat_id").toLongLong();
-        auto isSilent = data.value("is_silent").toBool();
-        auto totalCount = data.value("total_count").toInt();
-        auto addedNotifications = data.value("added_notifications").toList();
-        auto removedNotificationIds = data.value("removed_notification_ids").toList();
+        const auto notificationGroupId = data.value("notification_group_id").toInt();
+        const auto type = data.value("type").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto notificationSettingsChatId = data.value("notification_settings_chat_id").toLongLong();
+        const auto isSilent = data.value("is_silent").toBool();
+        const auto totalCount = data.value("total_count").toInt();
+        const auto addedNotifications = data.value("added_notifications").toList();
+        const auto removedNotificationIds = data.value("removed_notification_ids").toList();
 
-        emit updateNotificationGroup(notificationGroupId, type, chatId,notificationSettingsChatId, isSilent, totalCount, addedNotifications, removedNotificationIds);
+        emit updateNotificationGroup(notificationGroupId, type, chatId, notificationSettingsChatId, isSilent, totalCount,
+                                     addedNotifications, removedNotificationIds);
     });
 
     m_events.emplace("updateNewChat", [this](const QVariantMap &data) {
-        emit updateNewChat(data.value("chat").toMap());
+        const auto chat = data.value("chat").toMap();
+
+        emit updateNewChat(chat);
     });
 
     m_events.emplace("updateChatTitle", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto title = data.value("title").toString();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto title = data.value("title").toString();
+
         emit updateChatTitle(chatId, title);
     });
 
     m_events.emplace("updateChatPhoto", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto photo = data.value("photo").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto photo = data.value("photo").toMap();
+
         emit updateChatPhoto(chatId, photo);
     });
 
     m_events.emplace("updateChatPermissions", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto permissions = data.value("permissions").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto permissions = data.value("permissions").toMap();
+
         emit updateChatPermissions(chatId, permissions);
     });
 
     m_events.emplace("updateChatLastMessage", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto lastMessage = data.value("last_message").toMap();
-        auto positions = data.value("positions").toList();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto lastMessage = data.value("last_message").toMap();
+        const auto positions = data.value("positions").toList();
+
         emit updateChatLastMessage(chatId, lastMessage, positions);
     });
 
     m_events.emplace("updateChatPosition", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto position = data.value("position").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto position = data.value("position").toMap();
+
         emit updateChatPosition(chatId, position);
     });
 
     m_events.emplace("updateChatIsMarkedAsUnread", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto isMarkedAsUnread = data.value("is_marked_as_unread").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto isMarkedAsUnread = data.value("is_marked_as_unread").toBool();
+
         emit updateChatIsMarkedAsUnread(chatId, isMarkedAsUnread);
     });
 
     m_events.emplace("updateChatIsBlocked", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto isBlocked = data.value("is_blocked").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto isBlocked = data.value("is_blocked").toBool();
+
         emit updateChatIsBlocked(chatId, isBlocked);
     });
 
     m_events.emplace("updateChatHasScheduledMessages", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto hasScheduledMessages = data.value("has_scheduled_messages").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto hasScheduledMessages = data.value("has_scheduled_messages").toBool();
+
         emit updateChatHasScheduledMessages(chatId, hasScheduledMessages);
     });
 
     m_events.emplace("updateChatDefaultDisableNotification", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto defaultDisableNotification = data.value("default_disable_notification").toBool();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto defaultDisableNotification = data.value("default_disable_notification").toBool();
+
         emit updateChatDefaultDisableNotification(chatId, defaultDisableNotification);
     });
 
     m_events.emplace("updateChatReadInbox", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto lastReadInboxMessageId = data.value("last_read_inbox_message_id").toLongLong();
-        auto unreadCount = data.value("unread_count").toInt();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto lastReadInboxMessageId = data.value("last_read_inbox_message_id").toLongLong();
+        const auto unreadCount = data.value("unread_count").toInt();
+
         emit updateChatReadInbox(chatId, lastReadInboxMessageId, unreadCount);
     });
 
     m_events.emplace("updateChatReadOutbox", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto lastReadOutboxMessageId = data.value("last_read_outbox_message_id").toLongLong();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto lastReadOutboxMessageId = data.value("last_read_outbox_message_id").toLongLong();
+
         emit updateChatReadOutbox(chatId, lastReadOutboxMessageId);
     });
 
     m_events.emplace("updateChatUnreadMentionCount", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto unreadMentionCount = data.value("unread_mention_count").toInt();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto unreadMentionCount = data.value("unread_mention_count").toInt();
+
         emit updateChatUnreadMentionCount(chatId, unreadMentionCount);
     });
 
     m_events.emplace("updateChatNotificationSettings", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto notificationSettings = data.value("notification_settings").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto notificationSettings = data.value("notification_settings").toMap();
+
         emit updateChatNotificationSettings(chatId, notificationSettings);
     });
 
     m_events.emplace("updateScopeNotificationSettings", [this](const QVariantMap &data) {
-        auto scope = data.value("scope").toMap();
-        auto notificationSettings = data.value("notification_settings").toMap();
+        const auto scope = data.value("scope").toMap();
+        const auto notificationSettings = data.value("notification_settings").toMap();
         emit updateScopeNotificationSettings(scope, notificationSettings);
     });
 
     m_events.emplace("updateChatActionBar", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto actionBar = data.value("action_bar").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto actionBar = data.value("action_bar").toMap();
+
         emit updateChatActionBar(chatId, actionBar);
     });
 
     m_events.emplace("updateChatReplyMarkup", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto replyMarkupMessageId = data.value("reply_markup_message_id").toLongLong();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto replyMarkupMessageId = data.value("reply_markup_message_id").toLongLong();
+
         emit updateChatReplyMarkup(chatId, replyMarkupMessageId);
     });
 
     m_events.emplace("updateChatDraftMessage", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto draftMessage = data.value("draft_message").toMap();
-        auto position = data.value("position").toList();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto draftMessage = data.value("draft_message").toMap();
+        const auto position = data.value("position").toList();
+
         emit updateChatDraftMessage(chatId, draftMessage, position);
     });
 
-    m_events.emplace("updateChatFilters", [this](const QVariantMap &data) {
-        emit updateChatFilters(data.value("chat_filters").toList());
-    });
+    m_events.emplace("updateChatFilters", [this](const QVariantMap &data) { emit updateChatFilters(data.value("chat_filters").toList()); });
 
     m_events.emplace("updateChatOnlineMemberCount", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto onlineMemberCount = data.value("online_member_count").toInt();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto onlineMemberCount = data.value("online_member_count").toInt();
         emit updateChatOnlineMemberCount(chatId, onlineMemberCount);
     });
 
-    m_events.emplace("updateOption", [this](const QVariantMap &data) {
-        emit updateOption(data.value("name").toString(), data.value("value").toMap());
-    });
+    m_events.emplace("updateOption",
+                     [this](const QVariantMap &data) { emit updateOption(data.value("name").toString(), data.value("value").toMap()); });
 
     m_events.emplace("updateUserChatAction", [this](const QVariantMap &data) {
-        auto chatId = data.value("chat_id").toLongLong();
-        auto messageThreadId = data.value("message_thread_id").toLongLong();
-        auto userId = data.value("user_id").toInt();
-        auto action = data.value("action").toMap();
+        const auto chatId = data.value("chat_id").toLongLong();
+        const auto messageThreadId = data.value("message_thread_id").toLongLong();
+        const auto userId = data.value("user_id").toInt();
+        const auto action = data.value("action").toMap();
         emit updateUserChatAction(chatId, messageThreadId, userId, action);
     });
 
     m_events.emplace("updateUserStatus", [this](const QVariantMap &data) {
-        auto userId = data.value("user_id").toInt();
-        auto status = data.value("status").toMap();
+        const auto userId = data.value("user_id").toInt();
+        const auto status = data.value("status").toMap();
 
         emit updateUserStatus(userId, status);
     });
 
     m_events.emplace("updateUser", [this](const QVariantMap &data) {
-        emit updateUser(data.value("user").toMap());
+        const auto user = data.value("user").toMap();
+
+        emit updateUser(user);
     });
 
     m_events.emplace("updateBasicGroup", [this](const QVariantMap &data) {
-        emit updateBasicGroup(data.value("basic_group").toMap());
+        const auto basicGroup = data.value("basic_group").toMap();
+
+        emit updateBasicGroup(basicGroup);
     });
 
     m_events.emplace("updateSupergroup", [this](const QVariantMap &data) {
-        emit updateSupergroup(data.value("supergroup").toMap());
+        const auto supergroup = data.value("supergroup").toMap();
+
+        emit updateSupergroup(supergroup);
     });
 
     m_events.emplace("updateUserFullInfo", [this](const QVariantMap &data) {
-        auto userId = data.value("user_id").toInt();
-        auto userFullInfo = data.value("user_full_info").toMap();
+        const auto userId = data.value("user_id").toInt();
+        const auto userFullInfo = data.value("user_full_info").toMap();
+
         emit updateUserFullInfo(userId, userFullInfo);
     });
 
     m_events.emplace("updateBasicGroupFullInfo", [this](const QVariantMap &data) {
-        auto basicGroupId = data.value("basic_group_id").toInt();
-        auto basicGroupFullInfo = data.value("basic_group_full_info").toMap();
+        const auto basicGroupId = data.value("basic_group_id").toInt();
+        const auto basicGroupFullInfo = data.value("basic_group_full_info").toMap();
+
         emit updateUserFullInfo(basicGroupId, basicGroupFullInfo);
     });
 
     m_events.emplace("updateSupergroupFullInfo", [this](const QVariantMap &data) {
-        auto supergroupId = data.value("supergroup_id").toInt();
-        auto supergroupFullInfo = data.value("supergroup_full_info").toMap();
+        const auto supergroupId = data.value("supergroup_id").toInt();
+        const auto supergroupFullInfo = data.value("supergroup_full_info").toMap();
+
         emit updateUserFullInfo(supergroupId, supergroupFullInfo);
     });
 
     m_events.emplace("updateFile", [this](const QVariantMap &data) {
-        emit updateFile(data.value("file").toMap());
+        const auto file = data.value("file").toMap();
+
+        emit updateFile(file);
     });
 
     // Returns ...
@@ -886,8 +890,6 @@ void TdApi::initEvents()
     m_events.emplace("userFullInfo", [this](const QVariantMap &data) { emit userFullInfo(data); });
     m_events.emplace("userProfilePhotos", [this](const QVariantMap &data) { emit userProfilePhotos(data); });
     m_events.emplace("users", [this](const QVariantMap &data) { emit users(data); });
-
-    // clang-format on
 }
 
 void TdApi::handleAuthorizationState(const QVariantMap &data)

@@ -2,9 +2,8 @@
 
 #include "Stores.hpp"
 
-#include <atomic>
-#include <concepts>
 #include <functional>
+#include <shared_mutex>
 #include <thread>
 #include <unordered_map>
 
@@ -77,13 +76,11 @@ public:
                                      const QVariantMap &inputMessageContent);
     Q_INVOKABLE void getChat(qint64 chatId);
     Q_INVOKABLE void getChats(const QVariantMap &chatList, qint64 offsetOrder, qint64 offsetChatId, qint32 limit);
+    Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
     Q_INVOKABLE void getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal);
     Q_INVOKABLE void getMe();
     Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
     Q_INVOKABLE void getMessages(qint64 chatId, const QList<qint64> &messageIds);
-    Q_INVOKABLE void getSecretChat(qint32 secretChatId);
-    Q_INVOKABLE void getSupergroup(qint32 supergroupId);
-    Q_INVOKABLE void getSupergroupFullInfo(qint32 supergroupId);
     Q_INVOKABLE void joinChat(qint64 chatId);
     Q_INVOKABLE void leaveChat(qint64 chatId);
     Q_INVOKABLE void openChat(qint64 chatId);
@@ -203,6 +200,7 @@ private:
     int clientId{};
 
     std::jthread m_worker;
+    mutable std::shared_mutex mutex;
 
     AuthorizationState m_state{AuthorizationStateClosed};
 

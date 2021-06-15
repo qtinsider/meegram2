@@ -85,13 +85,22 @@ public slots:
     void sort(int column = 0, Qt::SortOrder order = Qt::DescendingOrder) override;
 
 private slots:
+    void handleNewChat(const QVariantMap &chat);
     void handleChatTitle(qint64 chatId, const QString &title);
     void handleChatPhoto(qint64 chatId, const QVariantMap &photo);
+    void handleChatPermissions(qint64 chatId, const QVariantMap &permissions);
     void handleChatLastMessage(qint64 chatId, const QVariantMap &lastMessage, const QVariantList &positions);
     void handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
+    void handleChatIsBlocked(qint64 chatId, bool isBlocked);
+    void handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledMessages);
+    void handleChatDefaultDisableNotification(qint64 chatId, bool defaultDisableNotification);
     void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
     void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
+    void handleChatUnreadMentionCount(qint64 chatId, int unreadMentionCount);
     void handleChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings);
+    void handleChatActionBar(qint64 chatId, const QVariantMap &actionBar);
+    void handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId);
+    void handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions);
 
     void handleChat(const QVariantMap &chat);
     void handleChats(const QVariantMap &chats);

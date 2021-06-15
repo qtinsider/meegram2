@@ -9,6 +9,7 @@
 #include <QBuffer>
 #include <QClipboard>
 #include <QDateTime>
+#include <QDebug>
 #include <QImageReader>
 #include <QLocale>
 #include <QScopedPointer>
@@ -240,7 +241,7 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
 
     QString result;
     result += performer.trimmed().isEmpty() ? "Unknown Artist" : performer;
-    result += "-";
+    result += " - ";
     result += title.trimmed().isEmpty() ? "Unknown Track" : title;
 
     return result;
@@ -264,23 +265,6 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
     return userType.value("@type").toByteArray() == "userTypeDeleted";
 }
 
-QString getSizeString(int size)
-{
-    if (size <= 0)
-        return QString("0 B");
-
-    if (size < 1024)
-        return QString("%1 B").arg(size);
-
-    if (size < 1024 * 1024)
-        return QString("%1 KB").arg(size / 1024);
-
-    if (size < 1024 * 1024 * 1024)
-        return QString("%1 MB").arg(size / 1024 / 1024);
-
-    return QString("%1 GB").arg(size / 1024 / 1024 / 1024);
-}
-
 void appendDuration(int count, QChar &&order, QString &outString)
 {
     outString.append(QString::number(count));
@@ -293,12 +277,14 @@ Utils::Utils(QObject *parent)
 {
 }
 
-QString Utils::getServiceMessageContent(const QVariantMap &chat, const QVariantMap &message)
+QString Utils::getServiceMessageContent(const QVariantMap &message)
 {
     auto ttl = message.value("ttl").toInt();
     auto sender = message.value("sender").toMap();
     auto content = message.value("content").toMap();
     auto isOutgoing = message.value("is_outgoing").toBool();
+
+    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
 
     auto isChannel = isChannelChat(chat);
     auto author = getMessageAuthor(chat, sender);
@@ -674,7 +660,7 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
     }
 
     if (message.value("ttl").toInt() > 0)
-        return Utils::getServiceMessageContent(chat, message);
+        return Utils::getServiceMessageContent(message);
 
     auto contentType = content.value("@type").toByteArray();
     switch (fnv::hashRuntime(contentType.constData()))
@@ -689,7 +675,7 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return title % caption;
         }
         case fnv::hash("messageBasicGroupChatCreate"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageCall"): {
             auto text = getCallContent(sender, content);
@@ -703,40 +689,40 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return text;
         }
         case fnv::hash("messageChatAddMembers"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatChangePhoto"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatChangeTitle"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatDeleteMember"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatDeletePhoto"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatJoinByLink"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatSetTtl"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatUpgradeFrom"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageChatUpgradeTo"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageContact"): {
             return QObject::tr("AttachContact") % caption;
         }
         case fnv::hash("messageContactRegistered"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageCustomServiceAction"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageDocument"): {
             auto document = content.value("document").toMap();
@@ -758,7 +744,7 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return QObject::tr("AttachGame") % caption;
         }
         case fnv::hash("messageGameScore"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageInvoice"): {
             auto title = content.value("title").toString();
@@ -768,16 +754,16 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return QObject::tr("AttachLocation").arg(caption);
         }
         case fnv::hash("messagePassportDataReceived"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePassportDataSent"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePaymentSuccessful"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePaymentSuccessfulBot"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePhoto"): {
             return QObject::tr("AttachPhoto") % caption;
@@ -789,10 +775,10 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return QString::fromUtf8("\xf0\x9f\x93\x8a\x20") % question;
         }
         case fnv::hash("messagePinMessage"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageScreenshotTaken"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageSticker"): {
             auto sticker = content.value("sticker").toMap();
@@ -801,13 +787,13 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return QObject::tr("AttachSticker") % ": " % emoji;
         }
         case fnv::hash("messageSupergroupChatCreate"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageText"): {
             return textOneLine(content.value("text").toMap().value("text").toString());
         }
         case fnv::hash("messageUnsupported"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageVenue"): {
             return QObject::tr("AttachLocation") % caption;
@@ -822,7 +808,7 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
             return QObject::tr("AttachAudio") % caption;
         }
         case fnv::hash("messageWebsiteConnected"): {
-            return Utils::getServiceMessageContent(chat, message);
+            return Utils::getServiceMessageContent(message);
         }
     }
 
@@ -847,12 +833,14 @@ bool Utils::isChatUnread(const QVariantMap &chat) noexcept
     return isMarkedAsUnread || unreadCount > 0;
 }
 
-QString Utils::getMessageSenderName(const QVariantMap &chat, const QVariantMap &message) noexcept
+QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
 {
     if (isServiceMessage(message))
         return QString();
 
     auto sender = message.value("sender").toMap();
+
+    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
 
     auto chatType = chat.value("type").toMap().value("@type").toByteArray();
     switch (fnv::hashRuntime(chatType.constData()))
@@ -875,7 +863,7 @@ QString Utils::getMessageSenderName(const QVariantMap &chat, const QVariantMap &
                     if (isMeUser(sender.value("user_id").toInt()))
                         return QObject::tr("FromYou");
 
-                    return getUserFullName(sender.value("user_id").toInt());
+                    return getUserShortName(sender.value("user_id").toInt());
                 }
                 case fnv::hash("messageSenderChat"): {
                     return getChatTitle(chat);
@@ -887,8 +875,8 @@ QString Utils::getMessageSenderName(const QVariantMap &chat, const QVariantMap &
     return QString();
 }
 
-// TODO(strawberry): Remove in future, Parsing html in QML Text is too slow
-QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText) noexcept
+// TODO(strawberry):
+QString Utils::getFormattedText(const QVariantMap &formattedText) noexcept
 {
     auto text = formattedText.value("text").toString();
     auto entities = formattedText.value("entities").toList();
@@ -1007,9 +995,6 @@ QString Utils::getFormattedText(const QVariantMap &formattedText, bool plainText
         }
     }
 
-    if (plainText)
-        return doc->toPlainText();
-
     return doc->toHtml();
 }
 
@@ -1071,7 +1056,16 @@ QString Utils::getFileSize(const QVariantMap &file) noexcept
     if (size <= 0)
         return QString();
 
-    return getSizeString(size);
+    if (size < 1024)
+        return QString("%1 B").arg(size);
+
+    if (size < 1024 * 1024)
+        return QString("%1 KB").arg(size / 1024);
+
+    if (size < 1024 * 1024 * 1024)
+        return QString("%1 MB").arg(size / 1024 / 1024);
+
+    return QString("%1 GB").arg(size / 1024 / 1024 / 1024);
 }
 
 QString Utils::formatTime(int totalSeconds) const noexcept

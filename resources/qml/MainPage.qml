@@ -151,15 +151,15 @@ Page {
         id: selectionDialog
         titleText: qsTr("Filters")
         selectedIndex: 0
-        model: chatFilterModel
+        model: myChatFilterModel
 
         onAccepted: {
-            if (model.get(selectedIndex).value === 1) {
+            if (model.get(selectedIndex).id === 0) {
                 myChatModel.chatList = TdApi.ChatListMain
                 return
             }
 
-            myChatModel.chatFilterId = model.get(selectedIndex).value
+            myChatModel.chatFilterId = model.get(selectedIndex).id
         }
     }
 
@@ -195,7 +195,7 @@ Page {
         ToolIcon {
             visible: !isAuthorized
             anchors.right: parent.right
-            iconSource: "images/help-icon.png"
+            iconSource: "qrc:/images/help-icon.png"
 
             onClicked: aboutDialog.open()
         }

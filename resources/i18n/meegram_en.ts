@@ -4,7 +4,7 @@
 <context>
     <name>AuthenticationPage</name>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="448"/>
+        <location filename="../qml/AuthenticationPage.qml" line="446"/>
         <source>YourPhone</source>
         <translation>Your Phone</translation>
     </message>
@@ -16,12 +16,12 @@
     <message>
         <location filename="../qml/AuthenticationPage.qml" line="110"/>
         <location filename="../qml/AuthenticationPage.qml" line="170"/>
-        <location filename="../qml/AuthenticationPage.qml" line="295"/>
+        <location filename="../qml/AuthenticationPage.qml" line="294"/>
         <source>Next</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="452"/>
+        <location filename="../qml/AuthenticationPage.qml" line="450"/>
         <source>YourCode</source>
         <translation>Phone verification</translation>
     </message>
@@ -36,94 +36,102 @@
         <translation>Send the code as an SMS</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="456"/>
+        <location filename="../qml/AuthenticationPage.qml" line="454"/>
         <source>TwoStepVerification</source>
         <translation>Two-Step Verification</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="261"/>
+        <location filename="../qml/AuthenticationPage.qml" line="260"/>
         <source>LoginPasswordText</source>
         <translation>You have Two-Step Verification enabled, so your account is protected with an additional password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="269"/>
+        <location filename="../qml/AuthenticationPage.qml" line="268"/>
         <source>YourPassword</source>
         <translation>Your Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="276"/>
+        <location filename="../qml/AuthenticationPage.qml" line="275"/>
         <source>Password</source>
         <translation>Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="460"/>
+        <location filename="../qml/AuthenticationPage.qml" line="458"/>
         <source>YourName</source>
         <translation>Your Name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="327"/>
+        <location filename="../qml/AuthenticationPage.qml" line="325"/>
         <source>RegisterText2</source>
         <translation>Enter your name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="338"/>
+        <location filename="../qml/AuthenticationPage.qml" line="336"/>
         <source>FirstName</source>
         <translation>First name (required)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="344"/>
+        <location filename="../qml/AuthenticationPage.qml" line="342"/>
         <source>LastName</source>
         <translation>Last name (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="365"/>
+        <location filename="../qml/AuthenticationPage.qml" line="363"/>
         <source>Done</source>
         <translation>Done</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="389"/>
+        <location filename="../qml/AuthenticationPage.qml" line="387"/>
         <source>ChooseCountry</source>
         <translation>Choose a country</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="488"/>
+        <location filename="../qml/AuthenticationPage.qml" line="486"/>
         <source>CallText</source>
         <translation>Telegram will call you in </translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="490"/>
+        <location filename="../qml/AuthenticationPage.qml" line="488"/>
         <source>SmsText</source>
         <translation>Sending you an SMS in </translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="501"/>
+        <location filename="../qml/AuthenticationPage.qml" line="499"/>
         <source>SentAppCodeTitle</source>
         <translation>Check your Telegram messages</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="505"/>
+        <location filename="../qml/AuthenticationPage.qml" line="503"/>
         <source>SentSmsCodeTitle</source>
         <translation>Enter code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="541"/>
+        <location filename="../qml/AuthenticationPage.qml" line="539"/>
         <source>SentCallCode</source>
         <translation>We&apos;re calling your phone %1 Don&apos;t accept the call, Telegram will process everything automatically.</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="544"/>
+        <location filename="../qml/AuthenticationPage.qml" line="542"/>
         <source>SentCallOnly</source>
         <translation>Calling your phone %1 to dictate the code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="547"/>
+        <location filename="../qml/AuthenticationPage.qml" line="545"/>
         <source>SentSmsCode</source>
         <translation>We&apos;ve sent an SMS with an activation code to your phone %1</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="550"/>
+        <location filename="../qml/AuthenticationPage.qml" line="548"/>
         <source>SentAppCode</source>
         <translation>We&apos;ve sent the code to the &lt;b&gt;Telegram&lt;/b&gt; app on your other device</translation>
+    </message>
+</context>
+<context>
+    <name>ChatFilterModel</name>
+    <message>
+        <location filename="../../src/SelectionModel.cpp" line="338"/>
+        <source>FilterAllChats</source>
+        <translation>All Chats</translation>
     </message>
 </context>
 <context>
@@ -154,28 +162,89 @@
     <message>
         <location filename="../../src/MessageModel.cpp" line="155"/>
         <source>Today</source>
-        <translation type="unfinished">Today</translation>
+        <translation>Today</translation>
     </message>
     <message>
         <location filename="../../src/MessageModel.cpp" line="157"/>
         <source>Yesterday</source>
-        <translation type="unfinished">Yesterday</translation>
+        <translation>Yesterday</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="709"/>
+        <location filename="../../src/MessageModel.cpp" line="671"/>
+        <source>ServiceNotifications</source>
+        <translation>Service notifications</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="675"/>
+        <source>SupportStatus</source>
+        <translation>support</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="680"/>
+        <source>Bot</source>
+        <translation>bot</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="688"/>
+        <source>ALongTimeAgo</source>
+        <translation>last seen a long time ago</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="690"/>
+        <source>WithinAMonth</source>
+        <translation>last seen within a month</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="692"/>
+        <source>WithinAWeek</source>
+        <translation>last seen within a week</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="696"/>
+        <source>Invisible</source>
+        <translation>invisible</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="701"/>
+        <location filename="../../src/MessageModel.cpp" line="706"/>
+        <source>LastSeenFormatted</source>
+        <translation>last seen</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="702"/>
+        <source>TodayAtFormatted</source>
+        <translation> at </translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="707"/>
         <source>YesterdayAtFormatted</source>
         <translation> yesterday at </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="713"/>
+        <location filename="../../src/MessageModel.cpp" line="710"/>
+        <source>formatDateAtTime</source>
+        <translation>%1 at %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="711"/>
         <source>LastSeenDateFormatted</source>
         <translation>last seen</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="715"/>
+        <source>Online</source>
+        <translation>online</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="717"/>
+        <source>Lately</source>
+        <translation>last seen recently</translation>
     </message>
 </context>
 <context>
     <name>QObject</name>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="88"/>
+        <location filename="../../src/Utils.cpp" line="89"/>
         <source>CallDurationHours</source>
         <translation>
             <numerusform>%n Hour</numerusform>
@@ -183,8 +252,8 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="92"/>
-        <location filename="../../src/Utils.cpp" line="100"/>
+        <location filename="../../src/Utils.cpp" line="93"/>
+        <location filename="../../src/Utils.cpp" line="101"/>
         <source>CallDurationMinutes</source>
         <translation>
             <numerusform>%n Minute</numerusform>
@@ -192,7 +261,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="103"/>
+        <location filename="../../src/Utils.cpp" line="104"/>
         <source>CallDurationSeconds</source>
         <translation>
             <numerusform>%n Second</numerusform>
@@ -200,7 +269,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="110"/>
+        <location filename="../../src/Utils.cpp" line="111"/>
         <source>TTLStringSeconds</source>
         <translation>
             <numerusform>%n Second</numerusform>
@@ -208,7 +277,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="114"/>
+        <location filename="../../src/Utils.cpp" line="115"/>
         <source>TTLStringMinutes</source>
         <translation>
             <numerusform>%n Minute</numerusform>
@@ -216,7 +285,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="118"/>
+        <location filename="../../src/Utils.cpp" line="119"/>
         <source>TTLStringHours</source>
         <translation>
             <numerusform>%n Hour</numerusform>
@@ -224,8 +293,8 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="124"/>
-        <location filename="../../src/Utils.cpp" line="127"/>
+        <location filename="../../src/Utils.cpp" line="125"/>
+        <location filename="../../src/Utils.cpp" line="128"/>
         <source>TTLStringWeeks</source>
         <translation>
             <numerusform>%n Week</numerusform>
@@ -233,7 +302,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/Utils.cpp" line="127"/>
+        <location filename="../../src/Utils.cpp" line="128"/>
         <source>TTLStringDays</source>
         <translation>
             <numerusform>%n Day</numerusform>
@@ -241,478 +310,451 @@
         </translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="314"/>
+        <location filename="../../src/Utils.cpp" line="300"/>
         <source>ActionYouSendTTLPhoto</source>
         <translation>You sent a self-destructing photo. Please view it on your mobile</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="317"/>
+        <location filename="../../src/Utils.cpp" line="303"/>
         <source>ActionSendTTLPhoto</source>
         <translation>%1 sent a self-destructing photo. Please view it on your mobile</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="322"/>
+        <location filename="../../src/Utils.cpp" line="308"/>
         <source>ActionYouSendTTLVideo</source>
         <translation>You sent a self-destructing video. Please view it on your mobile</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="325"/>
+        <location filename="../../src/Utils.cpp" line="311"/>
         <source>ActionSendTTLVideo</source>
         <translation>%1 sent a self-destructing video. Please view it on your mobile</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="333"/>
+        <location filename="../../src/Utils.cpp" line="319"/>
         <source>AttachPhotoExpired</source>
         <translation>Photo has expired</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="336"/>
+        <location filename="../../src/Utils.cpp" line="322"/>
         <source>AttachVideoExpired</source>
         <translation>Video has expired</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="341"/>
+        <location filename="../../src/Utils.cpp" line="327"/>
         <source>ActionYouCreateGroup</source>
         <translation>You created the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="344"/>
+        <location filename="../../src/Utils.cpp" line="330"/>
         <source>ActionCreateGroup</source>
         <translation>%1 created the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="349"/>
+        <location filename="../../src/Utils.cpp" line="335"/>
         <source>ActionCreateChannel</source>
         <translation>Channel created</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="352"/>
+        <location filename="../../src/Utils.cpp" line="338"/>
         <source>ActionCreateMega</source>
         <translation>Group created</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="359"/>
+        <location filename="../../src/Utils.cpp" line="345"/>
         <source>ActionChannelChangedTitle</source>
         <translation>Channel name changed to %1</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="364"/>
+        <location filename="../../src/Utils.cpp" line="350"/>
         <source>ActionYouChangedTitle</source>
         <translation>You changed the group name to %1</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="367"/>
+        <location filename="../../src/Utils.cpp" line="353"/>
         <source>ActionChangedTitle</source>
         <translation>%1 changed the group name to %2</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="372"/>
+        <location filename="../../src/Utils.cpp" line="358"/>
         <source>ActionChannelChangedPhoto</source>
         <translation>Channel photo changed</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="377"/>
+        <location filename="../../src/Utils.cpp" line="363"/>
         <source>ActionYouChangedPhoto</source>
         <translation>You changed the group photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="380"/>
+        <location filename="../../src/Utils.cpp" line="366"/>
         <source>ActionChangedPhoto</source>
         <translation>%1 changed the group photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="385"/>
+        <location filename="../../src/Utils.cpp" line="371"/>
         <source>ActionChannelRemovedPhoto</source>
         <translation>Channel photo removed</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="390"/>
+        <location filename="../../src/Utils.cpp" line="376"/>
         <source>ActionYouRemovedPhoto</source>
         <translation>You removed the group photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="393"/>
+        <location filename="../../src/Utils.cpp" line="379"/>
         <source>ActionRemovedPhoto</source>
         <translation>%1 removed the group photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="405"/>
+        <location filename="../../src/Utils.cpp" line="391"/>
         <source>ChannelJoined</source>
         <translation>You joined this channel</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="412"/>
+        <location filename="../../src/Utils.cpp" line="398"/>
         <source>ChannelMegaJoined</source>
         <translation>You joined this group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="415"/>
+        <location filename="../../src/Utils.cpp" line="401"/>
         <source>ActionAddUserSelfMega</source>
         <translation>%1 joined the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="420"/>
+        <location filename="../../src/Utils.cpp" line="406"/>
         <source>ActionAddUserSelfYou</source>
         <translation>You returned to the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="423"/>
+        <location filename="../../src/Utils.cpp" line="409"/>
         <source>ActionAddUserSelf</source>
         <translation>%1 returned to the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="428"/>
-        <location filename="../../src/Utils.cpp" line="459"/>
+        <location filename="../../src/Utils.cpp" line="414"/>
+        <location filename="../../src/Utils.cpp" line="445"/>
         <source>ActionYouAddUser</source>
         <translation>You added %1</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="437"/>
+        <location filename="../../src/Utils.cpp" line="423"/>
         <source>MegaAddedBy</source>
         <translation>%1 added you to this group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="440"/>
+        <location filename="../../src/Utils.cpp" line="426"/>
         <source>ChannelAddedBy</source>
         <translation>%1 added you to this channel</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="443"/>
+        <location filename="../../src/Utils.cpp" line="429"/>
         <source>ActionAddUserYou</source>
         <translation>%1 added you</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="446"/>
-        <location filename="../../src/Utils.cpp" line="462"/>
+        <location filename="../../src/Utils.cpp" line="432"/>
+        <location filename="../../src/Utils.cpp" line="448"/>
         <source>ActionAddUser</source>
         <translation>%1 added %2</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="467"/>
+        <location filename="../../src/Utils.cpp" line="453"/>
         <source>ActionInviteYou</source>
         <translation>You joined the group via invite link</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="470"/>
+        <location filename="../../src/Utils.cpp" line="456"/>
         <source>ActionInviteUser</source>
         <translation>%1 joined the group via invite link</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="477"/>
+        <location filename="../../src/Utils.cpp" line="463"/>
         <source>ActionYouLeftUser</source>
         <translation>You left the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="480"/>
+        <location filename="../../src/Utils.cpp" line="466"/>
         <source>ActionLeftUser</source>
         <translation>%1 left the group</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="485"/>
+        <location filename="../../src/Utils.cpp" line="471"/>
         <source>ActionYouKickUser</source>
         <translation>You removed %1</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="489"/>
+        <location filename="../../src/Utils.cpp" line="475"/>
         <source>ActionKickUserYou</source>
         <translation>%1 removed you</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="492"/>
+        <location filename="../../src/Utils.cpp" line="478"/>
         <source>ActionKickUser</source>
         <translation>%1 removed %2</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="495"/>
-        <location filename="../../src/Utils.cpp" line="498"/>
+        <location filename="../../src/Utils.cpp" line="481"/>
+        <location filename="../../src/Utils.cpp" line="484"/>
         <source>ActionMigrateFromGroup</source>
         <translation>This group was upgraded to a supergroup</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="501"/>
+        <location filename="../../src/Utils.cpp" line="487"/>
         <source>ActionPinned</source>
         <translation>%1 pinned a message</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="506"/>
+        <location filename="../../src/Utils.cpp" line="492"/>
         <source>ActionTakeScreenshootYou</source>
         <translation>You took a screenshot</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="509"/>
+        <location filename="../../src/Utils.cpp" line="495"/>
         <source>ActionTakeScreenshoot</source>
         <translation>%1 took a screenshot</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="518"/>
+        <location filename="../../src/Utils.cpp" line="504"/>
         <source>MessageLifetimeYouRemoved</source>
         <translation>You disabled the self-destruct timer</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="520"/>
+        <location filename="../../src/Utils.cpp" line="506"/>
         <source>MessageLifetimeRemoved</source>
         <translation>%1 disabled the self-destruct timer</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="524"/>
+        <location filename="../../src/Utils.cpp" line="510"/>
         <source>MessageLifetimeChangedOutgoing</source>
         <translation>You set the self-destruct timer to %1</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="526"/>
+        <location filename="../../src/Utils.cpp" line="512"/>
         <source>MessageLifetimeChanged</source>
         <translation>%1 set the self-destruct timer to %2</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="533"/>
+        <location filename="../../src/Utils.cpp" line="519"/>
         <source>NotificationContactJoined</source>
         <translation>%1 joined Telegram</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="536"/>
+        <location filename="../../src/Utils.cpp" line="522"/>
         <source>ActionBotAllowed</source>
         <translation>You allowed this bot to message you when you logged in on %1.</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="539"/>
-        <location filename="../../src/Utils.cpp" line="543"/>
+        <location filename="../../src/Utils.cpp" line="525"/>
+        <location filename="../../src/Utils.cpp" line="529"/>
         <source>UnsupportedMedia</source>
         <translation>This message is not supported by your version of Telegram. Update the app to view: https://telegram.org/update</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="647"/>
+        <location filename="../../src/MessageModel.cpp" line="597"/>
+        <location filename="../../src/MessageModel.cpp" line="645"/>
         <source>YouWereKicked</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="652"/>
-        <source>MegaLocation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="654"/>
-        <source>MegaPublic</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="654"/>
-        <source>MegaPrivate</source>
-        <translation type="unfinished"></translation>
+        <translation>you were removed</translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/MessageModel.cpp" line="658"/>
-        <location filename="../../src/MessageModel.cpp" line="663"/>
-        <location filename="../../src/MessageModel.cpp" line="666"/>
+        <location filename="../../src/MessageModel.cpp" line="600"/>
+        <location filename="../../src/MessageModel.cpp" line="605"/>
+        <location filename="../../src/MessageModel.cpp" line="608"/>
+        <location filename="../../src/MessageModel.cpp" line="656"/>
+        <location filename="../../src/MessageModel.cpp" line="661"/>
+        <location filename="../../src/MessageModel.cpp" line="664"/>
         <source>Members</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>%n member</numerusform>
+            <numerusform>%n members</numerusform>
+        </translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/MessageModel.cpp" line="605"/>
+        <location filename="../../src/MessageModel.cpp" line="631"/>
+        <location filename="../../src/MessageModel.cpp" line="661"/>
+        <source>OnlineCount</source>
+        <translation>
+            <numerusform>%n online</numerusform>
+            <numerusform>%n online</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="673"/>
-        <source>ServiceNotifications</source>
-        <translation type="unfinished">Service notifications</translation>
+        <location filename="../../src/MessageModel.cpp" line="622"/>
+        <source>ChannelPublic</source>
+        <translation>Public Channel</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="677"/>
-        <source>SupportStatus</source>
-        <translation type="unfinished">support</translation>
+        <location filename="../../src/MessageModel.cpp" line="622"/>
+        <source>ChannelPrivate</source>
+        <translation>Private Channel</translation>
+    </message>
+    <message numerus="yes">
+        <location filename="../../src/MessageModel.cpp" line="626"/>
+        <location filename="../../src/MessageModel.cpp" line="631"/>
+        <location filename="../../src/MessageModel.cpp" line="634"/>
+        <source>Subscribers</source>
+        <translation>
+            <numerusform>%n subscriber</numerusform>
+            <numerusform>%n subscribers</numerusform>
+        </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="682"/>
-        <source>Bot</source>
-        <translation type="unfinished">bot</translation>
+        <location filename="../../src/MessageModel.cpp" line="650"/>
+        <source>MegaLocation</source>
+        <translation>Location-based Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="690"/>
-        <source>ALongTimeAgo</source>
-        <translation type="unfinished">last seen a long time ago</translation>
+        <location filename="../../src/MessageModel.cpp" line="652"/>
+        <source>MegaPublic</source>
+        <translation>Public Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="692"/>
-        <source>WithinAMonth</source>
-        <translation type="unfinished">last seen within a month</translation>
+        <location filename="../../src/MessageModel.cpp" line="652"/>
+        <source>MegaPrivate</source>
+        <translation>Private Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="694"/>
-        <source>WithinAWeek</source>
-        <translation type="unfinished">last seen within a week</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="698"/>
-        <source>Invisible</source>
-        <translation type="unfinished">invisible</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="703"/>
-        <location filename="../../src/MessageModel.cpp" line="708"/>
-        <source>LastSeenFormatted</source>
-        <translation type="unfinished">last seen</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="704"/>
-        <source>TodayAtFormatted</source>
-        <translation type="unfinished"> at </translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="712"/>
-        <source>formatDateAtTime</source>
-        <translation type="unfinished">%1 at %2</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="717"/>
-        <source>Online</source>
-        <translation type="unfinished">online</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="719"/>
-        <source>Lately</source>
-        <translation type="unfinished">last seen recently</translation>
+        <location filename="../../src/MessageModel.cpp" line="732"/>
+        <source>Today</source>
+        <translation>Today</translation>
     </message>
     <message>
         <location filename="../../src/MessageModel.cpp" line="734"/>
-        <source>Today</source>
-        <translation type="unfinished">Today</translation>
-    </message>
-    <message>
-        <location filename="../../src/MessageModel.cpp" line="736"/>
-        <location filename="../../src/Utils.cpp" line="649"/>
+        <location filename="../../src/Utils.cpp" line="635"/>
         <source>Yesterday</source>
         <translation>Yesterday</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="683"/>
+        <location filename="../../src/Utils.cpp" line="669"/>
         <source>AttachGif</source>
         <translation>GIF</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="687"/>
+        <location filename="../../src/Utils.cpp" line="673"/>
         <source>AttachMusic</source>
         <translation>Music</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="700"/>
+        <location filename="../../src/Utils.cpp" line="686"/>
         <source>CallMessageWithDuration</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="733"/>
+        <location filename="../../src/Utils.cpp" line="719"/>
         <source>AttachContact</source>
         <translation>Contact</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="749"/>
+        <location filename="../../src/Utils.cpp" line="735"/>
         <source>AttachDocument</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="752"/>
-        <location filename="../../src/Utils.cpp" line="783"/>
+        <location filename="../../src/Utils.cpp" line="738"/>
+        <location filename="../../src/Utils.cpp" line="769"/>
         <source>AttachPhoto</source>
         <translation>Photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="755"/>
-        <location filename="../../src/Utils.cpp" line="816"/>
+        <location filename="../../src/Utils.cpp" line="741"/>
+        <location filename="../../src/Utils.cpp" line="802"/>
         <source>AttachVideo</source>
         <translation>Video</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="758"/>
+        <location filename="../../src/Utils.cpp" line="744"/>
         <source>AttachGame</source>
         <translation>Game</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="768"/>
-        <location filename="../../src/Utils.cpp" line="813"/>
+        <location filename="../../src/Utils.cpp" line="754"/>
+        <location filename="../../src/Utils.cpp" line="799"/>
         <source>AttachLocation</source>
         <translation>Location</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="801"/>
+        <location filename="../../src/Utils.cpp" line="787"/>
         <source>AttachSticker</source>
         <translation>Sticker</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="819"/>
+        <location filename="../../src/Utils.cpp" line="805"/>
         <source>AttachRound</source>
         <translation>Video message</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="822"/>
+        <location filename="../../src/Utils.cpp" line="808"/>
         <source>AttachAudio</source>
         <translation>Voice message</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="829"/>
+        <location filename="../../src/Utils.cpp" line="815"/>
         <source>UnsupportedAttachment</source>
         <translation>Unsupported attachment</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="835"/>
+        <location filename="../../src/Utils.cpp" line="821"/>
         <source>SavedMessages</source>
         <translation>Saved Messages</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="876"/>
+        <location filename="../../src/Utils.cpp" line="864"/>
         <source>FromYou</source>
         <translation>You</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="175"/>
+        <location filename="../../src/Utils.cpp" line="176"/>
         <source>CallMessageVideoOutgoingMissed</source>
         <translation>Cancelled Video Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="179"/>
+        <location filename="../../src/Utils.cpp" line="180"/>
         <source>CallMessageOutgoingMissed</source>
         <translation>Cancelled Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="186"/>
+        <location filename="../../src/Utils.cpp" line="187"/>
         <source>CallMessageVideoOutgoing</source>
         <translation>Outgoing Video Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="190"/>
+        <location filename="../../src/Utils.cpp" line="191"/>
         <source>CallMessageOutgoing</source>
         <translation>Outgoing Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="200"/>
+        <location filename="../../src/Utils.cpp" line="201"/>
         <source>CallMessageVideoIncomingMissed</source>
         <translation>Missed Video Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="204"/>
+        <location filename="../../src/Utils.cpp" line="205"/>
         <source>CallMessageIncomingMissed</source>
         <translation>Missed Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="211"/>
+        <location filename="../../src/Utils.cpp" line="212"/>
         <source>CallMessageVideoIncomingDeclined</source>
         <translation>Declined Video Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="215"/>
+        <location filename="../../src/Utils.cpp" line="216"/>
         <source>CallMessageIncomingDeclined</source>
         <translation>Declined Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="222"/>
+        <location filename="../../src/Utils.cpp" line="223"/>
         <source>CallMessageVideoIncoming</source>
         <translation>Incoming Video Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="226"/>
+        <location filename="../../src/Utils.cpp" line="227"/>
         <source>CallMessageIncoming</source>
         <translation>Incoming Call</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="156"/>
-        <location filename="../../src/Utils.cpp" line="620"/>
-        <location filename="../../src/Utils.cpp" line="839"/>
+        <location filename="../../src/Utils.cpp" line="157"/>
+        <location filename="../../src/Utils.cpp" line="606"/>
+        <location filename="../../src/Utils.cpp" line="825"/>
         <source>HiddenName</source>
         <translation>Deleted Account</translation>
     </message>
@@ -720,17 +762,12 @@
 <context>
     <name>main</name>
     <message>
-        <location filename="../qml/main.qml" line="38"/>
-        <source>FilterAllChats</source>
-        <translation>All Chats</translation>
-    </message>
-    <message>
-        <location filename="../qml/main.qml" line="68"/>
+        <location filename="../qml/main.qml" line="52"/>
         <source>PinToTop</source>
         <translation>Pin to top</translation>
     </message>
     <message>
-        <location filename="../qml/main.qml" line="68"/>
+        <location filename="../qml/main.qml" line="52"/>
         <source>UnpinFromTop</source>
         <translation>Unpin from top</translation>
     </message>

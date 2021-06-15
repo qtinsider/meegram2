@@ -1,0 +1,15 @@
+<aegis>
+    <request policy="add">
+        <credential name="Location" />
+        <credential name="TrackerReadAccess" />
+        <credential name="TrackerWriteAccess" />
+
+        <for path="/opt/meegram/bin/meegram" />
+        <for path="applauncherd-launcher::/usr/bin/applauncherd.bin" id="" />
+    </request>
+
+    <request context="INSTALL" >
+        <credential name="UID::user" />
+        <credential name="GID::users" />
+    </request>
+</aegis>

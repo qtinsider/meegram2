@@ -62,9 +62,9 @@ Page {
                 Row {
                     anchors {
                         left: backButtonRow.right
+                        leftMargin: 70
                         right: parent.right
                         rightMargin: 12
-                        leftMargin: 70
                     }
 
                     height: parent.height
@@ -77,7 +77,8 @@ Page {
                         id: photo
 
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 50; width: 50
+                        height: 50
+                        width: 50
 
                         source: chat.photo ? "image://telegram/" + chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
 
@@ -112,8 +113,9 @@ Page {
 
             Item {
                 id: item
-                width: parent.width
+
                 height: parent.height - topBar.height - inputPanelHolder.height
+                width: parent.width
 
                 ListView {
                     id: listView
@@ -130,7 +132,7 @@ Page {
                             id: loader
 
                             width: parent.width
-
+                            height: childrenRect.height
                             sourceComponent: model.isServiceMessage ? serviceMessageComponent : deleglateChooser.get(model.content)
 
                             Component {
@@ -139,16 +141,16 @@ Page {
                                 Item {
                                     id: serviceMessageItem
 
-                                    height: serviceMessageLabel.height + 30
+                                    height: serviceMessageLabel.height + 28
                                     width: parent.width
 
                                     BorderImage {
                                         anchors.centerIn: parent
 
                                         height: parent.height
-                                        width: serviceMessageLabel.paintedWidth + 32
+                                        width: serviceMessageLabel.paintedWidth + 24
 
-                                        source: "images/notification.png"
+                                        source: "qrc:/images/notification.png"
 
                                         border { left: 22; right: 22; bottom: 22; top: 22; }
                                     }
@@ -156,28 +158,23 @@ Page {
                                     Label {
                                         id: serviceMessageLabel
 
-                                        anchors {
-                                            top: parent.top
-                                            topMargin: 16
-                                        }
+                                        anchors { top: parent.top; topMargin: 14 }
 
                                         width: parent.width
 
                                         font {
-                                            weight: Font.Light
                                             pixelSize: 18
+                                            weight: Font.Light
                                         }
 
                                         horizontalAlignment: Text.AlignHCenter
-                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                        wrapMode: Text.Wrap
 
                                         color: "gray"
 
                                         text: model.serviceMessage
                                     }
-
                                 }
-
                             }
 
                             Component {
@@ -198,65 +195,20 @@ Page {
                                         width: isPortrait ? 380 : 754
 
                                         font {
-                                            weight: Font.Light
                                             pixelSize: 23
+                                            weight: Font.Light
                                         }
 
+                                        wrapMode: Text.Wrap
                                         horizontalAlignment: model.isOutgoing ? Text.AlignLeft : Text.AlignRight
-                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
 
                                         color: model.isOutgoing ? "black" : "white"
 
-                                        text: Utils.getFormattedText(model.content.text, false)
+                                        text: Utils.getFormattedText(model.content.text)
 
-                                        onLinkActivated: {
-                                            console.log(link)
-                                            Qt.openUrlExternally(link)
-                                        }
+                                        onLinkActivated: Qt.openUrlExternally(link)
                                     }
                                 }
-                            }
-
-                            Component {
-                                id: photoMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: audioMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: videoMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: documentMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: locationMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: webPageMessageComponent
-
-                                Item {}
-                            }
-
-                            Component {
-                                id: stickerMessageComponent
-
-                                Item {}
                             }
 
                             Component {
@@ -266,7 +218,7 @@ Page {
 
                                     childrenWidth: notSupportedMessage.paintedWidth
 
-                                    content: Text {
+                                    content: Label {
                                         id: notSupportedMessage
 
                                         anchors {
@@ -277,16 +229,16 @@ Page {
                                         width: isPortrait ? 380 : 754
 
                                         font {
-                                            weight: Font.Light
+                                            bold: true
                                             pixelSize: 23
                                         }
 
                                         horizontalAlignment: model.isOutgoing ? Text.AlignLeft : Text.AlignRight
-                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                        wrapMode: Text.Wrap
 
                                         color: model.isOutgoing ? "black" : "white"
 
-                                        text: "<b>The message is not supported on MeeGram yet</b>"
+                                        text: "The message is not supported on MeeGram yet"
                                     }
                                 }
                             }
@@ -333,9 +285,10 @@ Page {
                 }
 
                 Column {
+                    anchors.verticalCenter: parent.verticalCenter
+
                     width: parent.width
                     height: busyIndicator.height
-                    anchors.verticalCenter: parent.verticalCenter
 
                     visible: myMessageModel.count === 0
 
@@ -352,8 +305,8 @@ Page {
             Column {
                 id: inputPanelHolder
 
-                width: parent.width
                 anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width
 
                 TextArea {
                     id: textArea
@@ -364,10 +317,10 @@ Page {
                     placeholderText: "Write your message here"
 
                     platformStyle: TextAreaStyle {
-                        background: "images/messaging-textedit-background.png"
-                        backgroundError: "images/messaging-textedit-background.png"
-                        backgroundDisabled: "images/messaging-textedit-background.png"
-                        backgroundSelected: "images/messaging-textedit-background.png"
+                        background: "qrc:/images/messaging-textedit-background.png"
+                        backgroundError: "qrc:/images/messaging-textedit-background.png"
+                        backgroundDisabled: "qrc:/images/messaging-textedit-background.png"
+                        backgroundSelected: "qrc:/images/messaging-textedit-background.png"
                         backgroundCornerMargin: 1
                     }
                 }
@@ -375,8 +328,10 @@ Page {
                 Rectangle {
                     id: controls
 
-                    anchors.left: parent.left
-                    anchors.right: parent.right
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                    }
 
                     height: 0
 
@@ -396,12 +351,14 @@ Page {
 
                     Button {
                         id: sendButton
-                        anchors.right: parent.right
-                        anchors.rightMargin: 16
+                        anchors {
+                            right: parent.right
+                            rightMargin: 16
+                            verticalCenter: parent.verticalCenter
+                        }
 
-                        anchors.verticalCenter: parent.verticalCenter
-
-                        height: 48; width: 120
+                        height: 48
+                        width: 120
 
                         platformStyle: ButtonStyle { inverted: true }
 

@@ -1,6 +1,6 @@
-The Debian Package meegram2
+The Debian Package meegram
 ----------------------------
 
-Telegram client for Nokia N9 (use tdlib)
+Telegram client for Nokia N9 (used tdlib)
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Mon, 08 Mar 2021 04:33:16 +0100

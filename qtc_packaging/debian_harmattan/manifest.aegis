@@ -1,4 +1,0 @@
-<aegis>
-	<for path="/opt/meegram2/bin/meegram2" />
-	<for path="applauncherd-launcher::/usr/bin/applauncherd.bin" id="" />
-</aegis>

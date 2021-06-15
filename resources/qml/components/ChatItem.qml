@@ -134,7 +134,7 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            pageStack.push(Qt.createComponent("../MessagePage.qml"), { chat: myChatModel.get(model.id) })
+            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chat: myChatModel.get(model.id) })
         }
         onPressAndHold: {
             createChatContextMenu(model.id, model.chatList, model.isPinned)

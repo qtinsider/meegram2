@@ -1,15 +1,15 @@
 TEMPLATE = app
 
-TARGET = meegram2
+TARGET = meegram
 
 QT += declarative
 
 # Additional import path used to resolve QML modules in Creator's code model
-QML_IMPORT_PATH = /opt/QtSDK/Simulator/Qt/gcc/imports
+QML_IMPORT_PATH =
 
 CONFIG += meegotouch link_pkgconfig
 
-PKGCONFIG += tdjson libzstd rlottie # tgvoip
+PKGCONFIG += tdjson # libzstd rlottie tgvoip
 
 # Speed up launching on MeeGo/Harmattan when using applauncherd daemon
 CONFIG += qdeclarative-boostable
@@ -17,77 +17,72 @@ CONFIG += qdeclarative-boostable
 CONFIG += mobility
 MOBILITY += systeminfo
 
-INCLUDEPATH += src/
+INCLUDEPATH += src
 
 # Submodules
-include(lib/nlohmann.pri)
+include(lib/libs.pri)
 include(lib/warnings.pri)
 
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += \
     src/ChatModel.cpp \
-    src/CountryModel.cpp \
     src/ImageProviders.cpp \
-    src/Lottie.cpp \
+    src/Stores.cpp \
     src/main.cpp \
     src/MessageModel.cpp \
-    src/Stores.cpp \
+    src/SelectionModel.cpp \
     src/TdApi.cpp \
     src/Utils.cpp
 
 HEADERS += \
     src/ChatModel.hpp \
     src/Common.hpp \
-    src/CountryModel.hpp \
     src/ImageProviders.hpp \
-    src/Lottie.hpp \
     src/MessageModel.hpp \
+    src/SelectionModel.hpp \
     src/Serialize.hpp \
     src/Stores.hpp \
     src/TdApi.hpp \
     src/Utils.hpp
 
-QMAKE_CXXFLAGS += -std=c++2a
-QMAKE_LFLAGS += -O2 -rdynamic
+QMAKE_CXXFLAGS += -O2 -std=c++2a
+QMAKE_LFLAGS   += -rdynamic
 
 contains(MEEGO_EDITION, harmattan) {
     QMAKE_CC = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-gcc
     QMAKE_CXX = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-g++
     QMAKE_LINK = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-g++
 
-    QMAKE_LFLAGS += -Wl,-rpath,/opt/meegram2/lib -Wl,--hash-style=gnu -Wl,--as-needed -Wl,--dynamic-linker=/lib/ld-linux.so.3
+    QMAKE_LFLAGS += -Wl,-rpath,/opt/meegram/lib -Wl,--hash-style=gnu -Wl,--as-needed -Wl,--dynamic-linker=/lib/ld-linux.so.3
 
-    icon.files = resources/meegram2.png
+    icon.files = resources/meegram80.png
     icon.path = /usr/share/icons/hicolor/80x80/apps
 
-    desktopfile.files = resources/meegram2.desktop
-    desktopfile.path = /usr/share/applications
+    desktop.files = resources/meegram_harmattan.desktop
+    desktop.path = /usr/share/applications
 
-    target.path = /opt/meegram2/bin
+    libs.files = lib/libtdjson.so.1.7.4 lib/libstdc++.so.6
+    libs.path = /opt/meegram/lib
 
-    librlottie.files = ../build/lib/librlottie.so.0
-    librlottie.path = /opt/meegram2/lib
+    target.path = /opt/meegram/bin
 
-    libstdcxx.files = ../build/lib/libstdc++.so.6
-    libstdcxx.path = /opt/meegram2/lib
-
-    libtdjson.files = ../build/lib/libtdjson.so.1.7.4
-    libtdjson.path = /opt/meegram2/lib
-
-    INSTALLS += desktopfile icon target libtdjson librlottie libstdcxx
+    INSTALLS += desktop icon target libs
 }
-
-OTHER_FILES += \
-    qtc_packaging/debian_harmattan/rules \
-    qtc_packaging/debian_harmattan/README \
-    qtc_packaging/debian_harmattan/manifest.aegis \
-    qtc_packaging/debian_harmattan/copyright \
-    qtc_packaging/debian_harmattan/control \
-    qtc_packaging/debian_harmattan/compat \
-    qtc_packaging/debian_harmattan/changelog
 
 RESOURCES += \
     resources/resources.qrc
+
+DISTFILES += \
+    BUILD.md \
+    README.md \
+    debian/README \
+    debian/changelog \
+    debian/compat \
+    debian/control \
+    debian/copyright \
+    debian/meegram.aegis \
+    debian/rules \
+    tools/tdlib-build.sh
 
 TRANSLATIONS += \
     resources/i18n/meegram_en.ts

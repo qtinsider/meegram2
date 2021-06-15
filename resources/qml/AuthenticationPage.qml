@@ -246,7 +246,6 @@ Sheet {
                 }
 
                 // Password
-
                 Column {
                     id: enterPasswordColumn
 
@@ -314,7 +313,6 @@ Sheet {
                 }
 
                 // Registration
-
                 Column {
                     id: signUpColumn
 

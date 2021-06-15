@@ -17,8 +17,8 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
     {
         case fnv::hash("chatListMain"): {
             if (auto it = std::ranges::find_if(positions,
-                                               [](const auto &x) {
-                                                   auto list = x.toMap().value("list").toMap();
+                                               [](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
                                                    return list.value("@type").toByteArray() == "chatListMain";
                                                });
                 it != positions.end())
@@ -26,8 +26,8 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
         }
         case fnv::hash("chatListArchive"): {
             if (auto it = std::ranges::find_if(positions,
-                                               [](const auto &x) {
-                                                   auto list = x.toMap().value("list").toMap();
+                                               [](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
                                                    return list.value("@type").toByteArray() == "chatListArchive";
                                                });
                 it != positions.end())
@@ -35,8 +35,8 @@ QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList
         }
         case fnv::hash("chatListFilter"): {
             if (auto it = std::ranges::find_if(positions,
-                                               [chatList](const auto &x) {
-                                                   auto list = x.toMap().value("list").toMap();
+                                               [chatList](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
                                                    return list.value("@type").toByteArray() == "chatListFilter" &&
                                                           list.value("chat_filter_id").toInt() == chatList.value("chat_filter_id").toInt();
                                                });
@@ -74,14 +74,30 @@ ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_sortTimer(new QTimer(this))
 {
+    connect(&TdApi::getInstance(), SIGNAL(updateNewChat(const QVariantMap &)), SLOT(handleNewChat(const QVariantMap &)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatTitle(qint64, const QString &)), SLOT(handleChatTitle(qint64, const QString &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatPhoto(qint64, const QVariantMap &)),
+            SLOT(handleChatPhoto(qint64, const QVariantMap &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatPermissions(qint64, const QVariantMap &)),
+            SLOT(handleChatPermissions(qint64, const QVariantMap &)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatLastMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatLastMessage(qint64, const QVariantMap &, const QVariantList &)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatIsMarkedAsUnread(qint64, bool)), SLOT(handleChatIsMarkedAsUnread(qint64, bool)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatIsBlocked(qint64, bool)), SLOT(handleChatIsBlocked(qint64, bool)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatHasScheduledMessages(qint64, bool)),
+            SLOT(handleChatHasScheduledMessages(qint64, bool)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatDefaultDisableNotification(qint64, bool)),
+            SLOT(handleChatDefaultDisableNotification(qint64, bool)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadOutbox(qint64, qint64)), SLOT(handleChatReadOutbox(qint64, qint64)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatUnreadMentionCount(qint64, int)), SLOT(handleChatUnreadMentionCount(qint64, int)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatNotificationSettings(qint64, const QVariantMap &)),
             SLOT(handleChatNotificationSettings(qint64, const QVariantMap &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatActionBar(qint64, const QVariantMap &)),
+            SLOT(handleChatActionBar(qint64, const QVariantMap &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatReplyMarkup(qint64, qint64)), SLOT(handleChatReplyMarkup(qint64, qint64)));
+    connect(&TdApi::getInstance(), SIGNAL(updateChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)),
+            SLOT(handleChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)));
 
     connect(&TdApi::getInstance(), SIGNAL(chat(const QVariantMap &)), SLOT(handleChat(const QVariantMap &)));
     connect(&TdApi::getInstance(), SIGNAL(chats(const QVariantMap &)), SLOT(handleChats(const QVariantMap &)));
@@ -206,7 +222,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         }
         case LastMessageAuthorRole: {
             // TODO(strawberry):
-            return Utils::getMessageSenderName(chat, chat.value("last_message").toMap());
+            return Utils::getMessageSenderName(chat.value("last_message").toMap());
         }
         case LastMessageContentRole:
             return Utils::getContent(chat);
@@ -263,7 +279,7 @@ int ChatModel::count() const noexcept
 
 QVariantMap ChatModel::get(qint64 chatId) const noexcept
 {
-    auto it = std::ranges::find_if(m_chats, [chatId](const auto &message) { return message.value("id").toLongLong() == chatId; });
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
 
     if (it != m_chats.end())
     {
@@ -373,6 +389,10 @@ void ChatModel::sort(int, Qt::SortOrder)
     emit layoutChanged();
 }
 
+void ChatModel::handleNewChat(const QVariantMap &chat)
+{
+}
+
 void ChatModel::handleChatTitle(qint64 chatId, const QString &title)
 {
     auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
@@ -393,6 +413,19 @@ void ChatModel::handleChatPhoto(qint64 chatId, const QVariantMap &photo)
     if (it != m_chats.end())
     {
         it->insert("photo", photo);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatPermissions(qint64 chatId, const QVariantMap &permissions)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("permissions", permissions);
 
         auto index = std::distance(m_chats.begin(), it);
         itemChanged(index);
@@ -434,6 +467,45 @@ void ChatModel::handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
     }
 }
 
+void ChatModel::handleChatIsBlocked(qint64 chatId, bool isBlocked)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("is_blocked", isBlocked);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledMessages)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("has_scheduled_messages", hasScheduledMessages);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatDefaultDisableNotification(qint64 chatId, bool defaultDisableNotification)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("default_disable_notification", defaultDisableNotification);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
 void ChatModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
 {
     auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
@@ -461,6 +533,19 @@ void ChatModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessage
     }
 }
 
+void ChatModel::handleChatUnreadMentionCount(qint64 chatId, int unreadMentionCount)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("unread_mention_count", unreadMentionCount);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
 void ChatModel::handleChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings)
 {
     auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
@@ -468,6 +553,54 @@ void ChatModel::handleChatNotificationSettings(qint64 chatId, const QVariantMap 
     if (it != m_chats.end())
     {
         it->insert("notification_settings", notificationSettings);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatActionBar(qint64 chatId, const QVariantMap &actionBar)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("action_bar", actionBar);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("reply_markup_message_id", replyMarkupMessageId);
+
+        auto index = std::distance(m_chats.begin(), it);
+        itemChanged(index);
+    }
+}
+
+void ChatModel::handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions)
+{
+    auto it = std::ranges::find_if(m_chats, [chatId](const auto &chat) { return chat.value("id").toLongLong() == chatId; });
+
+    if (it != m_chats.end())
+    {
+        it->insert("draft_message", draftMessage);
+
+        if (!positions.isEmpty())
+        {
+            // emit delayed event
+            if (not m_sortTimer->isActive())
+                m_sortTimer->start();
+
+            it->insert("positions", positions);
+        }
 
         auto index = std::distance(m_chats.begin(), it);
         itemChanged(index);

@@ -29,22 +29,6 @@ PageStackWindow {
         onUpdateAuthorizationState: {
             authorizationStateData = authorizationState
         }
-        onUpdateChatFilters: {
-            if (chatFilters === null)
-                return;
-
-            chatFilterModel.clear();
-
-            chatFilterModel.append({name: qsTr("FilterAllChats"), value: 1});
-
-            for (var i in chatFilters) {
-                chatFilterModel.append({name: chatFilters[i].title, value: chatFilters[i].id})
-            }
-        }
-    }
-
-    ListModel {
-        id: chatFilterModel
     }
 
     InfoBanner {

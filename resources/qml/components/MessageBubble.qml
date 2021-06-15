@@ -15,12 +15,12 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: contentItem.children[0].height + messageDate.height + (senderName.text !== "" ? senderName.height : 0) + (isOutgoing ? 28 : 30);
-    width: isPortrait ? 480 : 854
+    height: contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (isOutgoing ? 28 : 30);
+    width: parent.width
 
     BorderImage {
         height: parent.height + (isOutgoing ? 2 : 0)
-        width: Math.max(childrenWidth, messageDate.paintedWidth + (isOutgoing ? 28 : 0),  senderName.paintedWidth) + 26
+        width: Math.max(childrenWidth, messageDate.paintedWidth + (isOutgoing ? 28 : 0),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
             leftMargin: isOutgoing ? 10 : parent.width - width - 10
@@ -44,18 +44,18 @@ Item {
     }
 
     Label {
-        id: senderName
+        id: senderLabel
         y: 18
-        width: parent.width -100
+        width: parent.width - 100
         anchors { left: parent.left; leftMargin: 80 }
         color: "white"
-        text: sender
         font.pixelSize: 20
         font.bold: true
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
         horizontalAlignment: Text.AlignRight
-        visible: senderName.text !== ""
+        text: sender
+        visible: text !== ""
     }
 
     Item {
@@ -64,7 +64,7 @@ Item {
         height: contentItem.children[0].height
         anchors {
             top: parent.top
-            topMargin: senderName.text === "" ? 16 : 46
+            topMargin: senderLabel.text === "" ? 16 : 46
         }
     }
 
@@ -89,12 +89,10 @@ Item {
         id: internal
 
         function getBubbleImage() {
-            var imageSrc = "../images/";
+            var imageSrc = "qrc:/images/";
 
             imageSrc += isOutgoing ? "outgoing" : "incoming"
-            imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
-
-            imageSrc += ".png"
+            imageSrc += mouseArea.pressed ? "-pressed.png" : "-normal.png"
 
             return imageSrc;
         }

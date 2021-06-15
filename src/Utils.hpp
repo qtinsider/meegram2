@@ -10,16 +10,16 @@ class Utils : public QObject
 public:
     explicit Utils(QObject *parent = nullptr);
 
-    [[nodiscard]] static QString getServiceMessageContent(const QVariantMap &chat, const QVariantMap &message);
+    [[nodiscard]] static QString getServiceMessageContent(const QVariantMap &message);
     [[nodiscard]] static bool isServiceMessage(const QVariantMap &message);
 
     Q_INVOKABLE static QString getUserShortName(int userId) noexcept;
 
     Q_INVOKABLE static QString getContent(const QVariantMap &chat) noexcept;
-    Q_INVOKABLE static QString getFormattedText(const QVariantMap &formattedText, bool plainText = false) noexcept;
+    Q_INVOKABLE static QString getFormattedText(const QVariantMap &formattedText) noexcept;
     Q_INVOKABLE static QString getTitle(const QVariantMap &message) noexcept;
     Q_INVOKABLE static QString getMessageDate(const QVariantMap &message) noexcept;
-    Q_INVOKABLE static QString getMessageSenderName(const QVariantMap &chat, const QVariantMap &message) noexcept;
+    Q_INVOKABLE static QString getMessageSenderName(const QVariantMap &message) noexcept;
 
     Q_INVOKABLE static QString getChatTitle(const QVariantMap &chat) noexcept;
 
