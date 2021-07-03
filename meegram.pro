@@ -55,26 +55,27 @@ contains(MEEGO_EDITION, harmattan) {
 
     QMAKE_LFLAGS += -Wl,-rpath,/opt/meegram/lib -Wl,--hash-style=gnu -Wl,--as-needed -Wl,--dynamic-linker=/lib/ld-linux.so.3
 
-    icon.files = resources/meegram80.png
-    icon.path = /usr/share/icons/hicolor/80x80/apps
-
     desktop.files = resources/meegram_harmattan.desktop
     desktop.path = /usr/share/applications
+
+    icon.files = resources/meegram80.png
+    icon.path = /usr/share/icons/hicolor/80x80/apps
 
     libs.files = lib/libtdjson.so.1.7.4 lib/libstdc++.so.6
     libs.path = /opt/meegram/lib
 
+    splash.files = resources/meegram-splash.png
+    splash.path = /opt/meegram/share
+
     target.path = /opt/meegram/bin
 
-    INSTALLS += desktop icon target libs
+    INSTALLS += desktop icon libs splash target
 }
 
 RESOURCES += \
     resources/resources.qrc
 
 DISTFILES += \
-    BUILD.md \
-    README.md \
     debian/README \
     debian/changelog \
     debian/compat \
@@ -82,7 +83,9 @@ DISTFILES += \
     debian/copyright \
     debian/meegram.aegis \
     debian/rules \
-    tools/tdlib-build.sh
+    tools/tdlib-build.sh \
+    BUILD.md \
+    README.md
 
 TRANSLATIONS += \
     resources/i18n/meegram_en.ts

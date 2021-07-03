@@ -1,5 +1,8 @@
 #include "TdApi.hpp"
 
+#include "Common.hpp"
+#include "Serialize.hpp"
+
 #include <fnv-cpp/fnv.h>
 #include <td/telegram/td_json_client.h>
 
@@ -8,10 +11,8 @@
 #include <QEventLoop>
 #include <QStringBuilder>
 #include <QTimer>
-#include <mutex>
 
-#include "Common.hpp"
-#include "Serialize.hpp"
+#include <mutex>
 
 class JsonClient final
 {

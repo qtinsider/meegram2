@@ -200,6 +200,7 @@ private:
     int clientId{};
 
     std::jthread m_worker;
+
     mutable std::shared_mutex mutex;
 
     AuthorizationState m_state{AuthorizationStateClosed};
