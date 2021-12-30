@@ -211,7 +211,7 @@ int MessageModel::count() const noexcept
     return m_messages.count();
 }
 
-QVariantMap MessageModel::getChat() const noexcept
+QVariant MessageModel::getChat() const noexcept
 {
     return m_chat;
 }
@@ -224,16 +224,16 @@ QString MessageModel::getChatSubtitle() const noexcept
     switch (fnv::hashRuntime(chatType.constData()))
     {
         case fnv::hash("chatTypeBasicGroup"): {
-            auto basicGroup = TdApi::getInstance().basicGroupStore->get(type.value("basic_group_id").toInt());
+            auto basicGroup = TdApi::getInstance().basicGroupStore->get(type.value("basic_group_id").toLongLong());
             return getBasicGroupStatus(basicGroup, m_chat);
         }
         case fnv::hash("chatTypePrivate"):
         case fnv::hash("chatTypeSecret"): {
-            auto user = TdApi::getInstance().userStore->get(type.value("user_id").toInt());
+            auto user = TdApi::getInstance().userStore->get(type.value("user_id").toLongLong());
             return getUserStatus(user);
         }
         case fnv::hash("chatTypeSupergroup"): {
-            auto supergroup = TdApi::getInstance().supergroupStore->get(type.value("supergroup_id").toInt());
+            auto supergroup = TdApi::getInstance().supergroupStore->get(type.value("supergroup_id").toLongLong());
             return supergroup.value("is_channel").toBool() ? getChannelStatus(supergroup, m_chat) : getSupergroupStatus(supergroup, m_chat);
         }
     }
@@ -243,7 +243,7 @@ QString MessageModel::getChatSubtitle() const noexcept
 
 QString MessageModel::getChatTitle() const noexcept
 {
-    return Utils::getChatTitle(m_chat);
+    return Utils::getChatTitle(m_chat.value("id").toLongLong());
 }
 
 void MessageModel::loadHistory() noexcept
@@ -256,12 +256,12 @@ void MessageModel::loadHistory() noexcept
     }
 }
 
-void MessageModel::openChat(const QVariantMap &chat) noexcept
+void MessageModel::openChat(const QString &chatId) noexcept
 {
     clearAll();
 
-    m_chat = chat;
-    m_chatId = chat.value("id").toLongLong();
+    m_chat = TdApi::getInstance().chatStore->get(chatId.toLongLong());
+    m_chatId = m_chat.value("id").toLongLong();
 
     auto unread = m_chat.value("unread_count").toInt() > 0;
     auto fromMessageId =
@@ -305,12 +305,14 @@ void MessageModel::closeChat() noexcept
 
 void MessageModel::deleteMessage(qint64 messageId) noexcept
 {
-    TdApi::getInstance().deleteMessages(m_chatId, QList<qint64>() << messageId, false);
+    TdApi::getInstance().deleteMessages(m_chatId, QVariantList() << messageId, false);
 }
+
 
 void MessageModel::viewMessage(qint64 messageId) noexcept
 {
-    TdApi::getInstance().viewMessages(m_chatId, 0, QList<qint64>() << messageId, true);
+
+    TdApi::getInstance().viewMessages(m_chatId, 0, QVariantList() << messageId, true);
 }
 
 QVariantMap MessageModel::get(qint64 messageId) const noexcept
@@ -570,7 +572,7 @@ void MessageModel::insertMessages(const QVariantList &messages)
     }
     endInsertRows();
 
-    QList<qint64> messageIds;
+    QVariantList messageIds;
 
     std::ranges::for_each(messages, [this, &messageIds](const auto &message) {
         if (m_chat.value("unread_count").toInt() > 0)
@@ -667,7 +669,7 @@ QString MessageModel::getSupergroupStatus(const QVariantMap &supergroup, const Q
 
 QString MessageModel::getUserStatus(const QVariantMap &user) noexcept
 {
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](int userId) { return userId == user.value("id").toInt(); }))
+    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](qint64 userId) { return userId == user.value("id").toLongLong(); }))
     {
         return tr("ServiceNotifications");
     }

@@ -4,7 +4,7 @@ import com.nokia.meego 1.0
 Item {
     id: root
 
-    property bool isMute: false
+    property bool isMuted: false
 
     property int value: 0
 
@@ -12,7 +12,7 @@ Item {
     implicitHeight: 32
 
     BorderImage {
-        source: "image://theme/" + theme.colorString + (isMute ? "meegotouch-new-items-counter-background-combined" : "meegotouch-countbubble-background-large")
+        source: "image://theme/" + theme.colorString + (isMuted ? "meegotouch-new-items-counter-background-combined" : "meegotouch-countbubble-background-large")
         anchors.fill: parent
         border { left: 10; top: 10; right: 10; bottom: 10 }
     }

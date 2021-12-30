@@ -1,7 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
 import com.nokia.extras 1.1
-import com.strawberry.meegram 0.1
+import com.strawberry.meegram 1.0
 import "components"
 
 Page {
@@ -27,9 +27,36 @@ Page {
 
         cacheBuffer: listView.height * 2
 
-        delegate: ChatItem { }
+        delegate: ChatItem {
+            onPressAndHold: {
+                listView.currentIndex = -1;
+                listView.currentIndex = index;
+                contextMenu.open();
+            }
+        }
 
         model: myChatModel
+    }
+
+    ChatModel {
+        id: myChatModel
+        chatList: TdApi.ChatListArchive
+
+        Component.onCompleted: populate()
+    }
+
+    ContextMenu {
+        id: contextMenu
+
+        MenuLayout {
+            MenuItem {
+                text: myChatModel.get(listView.currentIndex).isPinned ? qsTr("UnpinFromTop") : qsTr("PinFromTop")
+                onClicked: {
+                    myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
+                    myChatModel.populate()
+                }
+            }
+        }
     }
 
     ScrollDecorator {
@@ -42,6 +69,4 @@ Page {
             onClicked: pageStack.pop()
         }
     }
-
-    Component.onDestruction: myChatModel.chatList = TdApi.ChatListMain
 }

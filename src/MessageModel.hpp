@@ -8,7 +8,7 @@ class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QVariantMap chat READ getChat WRITE openChat NOTIFY chatChanged)
+    Q_PROPERTY(QVariant chat READ getChat NOTIFY chatChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
@@ -65,13 +65,13 @@ public:
 
     int count() const noexcept;
 
-    QVariantMap getChat() const noexcept;
+    QVariant getChat() const noexcept;
     QString getChatSubtitle() const noexcept;
     QString getChatTitle() const noexcept;
 
     Q_INVOKABLE void loadHistory() noexcept;
 
-    Q_INVOKABLE void openChat(const QVariantMap &chat) noexcept;
+    Q_INVOKABLE void openChat(const QString &chatId) noexcept;
     Q_INVOKABLE void closeChat() noexcept;
 
     Q_INVOKABLE void deleteMessage(qint64 messageId) noexcept;

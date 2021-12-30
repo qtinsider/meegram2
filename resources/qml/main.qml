@@ -1,7 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
 import com.nokia.extras 1.1
-import com.strawberry.meegram 0.1
+import com.strawberry.meegram 1.0
 import "components"
 
 PageStackWindow {
@@ -23,7 +23,7 @@ PageStackWindow {
         onError: {
             banner.text = data.message
 
-            if (banner.text)
+            if (data.code !== "404")
                 banner.show()
         }
         onUpdateAuthorizationState: {
@@ -35,38 +35,6 @@ PageStackWindow {
         id: banner
         y: 36
         z: 100
-    }
-
-    Component {
-        id: contextMenuComponent
-
-        ContextMenu {
-            id: contextMenu
-
-            property string chatId: ""
-            property variant chatList: null
-            property bool isPinned: false
-
-            content: MenuLayout {
-                MenuItem {
-                    text: !isPinned ? qsTr("PinToTop") : qsTr("UnpinFromTop")
-                    onClicked: {
-                        tdapi.toggleChatIsPinned(chatList, chatId, !isPinned)
-                        myChatModel.refresh()
-                    }
-                }
-            }
-        }
-    }
-
-    function createChatContextMenu(chatId, chatList, isPinned) {
-        var p = { chatId: chatId, chatList: chatList, isPinned: isPinned };
-        var menu = contextMenuComponent.createObject(pageStack.currentPage, p);
-        menu.statusChanged.connect(function() {
-            if (menu.status === DialogStatus.Closed)
-                menu.destroy(250);
-        });
-        menu.open();
     }
 
     Rectangle {

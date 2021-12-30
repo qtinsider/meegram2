@@ -1,7 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
 import com.nokia.extras 1.1
-import com.strawberry.meegram 0.1
+import com.strawberry.meegram 1.0
 import "components"
 
 Page {
@@ -18,10 +18,7 @@ Page {
                 verticalCenter: parent.verticalCenter
             }
             source: "image://theme/meegotouch-combobox-indicator-inverted"
-
-
             visible: isAuthorized
-
         }
 
         MouseArea {
@@ -36,8 +33,6 @@ Page {
             MenuItem {
                 text: "Archived Chats"
                 onClicked: {
-                    myChatModel.chatList = TdApi.ChatListArchive
-                    selectionDialog.selectedIndex = 0
                     pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
                 }
             }
@@ -66,10 +61,15 @@ Page {
 
         cacheBuffer: listView.height * 2
 
-        delegate: ChatItem { }
+        delegate: ChatItem {
+            onPressAndHold: {
+                listView.currentIndex = -1;
+                listView.currentIndex = index;
+                contextMenu.open();
+            }
+        }
 
         model: myChatModel
-
         snapMode: ListView.SnapToItem
         visible: isAuthorized
     }
@@ -115,7 +115,6 @@ Page {
                     rightMargin: 24
                 }
 
-
                 text: "Different, Handy, Powerful"
                 wrapMode: Text.WordWrap
 
@@ -151,7 +150,7 @@ Page {
         id: selectionDialog
         titleText: qsTr("Filters")
         selectedIndex: 0
-        model: myChatFilterModel
+        model: ChatFilterModel {}
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {
@@ -159,14 +158,35 @@ Page {
                 return
             }
 
+            myChatModel.chatList = TdApi.ChatListFilter
             myChatModel.chatFilterId = model.get(selectedIndex).id
+        }
+    }
+
+    ChatModel {
+        id: myChatModel
+        chatList: TdApi.ChatListMain
+    }
+
+    ContextMenu {
+        id: contextMenu
+
+        MenuLayout {
+
+            MenuItem {
+                text: myChatModel.get(listView.currentIndex).isPinned ? qsTr("UnpinFromTop") : qsTr("PinFromTop")
+                onClicked: {
+                    myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
+                    myChatModel.populate()
+                }
+            }
         }
     }
 
     Connections {
         target: tdapi
 
-        onAuthorizationStateReady: myChatModel.loadChats()
+        onAuthorizationStateReady: myChatModel.populate()
     }
 
     ScrollDecorator {
@@ -191,7 +211,6 @@ Page {
             onClicked: Qt.quit()
         }
 
-
         ToolIcon {
             visible: !isAuthorized
             anchors.right: parent.right
@@ -202,10 +221,9 @@ Page {
 
         ToolIcon {
             visible: isAuthorized
-            platformIconId: "toolbar-add"
-            onClicked: addDialog.open()
+            platformIconId: "toolbar-refresh"
+            onClicked: myChatModel.populate()
         }
-
 
         ToolIcon {
             visible: isAuthorized

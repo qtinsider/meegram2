@@ -1,21 +1,7 @@
 # MeeGram
-Telegram client for Nokia N9
+Telegram client for Nokia N9 (used tdlib)
 
 MeeGram is unofficial Telegram client for Nokia N9
-
-## Building
-
-To get source code with run:
-
-```
-git clone https://github.com/qtinsider/meegram2.git
-cd meegram2
-```
-
-[Update your Madde toolchain](BUILD.md)
-
-then run `tdlib-build.sh` at tools folder.
-
 
 ## Contributing
 Please open pull requests to improve this. I will appreciate any contribution.

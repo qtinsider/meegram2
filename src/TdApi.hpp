@@ -63,26 +63,26 @@ public:
     Q_INVOKABLE void closeChat(qint64 chatId);
     Q_INVOKABLE void closeSecretChat(qint32 secretChatId);
     Q_INVOKABLE void createBasicGroupChat(qint32 basicGroupId, bool force);
-    Q_INVOKABLE void createNewBasicGroupChat(const QList<qint32> &userIds, const QString &title);
+    Q_INVOKABLE void createNewBasicGroupChat(const QVariantList &userIds, const QString &title);
     Q_INVOKABLE void createNewSecretChat(qint32 userId);
     Q_INVOKABLE void createNewSupergroupChat(const QString &title, bool isChannel, const QString &description, const QVariantMap &location);
     Q_INVOKABLE void createPrivateChat(qint32 userId, bool force);
     Q_INVOKABLE void createSecretChat(qint32 secretChatId);
     Q_INVOKABLE void createSupergroupChat(qint32 supergroupId, bool force);
     Q_INVOKABLE void deleteChatHistory(qint64 chatId, bool removeFromChatList, bool revoke);
-    Q_INVOKABLE void deleteMessages(qint64 chatId, const QList<qint64> &messageIds, bool revoke);
+    Q_INVOKABLE void deleteMessages(qint64 chatId, const QVariantList &messageIds, bool revoke);
     Q_INVOKABLE void downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous);
     Q_INVOKABLE void editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup,
                                      const QVariantMap &inputMessageContent);
     Q_INVOKABLE void getChat(qint64 chatId);
-    Q_INVOKABLE void getChats(const QVariantMap &chatList, qint64 offsetOrder, qint64 offsetChatId, qint32 limit);
     Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
     Q_INVOKABLE void getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal);
     Q_INVOKABLE void getMe();
     Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
-    Q_INVOKABLE void getMessages(qint64 chatId, const QList<qint64> &messageIds);
+    Q_INVOKABLE void getMessages(qint64 chatId, const QVariantList &messageIds);
     Q_INVOKABLE void joinChat(qint64 chatId);
     Q_INVOKABLE void leaveChat(qint64 chatId);
+
     Q_INVOKABLE void openChat(qint64 chatId);
     Q_INVOKABLE void sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action);
     Q_INVOKABLE void sendMessage(qint64 chatId, qint64 messageThreadId, qint64 replyToMessageId, const QVariantMap &options,
@@ -91,8 +91,7 @@ public:
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
-    Q_INVOKABLE void toggleChatIsPinned(const QVariantMap &chatList, qint64 chatId, bool isPinned);
-    Q_INVOKABLE void viewMessages(qint64 chatId, qint64 messageThreadId, const QList<qint64> &messageIds, bool forceRead);
+    Q_INVOKABLE void viewMessages(qint64 chatId, qint64 messageThreadId, const QVariantList &messageIds, bool forceRead);
 
     BasicGroupStore *const basicGroupStore{};
     ChatStore *const chatStore{};
@@ -155,14 +154,14 @@ signals:
 
     void updateOption(const QString &name, const QVariantMap &value);
 
-    void updateUserChatAction(qint64 chatId, qint64 messageThreadId, int userId, const QVariantMap &action);
-    void updateUserStatus(int userId, const QVariantMap &status);
+    void updateChatAction(qint64 chatId, qint64 messageThreadId, qint64 userId, const QVariantMap &action);
+    void updateUserStatus(qint64 userId, const QVariantMap &status);
     void updateUser(const QVariantMap &user);
     void updateBasicGroup(const QVariantMap &basicGroup);
     void updateSupergroup(const QVariantMap &supergroup);
-    void updateUserFullInfo(int userId, const QVariantMap &userFullInfo);
-    void updateBasicGroupFullInfo(int basicGroupId, const QVariantMap &basicGroupFullInfo);
-    void updateSupergroupFullInfo(int supergroupId, const QVariantMap &supergroupFullInfo);
+    void updateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
+    void updateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
+    void updateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
 
     void updateFile(const QVariantMap &file);
 
@@ -171,10 +170,12 @@ signals:
     void chat(const QVariantMap &data);
     void chatMembers(const QVariantMap &data);
     void chats(const QVariantMap &data);
+    void countries(const QVariantMap &data);
     void error(const QVariantMap &data);
     void file(const QVariantMap &data);
     void message(const QVariantMap &data);
     void messages(const QVariantMap &data);
+    void ok(const QVariantMap &data);
     void stickers(const QVariantMap &data);
     void stickerSet(const QVariantMap &data);
     void stickerSets(const QVariantMap &data);
@@ -200,8 +201,6 @@ private:
     int clientId{};
 
     std::jthread m_worker;
-
-    mutable std::shared_mutex mutex;
 
     AuthorizationState m_state{AuthorizationStateClosed};
 

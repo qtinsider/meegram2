@@ -25,7 +25,7 @@
 
 namespace {
 
-[[maybe_unused]] bool isBotUser(int userId) noexcept
+[[maybe_unused]] bool isBotUser(qint64 userId) noexcept
 {
     auto user = TdApi::getInstance().userStore->get(userId);
 
@@ -40,13 +40,13 @@ bool isMeChat(const QVariantMap &chat) noexcept
     auto chatType = type.value("@type").toByteArray();
     if (chatType == "chatTypeSecret" || chatType == "chatTypePrivate")
     {
-        return TdApi::getInstance().userStore->getMyId() == type.value("user_id").toInt();
+        return TdApi::getInstance().userStore->getMyId() == type.value("user_id").toLongLong();
     }
 
     return false;
 }
 
-bool isMeUser(int userId) noexcept
+bool isMeUser(qint64 userId) noexcept
 {
     return TdApi::getInstance().userStore->getMyId() == userId;
 }
@@ -56,7 +56,7 @@ bool isMeUser(int userId) noexcept
     auto status = user.value("status").toMap();
     auto type = user.value("type").toMap();
 
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](int userId) { return userId == user.value("id").toInt(); }))
+    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](qint64 userId) { return userId == user.value("id").toLongLong(); }))
     {
         return false;
     }
@@ -133,10 +133,10 @@ QString getMessageAuthor(const QVariantMap &chat, const QVariantMap &sender) noe
     if (sender.isEmpty())
         return chat.value("title").toString();
 
-    return Utils::getUserShortName(sender.value("user_id").toInt());
+    return Utils::getUserShortName(sender.value("user_id").toLongLong());
 }
 
-QString getUserFullName(int userId) noexcept
+QString getUserFullName(qint64 userId) noexcept
 {
     auto user = TdApi::getInstance().userStore->get(userId);
 
@@ -247,7 +247,7 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
     return result;
 }
 
-[[maybe_unused]] bool isUserBlocked(int userId) noexcept
+[[maybe_unused]] bool isUserBlocked(qint64 userId) noexcept
 {
     auto fullInfo = TdApi::getInstance().userStore->getFullInfo(userId);
 
@@ -257,7 +257,7 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
     return fullInfo.value("is_blocked").toBool();
 }
 
-[[maybe_unused]] bool isDeletedUser(int userId)
+[[maybe_unused]] bool isDeletedUser(qint64 userId)
 {
     auto user = TdApi::getInstance().userStore->get(userId);
 
@@ -275,6 +275,103 @@ void appendDuration(int count, QChar &&order, QString &outString)
 Utils::Utils(QObject *parent)
     : QObject(parent)
 {
+}
+
+QVariantMap Utils::getChatPosition(qint64 chatId, const QVariantMap &chatList)
+{
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto positions = chat.value("positions").toList();
+
+    auto chatListType = chatList.value("@type").toByteArray();
+    switch (fnv::hashRuntime(chatListType.constData()))
+    {
+        case fnv::hash("chatListMain"): {
+            if (auto it = std::ranges::find_if(positions,
+                                               [](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
+                                                   return list.value("@type").toByteArray() == "chatListMain";
+                                               });
+                it != positions.end())
+                return it->toMap();
+        }
+        case fnv::hash("chatListArchive"): {
+            if (auto it = std::ranges::find_if(positions,
+                                               [](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
+                                                   return list.value("@type").toByteArray() == "chatListArchive";
+                                               });
+                it != positions.end())
+                return it->toMap();
+        }
+        case fnv::hash("chatListFilter"): {
+            if (auto it = std::ranges::find_if(positions,
+                                               [chatList](const auto &position) {
+                                                   auto list = position.toMap().value("list").toMap();
+                                                   return list.value("@type").toByteArray() == "chatListFilter" &&
+                                                          list.value("chat_filter_id").toInt() == chatList.value("chat_filter_id").toInt();
+                                               });
+                it != positions.end())
+                return it->toMap();
+        }
+    }
+
+    return {};
+}
+
+bool Utils::isChatPinned(qint64 chatId, const QVariantMap &chatList)
+{
+    auto position = getChatPosition(chatId, chatList);
+
+    return position.value("is_pinned").toBool();
+}
+
+qint64 Utils::getChatOrder(qint64 chatId, const QVariantMap &chatList)
+{
+    auto position = getChatPosition(chatId, chatList);
+
+    return position.value("order").toLongLong();
+}
+
+bool Utils::chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
+{
+    if (list1.value("@type") != list2.value("@type"))
+        return false;
+
+    auto listType = list1.value("@type").toByteArray();
+
+    switch (fnv::hashRuntime(listType.constData()))
+    {
+        case fnv::hash("chatListMain"):
+            return true;
+        case fnv::hash("chatListArchive"):
+            return true;
+        case fnv::hash("chatListFilter"): {
+            return list1.value("chat_filter_id").toByteArray() == list2.value("chat_filter_id").toByteArray();
+        }
+    }
+
+    return false;
+}
+
+QString Utils::getChatTitle(qint64 chatId, bool showSavedMessages)
+{
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+
+    if (isMeChat(chat) && showSavedMessages)
+        return QObject::tr("SavedMessages");
+
+    auto title = chat.value("title").toString();
+
+    return title.isNull() ? QObject::tr("HiddenName") : title;
+}
+
+int Utils::getChatMuteFor(qint64 chatId)
+{
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+
+    auto notificationSettings = chat.value("notification_settings").toMap();
+
+    return notificationSettings.value("mute_for").toInt();
 }
 
 QString Utils::getServiceMessageContent(const QVariantMap &message)
@@ -383,7 +480,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             if (singleMember)
             {
-                auto memberUserId = content.value("member_user_ids").toList()[0].toInt();
+                auto memberUserId = content.value("member_user_ids").toList()[0].toLongLong();
                 if (sender.value("user_id") == memberUserId)
                 {
                     if (isSupergroup(chat) && isChannel)
@@ -456,7 +553,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
             return QObject::tr("ActionInviteUser").arg(author);
         }
         case fnv::hash("messageChatDeleteMember"): {
-            if (content.value("user_id").toInt() == sender.value("user_id").toInt())
+            if (content.value("user_id").toLongLong() == sender.value("user_id").toLongLong())
             {
                 if (isOutgoing)
                 {
@@ -468,14 +565,14 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouKickUser").arg(getUserShortName(content.value("user_id").toInt()));
+                return QObject::tr("ActionYouKickUser").arg(getUserShortName(content.value("user_id").toLongLong()));
             }
-            else if (isMeUser(content.value("user_id").toInt()))
+            else if (isMeUser(content.value("user_id").toLongLong()))
             {
                 return QObject::tr("ActionKickUserYou").arg(author);
             }
 
-            return QObject::tr("ActionKickUser").arg(author).arg(getUserShortName(content.value("user_id").toInt()));
+            return QObject::tr("ActionKickUser").arg(author).arg(getUserShortName(content.value("user_id").toLongLong()));
         }
         case fnv::hash("messageChatUpgradeTo"): {
             return QObject::tr("ActionMigrateFromGroup");
@@ -503,19 +600,19 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
                 if (isOutgoing)
                     return QObject::tr("MessageLifetimeYouRemoved");
 
-                return QObject::tr("MessageLifetimeRemoved").arg(getUserShortName(sender.value("user_id").toInt()));
+                return QObject::tr("MessageLifetimeRemoved").arg(getUserShortName(sender.value("user_id").toLongLong()));
             }
 
             if (isOutgoing)
                 return QObject::tr("MessageLifetimeChangedOutgoing").arg(ttlString);
 
-            return QObject::tr("MessageLifetimeChanged").arg(getUserShortName(sender.value("user_id").toInt())).arg(ttlString);
+            return QObject::tr("MessageLifetimeChanged").arg(getUserShortName(sender.value("user_id").toLongLong())).arg(ttlString);
         }
         case fnv::hash("messageCustomServiceAction"): {
             return content.value("text").toString();
         }
         case fnv::hash("messageContactRegistered"): {
-            auto userName = getUserShortName(sender.value("user_id").toInt());
+            auto userName = getUserShortName(sender.value("user_id").toLongLong());
             return QObject::tr("NotificationContactJoined").arg(userName);
         }
         case fnv::hash("messageWebsiteConnected"): {
@@ -585,7 +682,7 @@ bool Utils::isServiceMessage(const QVariantMap &message)
     return {};
 }
 
-QString Utils::getUserShortName(int userId) noexcept
+QString Utils::getUserShortName(qint64 userId) noexcept
 {
     auto user = TdApi::getInstance().userStore->get(userId);
 
@@ -615,7 +712,7 @@ QString Utils::getTitle(const QVariantMap &message) noexcept
     auto senderType = sender.value("@type").toByteArray();
     if (senderType == "messageSenderUser")
     {
-        return getUserFullName(sender.value("user_id").toInt());
+        return getUserFullName(sender.value("user_id").toLongLong());
     }
     if (senderType == "messageSenderChat")
         return TdApi::getInstance().chatStore->get(sender.value("chat_id").toLongLong()).value("title").toString();
@@ -639,10 +736,8 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
     return QLocale::system().toString(date.date(), QLocale::ShortFormat);
 }
 
-QString Utils::getContent(const QVariantMap &chat) noexcept
+QString Utils::getContent(const QVariantMap &message) noexcept
 {
-    auto message = chat.value("last_message").toMap();
-
     auto content = message.value("content").toMap();
     auto sender = message.value("sender").toMap();
 
@@ -815,18 +910,10 @@ QString Utils::getContent(const QVariantMap &chat) noexcept
     return QObject::tr("UnsupportedAttachment");
 }
 
-QString Utils::getChatTitle(const QVariantMap &chat) noexcept
+bool Utils::isChatUnread(qint64 chatId) noexcept
 {
-    if (isMeChat(chat))
-        return QObject::tr("SavedMessages");
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
 
-    auto title = chat.value("title").toString();
-
-    return title.isEmpty() ? QObject::tr("HiddenName") : title;
-}
-
-bool Utils::isChatUnread(const QVariantMap &chat) noexcept
-{
     auto isMarkedAsUnread = chat.value("is_marked_as_unread").toBool();
     auto unreadCount = chat.value("unread_count").toInt();
 
@@ -860,13 +947,13 @@ QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
             switch (fnv::hashRuntime(senderType.constData()))
             {
                 case fnv::hash("messageSenderUser"): {
-                    if (isMeUser(sender.value("user_id").toInt()))
+                    if (isMeUser(sender.value("user_id").toLongLong()))
                         return QObject::tr("FromYou");
 
-                    return getUserShortName(sender.value("user_id").toInt());
+                    return getUserShortName(sender.value("user_id").toLongLong());
                 }
                 case fnv::hash("messageSenderChat"): {
-                    return getChatTitle(chat);
+                    return getChatTitle(chat.value("id").toLongLong());
                 }
             }
         }
@@ -1018,8 +1105,10 @@ QImage Utils::getThumb(const QVariantMap &thumbnail) const noexcept
     return reader.read();
 }
 
-bool Utils::isMessageUnread(const QVariantMap &chat, const QVariantMap &message) noexcept
+bool Utils::isMessageUnread(qint64 chatId, const QVariantMap &message) noexcept
 {
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+
     auto lastReadInboxMessageId = chat.value("last_read_inbox_message_id").toLongLong();
     auto lastReadOutboxMessageId = chat.value("last_read_outbox_message_id").toLongLong();
 

@@ -1,6 +1,6 @@
 #include <QApplication>
-#include <QDeclarativeContext>
 #include <QDeclarativeComponent>
+#include <QDeclarativeContext>
 #include <QDeclarativeEngine>
 #include <QDeclarativeView>
 #include <QFile>
@@ -17,21 +17,10 @@
 #include "TdApi.hpp"
 #include "Utils.hpp"
 
-#if defined(MEEGO_EDITION_HARMATTAN)
-#    include <MDeclarativeCache>
-#endif
-
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-#ifdef MEEGO_EDITION_HARMATTAN
-    QScopedPointer<QApplication> app(MDeclarativeCache::qApplication(argc, argv));
-
-    QScopedPointer<QDeclarativeView> viewer(MDeclarativeCache::qDeclarativeView());
-#else
     QScopedPointer<QApplication> app(new QApplication(argc, argv));
-
     QScopedPointer<QDeclarativeView> viewer(new QDeclarativeView);
-#endif
 
     QCoreApplication::setApplicationName(AppName);
     QCoreApplication::setApplicationVersion(AppVersion);
@@ -56,29 +45,23 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     }
     app->installTranslator(&translator);
 
-    QScopedPointer<ChatModel> chatModel(new ChatModel);
-    QScopedPointer<ChatFilterModel> chatFilterModel(new ChatFilterModel);
-    QScopedPointer<CountryModel> countryModel(new CountryModel);
-    QScopedPointer<MessageModel> messageModel(new MessageModel);
-
-    QScopedPointer<Utils> utils(new Utils);
+    qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
+    qmlRegisterType<ChatFilterModel>("com.strawberry.meegram", 1, 0, "ChatFilterModel");
+    qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
+    qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
 
     qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
 
-    qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 0, 1, "TdApi", "TdApi should not be created in QML");
+    qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
-    viewer->rootContext()->setContextProperty("tdapi", &TdApi::getInstance());
-    viewer->rootContext()->setContextProperty("myChatModel", chatModel.data());
-    viewer->rootContext()->setContextProperty("myChatFilterModel", chatFilterModel.data());
-    viewer->rootContext()->setContextProperty("myCountryModel", countryModel.data());
-    viewer->rootContext()->setContextProperty("myMessageModel", messageModel.data());
-
-    viewer->engine()->addImageProvider("telegram", new TdImageProvider);
-
-    viewer->rootContext()->setContextProperty("Utils", utils.data());
+    QScopedPointer<Utils> utils(new Utils);
 
     viewer->rootContext()->setContextProperty("AppVersion", AppVersion);
+    viewer->rootContext()->setContextProperty("tdapi", &TdApi::getInstance());
+    viewer->rootContext()->setContextProperty("Utils", utils.data());
+
+    viewer->engine()->addImageProvider("telegram", new TdImageProvider);
 
     QObject::connect(app.data(), SIGNAL(aboutToQuit()), &TdApi::getInstance(), SLOT(close()));
     QObject::connect(viewer->engine(), SIGNAL(quit()), viewer.data(), SLOT(close()));

@@ -1,5 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
+import com.strawberry.meegram 1.0
 import "components"
 
 Page {
@@ -133,49 +134,7 @@ Page {
 
                             width: parent.width
                             height: childrenRect.height
-                            sourceComponent: model.isServiceMessage ? serviceMessageComponent : deleglateChooser.get(model.content)
-
-                            Component {
-                                id: serviceMessageComponent
-
-                                Item {
-                                    id: serviceMessageItem
-
-                                    height: serviceMessageLabel.height + 28
-                                    width: parent.width
-
-                                    BorderImage {
-                                        anchors.centerIn: parent
-
-                                        height: parent.height
-                                        width: serviceMessageLabel.paintedWidth + 24
-
-                                        source: "qrc:/images/notification.png"
-
-                                        border { left: 22; right: 22; bottom: 22; top: 22; }
-                                    }
-
-                                    Label {
-                                        id: serviceMessageLabel
-
-                                        anchors { top: parent.top; topMargin: 14 }
-
-                                        width: parent.width
-
-                                        font {
-                                            pixelSize: 18
-                                            weight: Font.Light
-                                        }
-
-                                        horizontalAlignment: Text.AlignHCenter
-                                        wrapMode: Text.Wrap
-
-                                        color: "gray"
-
-                                        text: model.serviceMessage
-                                    }
-                                }
-                            }
+                            sourceComponent: model.isServiceMessage ? textMessageComponent : deleglateChooser.get(model.content)
 
                             Component {
                                 id: textMessageComponent
@@ -186,26 +145,17 @@ Page {
 
                                     content: Text {
                                         id: messageText
+                                        text:  model.isServiceMessage ? model.serviceMessage : Utils.getFormattedText(model.content.text)
 
+                                        color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
+                                        width: isPortrait ? 380 : 754
+                                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                         anchors {
                                             left: parent.left
-                                            leftMargin: model.isOutgoing ? 20 : 80
+                                            leftMargin: model.isServiceMessage ? 50 : model.isOutgoing ? 20 : 80
                                         }
-
-                                        width: isPortrait ? 380 : 754
-
-                                        font {
-                                            pixelSize: 23
-                                            weight: Font.Light
-                                        }
-
-                                        wrapMode: Text.Wrap
-                                        horizontalAlignment: model.isOutgoing ? Text.AlignLeft : Text.AlignRight
-
-                                        color: model.isOutgoing ? "black" : "white"
-
-                                        text: Utils.getFormattedText(model.content.text)
-
+                                        font.pixelSize: model.isServiceMessage ? 18 : 23
+                                        horizontalAlignment: model.isServiceMessage ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
                                         onLinkActivated: Qt.openUrlExternally(link)
                                     }
                                 }
@@ -259,7 +209,7 @@ Page {
                         }
                     }
 
-                    model: myMessageModel
+                    model: MessageModel { id: myMessageModel }
 
                     footer: Item { height: 10 }
 
@@ -369,30 +319,15 @@ Page {
                             textArea.text = ""
                         }
                     }
+
+                    states: [
+                        State {
+                            name: "open"
+                            when: textArea.activeFocus
+                            PropertyChanges { target: controls; height: 64 }
+                        }
+                    ]
                 }
-
-                states: [
-                    State {
-                        name: "open"
-                        when: textArea.activeFocus
-                        PropertyChanges { target: controls; height: 64 }
-                    }
-                ]
-
-                transitions: [
-                    Transition {
-                        from: "open"; to: "*"
-                        ParallelAnimation {
-                            PropertyAnimation { target: controls; duration: 300; properties: "height"; easing.type: Easing.InOutQuart }
-                        }
-                    },
-                    Transition {
-                        from: "*"; to: "open"
-                        ParallelAnimation {
-                            PropertyAnimation { target: controls; duration: 300; properties: "height"; easing.type: Easing.OutQuart }
-                        }
-                    }
-                ]
             }
         }
     }
@@ -429,6 +364,6 @@ Page {
         }
     }
 
-    Component.onCompleted: myMessageModel.openChat(chat)
+    Component.onCompleted: myMessageModel.openChat(chat.id)
     Component.onDestruction: myMessageModel.closeChat()
 }

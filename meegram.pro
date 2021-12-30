@@ -5,11 +5,11 @@ TARGET = meegram
 QT += declarative
 
 # Additional import path used to resolve QML modules in Creator's code model
-QML_IMPORT_PATH =
+QML_IMPORT_PATH = /opt/QtSDK/Simulator/Qt/gcc/imports
 
 CONFIG += meegotouch link_pkgconfig
 
-PKGCONFIG += tdjson # libzstd rlottie tgvoip
+PKGCONFIG += tdjson openssl zlib # libzstd rlottie tgvoip
 
 # Speed up launching on MeeGo/Harmattan when using applauncherd daemon
 CONFIG += qdeclarative-boostable
@@ -49,11 +49,11 @@ QMAKE_CXXFLAGS += -O2 -std=c++2a
 QMAKE_LFLAGS   += -rdynamic
 
 contains(MEEGO_EDITION, harmattan) {
-    QMAKE_CC = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-gcc
-    QMAKE_CXX = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-g++
-    QMAKE_LINK = /opt/strawberry-gcc-11.1/bin/arm-none-linux-gnueabi-g++
+    QMAKE_CC = /opt/strawberry-gcc-11.2/bin/arm-none-linux-gnueabi-gcc
+    QMAKE_CXX = /opt/strawberry-gcc-11.2/bin/arm-none-linux-gnueabi-g++
+    QMAKE_LINK = /opt/strawberry-gcc-11.2/bin/arm-none-linux-gnueabi-g++
 
-    QMAKE_LFLAGS += -Wl,-rpath,/opt/meegram/lib -Wl,--hash-style=gnu -Wl,--as-needed -Wl,--dynamic-linker=/lib/ld-linux.so.3
+    QMAKE_LFLAGS += -latomic -Wl,-rpath,/opt/meegram/lib -Wl,--hash-style=gnu -Wl,--as-needed -Wl,--dynamic-linker=/lib/ld-linux.so.3
 
     desktop.files = resources/meegram_harmattan.desktop
     desktop.path = /usr/share/applications
@@ -61,7 +61,7 @@ contains(MEEGO_EDITION, harmattan) {
     icon.files = resources/meegram80.png
     icon.path = /usr/share/icons/hicolor/80x80/apps
 
-    libs.files = lib/libtdjson.so.1.7.4 lib/libstdc++.so.6
+    libs.files = lib/libtdjson.so.1.8.0 lib/libstdc++.so.6
     libs.path = /opt/meegram/lib
 
     splash.files = resources/meegram-splash.png

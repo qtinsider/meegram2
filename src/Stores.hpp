@@ -24,16 +24,16 @@ class BasicGroupStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariantMap get(int groupId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(int groupId) const;
+    Q_INVOKABLE QVariantMap get(qint64 groupId) const;
+    Q_INVOKABLE QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
     void handleUpdateBasicGroup(const QVariantMap &basicGroup);
-    void handleUpdateBasicGroupFullInfo(int basicGroupId, const QVariantMap &basicGroupFullInfo);
+    void handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
 
 private:
-    QHash<int, QVariantMap> m_basicGroup;
-    QHash<int, QVariantMap> m_fullInfo;
+    QHash<qint64, QVariantMap> m_basicGroup;
+    QHash<qint64, QVariantMap> m_fullInfo;
 };
 
 class ChatStore : public Store
@@ -43,6 +43,8 @@ class ChatStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
+    [[nodiscard]] QList<qint64> getIds() const noexcept;
+
     Q_INVOKABLE QVariantMap get(qint64 chatId) const;
 
 private slots:
@@ -51,6 +53,7 @@ private slots:
     void handleChatPhoto(qint64 chatId, const QVariantMap &photo);
     void handleChatPermissions(qint64 chatId, const QVariantMap &permissions);
     void handleChatLastMessage(qint64 chatId, const QVariantMap &lastMessage, const QVariantList &positions);
+    void handleChatPosition(qint64 chatId, const QVariantMap &position);
     void handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
     void handleChatIsBlocked(qint64 chatId, bool isBlocked);
     void handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledMessages);
@@ -96,7 +99,7 @@ private slots:
     void handleUpdateOption(const QString &name, const QVariantMap &value);
 
 private:
-    QHash<QString, QVariant> m_options;
+    QVariantHash m_options;
 };
 
 class SupergroupStore : public Store
@@ -106,16 +109,16 @@ class SupergroupStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariantMap get(int groupId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(int groupId) const;
+    Q_INVOKABLE QVariantMap get(qint64 groupId) const;
+    Q_INVOKABLE QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
     void handleUpdateSupergroup(const QVariantMap &supergroup);
-    void handleUpdateSupergroupFullInfo(int supergroupId, const QVariantMap &supergroupFullInfo);
+    void handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
 
 private:
-    QHash<int, QVariantMap> m_supergroup;
-    QHash<int, QVariantMap> m_fullInfo;
+    QHash<qint64, QVariantMap> m_supergroup;
+    QHash<qint64, QVariantMap> m_fullInfo;
 };
 
 class UserStore : public Store
@@ -125,16 +128,16 @@ class UserStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE int getMyId() const;
-    Q_INVOKABLE QVariantMap get(int userId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(int userId) const;
+    Q_INVOKABLE qint64 getMyId() const;
+    Q_INVOKABLE QVariantMap get(qint64 userId) const;
+    Q_INVOKABLE QVariantMap getFullInfo(qint64 userId) const;
 
 private slots:
-    void handleUpdateUserStatus(int userId, const QVariantMap &status);
+    void handleUpdateUserStatus(qint64 userId, const QVariantMap &status);
     void handleUpdateUser(const QVariantMap &user);
-    void handleUpdateUserFullInfo(int userId, const QVariantMap &userFullInfo);
+    void handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
 
 private:
-    QHash<int, QVariantMap> m_users;
-    QHash<int, QVariantMap> m_fullInfo;
+    QHash<qint64, QVariantMap> m_users;
+    QHash<qint64, QVariantMap> m_fullInfo;
 };

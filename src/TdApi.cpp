@@ -12,29 +12,6 @@
 #include <QStringBuilder>
 #include <QTimer>
 
-#include <mutex>
-
-class JsonClient final
-{
-public:
-    template <typename T = nlohmann::json>
-    JsonClient(std::initializer_list<std::pair<std::string, T>> list)
-    {
-        for (auto &value : list)
-        {
-            json[value.first] = value.second;
-        }
-    }
-
-    void sendObject(int clientId)
-    {
-        td_send(clientId, json.dump().c_str());
-    }
-
-private:
-    nlohmann::json json;
-};
-
 TdApi::TdApi()
     : basicGroupStore(&emplace<BasicGroupStore>())
     , chatStore(&emplace<ChatStore>())
@@ -82,22 +59,20 @@ TdApi::AuthorizationState TdApi::getAuthorizationState() const noexcept
 
 void TdApi::checkCode(const QString &code) noexcept
 {
-    JsonClient json{
-        {"@type", "checkAuthenticationCode"},
-        {"code", code},
-    };
+    QVariantMap result;
+    result.insert("@type", "checkAuthenticationCode");
+    result.insert("code", code);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::checkPassword(const QString &password) noexcept
 {
-    JsonClient json{
-        {"@type", "checkAuthenticationPassword"},
-        {"password", password},
-    };
+    QVariantMap result;
+    result.insert("@type", "checkAuthenticationPassword");
+    result.insert("password", password);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::logOut() noexcept
@@ -107,23 +82,21 @@ void TdApi::logOut() noexcept
 
 void TdApi::registerUser(const QString &firstName, const QString &lastName) noexcept
 {
-    JsonClient json{
-        {"@type", "registerUser"},
-        {"first_name", firstName},
-        {"last_name", lastName},
-    };
+    QVariantMap result;
+    result.insert("@type", "registerUser");
+    result.insert("first_name", firstName);
+    result.insert("last_name", lastName);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::setPhoneNumber(const QString &phoneNumber) noexcept
 {
-    JsonClient json{
-        {"@type", "setAuthenticationPhoneNumber"},
-        {"phone_number", phoneNumber},
-    };
+    QVariantMap result;
+    result.insert("@type", "setAuthenticationPhoneNumber");
+    result.insert("phone_number", phoneNumber);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::resendCode() noexcept
@@ -133,12 +106,11 @@ void TdApi::resendCode() noexcept
 
 void TdApi::deleteAccount(const QString &reason) noexcept
 {
-    JsonClient json{
-        {"@type", "deleteAccount"},
-        {"reason", reason},
-    };
+    QVariantMap result;
+    result.insert("@type", "deleteAccount");
+    result.insert("reason", reason);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::close() noexcept
@@ -153,278 +125,240 @@ void TdApi::close() noexcept
 
 void TdApi::closeChat(qint64 chatId)
 {
-    JsonClient json{
-        {"@type", "closeChat"},
-        {"chat_id", chatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "closeChat");
+    result.insert("chat_id", chatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::closeSecretChat(qint32 secretChatId)
 {
-    JsonClient json{
-        {"@type", "closeSecretChat"},
-        {"secret_chat_id", secretChatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "closeSecretChat");
+    result.insert("secret_chat_id", secretChatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createBasicGroupChat(qint32 basicGroupId, bool force)
 {
-    JsonClient json{
-        {"@type", "createBasicGroupChat"},
-        {"basic_group_id", basicGroupId},
-        {"force", force},
-    };
+    QVariantMap result;
+    result.insert("@type", "createBasicGroupChat");
+    result.insert("basic_group_id", basicGroupId);
+    result.insert("force", force);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
-void TdApi::createNewBasicGroupChat(const QList<qint32> &userIds, const QString &title)
+void TdApi::createNewBasicGroupChat(const QVariantList &userIds, const QString &title)
 {
-    JsonClient json{
-        {"@type", "createNewBasicGroupChat"},
-        {"user_ids", userIds},
-        {"title", title},
-    };
+    QVariantMap result;
+    result.insert("@type", "createNewBasicGroupChat");
+    result.insert("user_ids", userIds);
+    result.insert("title", title);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createNewSecretChat(qint32 userId)
 {
-    JsonClient json{
-        {"@type", "createNewSecretChat"},
-        {"user_id", userId},
-    };
+    QVariantMap result;
+    result.insert("@type", "createNewSecretChat");
+    result.insert("user_id", userId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createNewSupergroupChat(const QString &title, bool isChannel, const QString &description, const QVariantMap &location)
 {
     // clang-format off
-    JsonClient json{
-        {"@type", "createNewSupergroupChat"},
-        {"title", title},
-        {"is_channel", isChannel},
-        {"description", description},
-        {"location", location},
-    };
+    QVariantMap result;
+    result.insert("@type", "createNewSupergroupChat");
+    result.insert("title", title);
+    result.insert("is_channel", isChannel);
+    result.insert("description", description);
+    result.insert("location", location);
 
     // clang-format on
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createPrivateChat(qint32 userId, bool force)
 {
-    JsonClient json{
-        {"@type", "createPrivateChat"},
-        {"user_id", userId},
-        {"force", force},
-    };
+    QVariantMap result;
+    result.insert("@type", "createPrivateChat");
+    result.insert("user_id", userId);
+    result.insert("force", force);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createSecretChat(qint32 secretChatId)
 {
-    JsonClient json{
-        {"@type", "createSecretChat"},
-        {"secret_chat_id", secretChatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "createSecretChat");
+    result.insert("secret_chat_id", secretChatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::createSupergroupChat(qint32 supergroupId, bool force)
 {
-    JsonClient json{
-        {"@type", "createSupergroupChat"},
-        {"supergroup_id", supergroupId},
-        {"force", force},
-    };
+    QVariantMap result;
+    result.insert("@type", "createSupergroupChat");
+    result.insert("supergroup_id", supergroupId);
+    result.insert("force", force);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::deleteChatHistory(qint64 chatId, bool removeFromChatList, bool revoke)
 {
-    JsonClient json{
-        {"@type", "deleteChatHistory"},
-        {"chat_id", chatId},
-        {"remove_from_chat_list", removeFromChatList},
-        {"revoke", revoke},
-    };
+    QVariantMap result;
+    result.insert("@type", "deleteChatHistory");
+    result.insert("chat_id", chatId);
+    result.insert("remove_from_chat_list", removeFromChatList);
+    result.insert("revoke", revoke);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
-void TdApi::deleteMessages(qint64 chatId, const QList<qint64> &messageIds, bool revoke)
+void TdApi::deleteMessages(qint64 chatId, const QVariantList &messageIds, bool revoke)
 {
-    JsonClient json{
-        {"@type", "deleteMessages"},
-        {"chat_id", chatId},
-        {"message_ids", messageIds},
-        {"revoke", revoke},
-    };
+    QVariantMap result;
+    result.insert("@type", "deleteMessages");
+    result.insert("chat_id", chatId);
+    result.insert("message_ids", messageIds);
+    result.insert("revoke", revoke);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup, const QVariantMap &inputMessageContent)
 {
-    JsonClient json{
-        {"@type", "editMessageText"},
-        {"chat_id", chatId},
-        {"message_id", messageId},
-        {"reply_markup", replyMarkup},
-        {"input_message_content", inputMessageContent},
-    };
+    QVariantMap result;
+    result.insert("@type", "editMessageText");
+    result.insert("chat_id", chatId);
+    result.insert("message_id", messageId);
+    result.insert("reply_markup", replyMarkup);
+    result.insert("input_message_content", inputMessageContent);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::getChat(qint64 chatId)
 {
-    JsonClient json{
-        {"@type", "getChat"},
-        {"chat_id", chatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "getChat");
+    result.insert("chat_id", chatId);
 
-    json.sendObject(clientId);
-}
-
-void TdApi::getChats(const QVariantMap &chatList, qint64 offsetOrder, qint64 offsetChatId, qint32 limit)
-{
-    // clang-format off
-    JsonClient json{
-        {"@type", "getChats"},
-        {"chat_list", chatList},
-        {"offset_order", offsetOrder},
-        {"offset_chat_id", offsetChatId},
-        {"limit", limit},
-    };
-
-    // clang-format on
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::getChatFilter(qint32 chatFilterId)
 {
-    JsonClient json{
-        {"@type", "getChatFilter"},
-        {"chat_filter_id", chatFilterId},
-    };
+    QVariantMap result;
+    result.insert("@type", "getChatFilter");
+    result.insert("chat_filter_id", chatFilterId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal)
 {
-    // clang-format off
-    JsonClient json{
-        {"@type", "getChatHistory"},
-        {"chat_id", chatId},
-        {"from_message_id", fromMessageId},
-        {"offset", offset},
-        {"limit", limit},
-        {"only_local", onlyLocal},
-    };
-    // clang-format on
-    json.sendObject(clientId);
+    QVariantMap result;
+    result.insert("@type", "getChatHistory");
+    result.insert("chat_id", chatId);
+    result.insert("from_message_id", fromMessageId);
+    result.insert("offset", offset);
+    result.insert("limit", limit);
+    result.insert("only_local", onlyLocal);
+
+    sendRequest(result);
 }
 
 void TdApi::getMessage(qint64 chatId, qint64 messageId)
 {
-    JsonClient json{
-        {"@type", "getMessage"},
-        {"chat_id", chatId},
-        {"message_id", messageId},
-    };
+    QVariantMap result;
+    result.insert("@type", "getMessage");
+    result.insert("chat_id", chatId);
+    result.insert("message_id", messageId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
-void TdApi::getMessages(qint64 chatId, const QList<qint64> &messageIds)
+void TdApi::getMessages(qint64 chatId, const QVariantList &messageIds)
 {
-    JsonClient json{
-        {"@type", "getMessages"},
-        {"chat_id", chatId},
-        {"message_ids", messageIds},
-    };
-    json.sendObject(clientId);
+    QVariantMap result;
+    result.insert("@type", "getMessages");
+    result.insert("chat_id", chatId);
+    result.insert("message_ids", messageIds);
+
+    sendRequest(result);
 }
 
 void TdApi::joinChat(qint64 chatId)
 {
-    JsonClient json{
-        {"@type", "joinChat"},
-        {"chat_id", chatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "joinChat");
+    result.insert("chat_id", chatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::leaveChat(qint64 chatId)
 {
-    JsonClient json{
-        {"@type", "leaveChat"},
-        {"chat_id", chatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "leaveChat");
+    result.insert("chat_id", chatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::openChat(qint64 chatId)
 {
-    JsonClient json{
-        {"@type", "openChat"},
-        {"chat_id", chatId},
-    };
+    QVariantMap result;
+    result.insert("@type", "openChat");
+    result.insert("chat_id", chatId);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action)
 {
-    JsonClient json{
-        {"@type", "sendChatAction"},
-        {"chat_id", chatId},
-        {"message_thread_id", messageThreadId},
-        {"action", action},
-    };
+    QVariantMap result;
+    result.insert("@type", "sendChatAction");
+    result.insert("chat_id", chatId);
+    result.insert("message_thread_id", messageThreadId);
+    result.insert("action", action);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::sendMessage(qint64 chatId, qint64 messageThreadId, qint64 replyToMessageId, const QVariantMap &options,
                         const QVariantMap &replyMarkup, const QVariantMap &inputMessageContent)
 {
-    JsonClient json{
-        {"@type", "sendMessage"},
-        {"chat_id", chatId},
-        {"message_thread_id", messageThreadId},
-        {"reply_to_message_id", replyToMessageId},
-        {"options", options},
-        {"reply_markup", replyMarkup},
-        {"input_message_content", inputMessageContent},
-    };
+    QVariantMap result;
+    result.insert("@type", "sendMessage");
+    result.insert("chat_id", chatId);
+    result.insert("message_thread_id", messageThreadId);
+    result.insert("reply_to_message_id", replyToMessageId);
+    result.insert("options", options);
+    result.insert("reply_markup", replyMarkup);
+    result.insert("input_message_content", inputMessageContent);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::setChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings)
 {
-    JsonClient json{
-        {"@type", "setChatNotificationSettings"},
-        {"chat_id", chatId},
-        {"notification_settings", notificationSettings},
-    };
+    QVariantMap result;
+    result.insert("@type", "setChatNotificationSettings");
+    result.insert("chat_id", chatId);
+    result.insert("notification_settings", notificationSettings);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::setOption(const QString &name, const QVariant &value)
@@ -451,68 +385,47 @@ void TdApi::setOption(const QString &name, const QVariant &value)
             optionValue.insert("value", QVariant());
     }
 
-    JsonClient json{
-        {"@type", "setOption"},
-        {"name", name},
-        {"value", optionValue},
-    };
+    QVariantMap result;
+    result.insert("@type", "setOption");
+    result.insert("name", name);
+    result.insert("value", optionValue);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
 {
-    JsonClient json{
-        {"@type", "toggleChatIsMarkedAsUnread"},
-        {"chat_id", chatId},
-        {"is_marked_as_unread", isMarkedAsUnread},
-    };
+    QVariantMap result;
+    result.insert("@type", "toggleChatIsMarkedAsUnread");
+    result.insert("chat_id", chatId);
+    result.insert("is_marked_as_unread", isMarkedAsUnread);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
-void TdApi::toggleChatIsPinned(const QVariantMap &chatList, qint64 chatId, bool isPinned)
+void TdApi::viewMessages(qint64 chatId, qint64 messageThreadId, const QVariantList &messageIds, bool forceRead)
 {
-    JsonClient json{
-        {"@type", "toggleChatIsPinned"},
-        {"chat_list", chatList},
-        {"chat_id", chatId},
-        {"is_pinned", isPinned},
-    };
+    QVariantMap result;
+    result.insert("@type", "viewMessages");
+    result.insert("chat_id", chatId);
+    result.insert("message_thread_id", messageThreadId);
+    result.insert("message_ids", messageIds);
+    result.insert("force_read", forceRead);
 
-    json.sendObject(clientId);
-}
-
-void TdApi::viewMessages(qint64 chatId, qint64 messageThreadId, const QList<qint64> &messageIds, bool forceRead)
-{
-    // clang-format off
-    JsonClient json{
-        {"@type", "viewMessages"},
-        {"chat_id", chatId},
-        {"message_thread_id", messageThreadId},
-        {"message_ids", messageIds},
-        {"force_read", forceRead},
-    };
-    // clang-format on
-
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
 {
-    // clang-format off
-    JsonClient json{
-        {"@type", "downloadFile"},
-        {"file_id", fileId},
-        {"priority", priority},
-        {"offset", offset},
-        {"limit", limit},
-        {"synchronous", synchronous},
-    };
+    QVariantMap result;
+    result.insert("@type", "downloadFile");
+    result.insert("file_id", fileId);
+    result.insert("priority", priority);
+    result.insert("offset", offset);
+    result.insert("limit", limit);
+    result.insert("synchronous", synchronous);
 
-    // clang-format on
-
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::getMe()
@@ -522,12 +435,11 @@ void TdApi::getMe()
 
 void TdApi::setLogVerbosityLevel(qint32 newVerbosityLevel)
 {
-    JsonClient json{
-        {"@type", "setLogVerbosityLevel"},
-        {"new_verbosity_level", newVerbosityLevel},
-    };
+    QVariantMap result;
+    result.insert("@type", "setLogVerbosityLevel");
+    result.insert("new_verbosity_level", newVerbosityLevel);
 
-    json.sendObject(clientId);
+    sendRequest(result);
 }
 
 void TdApi::listen()
@@ -541,8 +453,6 @@ void TdApi::listen()
             {
                 auto document = nlohmann::json::parse(result);
                 auto type = document["@type"].get<std::string>();
-
-                std::shared_lock lock(mutex);
 
                 if (auto it = m_events.find(type); it != m_events.end())
                 {
@@ -559,8 +469,6 @@ void TdApi::initEvents()
 
     // start the client by sending request to it
     td_send(clientId, R"({"@type":"getOption", "name":"version"})");
-
-    std::unique_lock lock(mutex);
 
     m_events.emplace("updateAuthorizationState", [this](const QVariantMap &data) { handleAuthorizationState(data); });
 
@@ -815,16 +723,16 @@ void TdApi::initEvents()
     m_events.emplace("updateOption",
                      [this](const QVariantMap &data) { emit updateOption(data.value("name").toString(), data.value("value").toMap()); });
 
-    m_events.emplace("updateUserChatAction", [this](const QVariantMap &data) {
+    m_events.emplace("updateChatAction", [this](const QVariantMap &data) {
         const auto chatId = data.value("chat_id").toLongLong();
         const auto messageThreadId = data.value("message_thread_id").toLongLong();
-        const auto userId = data.value("user_id").toInt();
+        const auto userId = data.value("user_id").toLongLong();
         const auto action = data.value("action").toMap();
-        emit updateUserChatAction(chatId, messageThreadId, userId, action);
+        emit updateChatAction(chatId, messageThreadId, userId, action);
     });
 
     m_events.emplace("updateUserStatus", [this](const QVariantMap &data) {
-        const auto userId = data.value("user_id").toInt();
+        const auto userId = data.value("user_id").toLongLong();
         const auto status = data.value("status").toMap();
 
         emit updateUserStatus(userId, status);
@@ -849,21 +757,21 @@ void TdApi::initEvents()
     });
 
     m_events.emplace("updateUserFullInfo", [this](const QVariantMap &data) {
-        const auto userId = data.value("user_id").toInt();
+        const auto userId = data.value("user_id").toLongLong();
         const auto userFullInfo = data.value("user_full_info").toMap();
 
         emit updateUserFullInfo(userId, userFullInfo);
     });
 
     m_events.emplace("updateBasicGroupFullInfo", [this](const QVariantMap &data) {
-        const auto basicGroupId = data.value("basic_group_id").toInt();
+        const auto basicGroupId = data.value("basic_group_id").toLongLong();
         const auto basicGroupFullInfo = data.value("basic_group_full_info").toMap();
 
         emit updateUserFullInfo(basicGroupId, basicGroupFullInfo);
     });
 
     m_events.emplace("updateSupergroupFullInfo", [this](const QVariantMap &data) {
-        const auto supergroupId = data.value("supergroup_id").toInt();
+        const auto supergroupId = data.value("supergroup_id").toLongLong();
         const auto supergroupFullInfo = data.value("supergroup_full_info").toMap();
 
         emit updateUserFullInfo(supergroupId, supergroupFullInfo);
@@ -880,10 +788,12 @@ void TdApi::initEvents()
     m_events.emplace("chat", [this](const QVariantMap &data) { emit chat(data); });
     m_events.emplace("chatMembers", [this](const QVariantMap &data) { emit chatMembers(data); });
     m_events.emplace("chats", [this](const QVariantMap &data) { emit chats(data); });
+    m_events.emplace("countries", [this](const QVariantMap &data) { emit countries(data); });
     m_events.emplace("error", [this](const QVariantMap &data) { emit error(data); });
     m_events.emplace("file", [this](const QVariantMap &data) { emit file(data); });
     m_events.emplace("message", [this](const QVariantMap &data) { emit message(data); });
     m_events.emplace("messages", [this](const QVariantMap &data) { emit messages(data); });
+    m_events.emplace("ok", [this](const QVariantMap &data) { emit ok(data); });
     m_events.emplace("stickers", [this](const QVariantMap &data) { emit stickers(data); });
     m_events.emplace("stickerSet", [this](const QVariantMap &data) { emit stickerSet(data); });
     m_events.emplace("stickerSets", [this](const QVariantMap &data) { emit stickerSets(data); });
@@ -908,17 +818,16 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
         parameters.insert("use_secret_chats", true);
         parameters.insert("api_id", ApiId);
         parameters.insert("api_hash", ApiHash);
-        parameters.insert("system_language_code", "en");
-        parameters.insert("device_model", "Nokia N9");
-        parameters.insert("system_version", "MeeGo 1.2 Harmattan");
+        parameters.insert("system_language_code", SystemLanguageCode);
+        parameters.insert("device_model", DeviceModel);
+        parameters.insert("system_version", SystemVersion);
         parameters.insert("application_version", AppVersion);
 
-        JsonClient json{
-            {"@type", "setTdlibParameters"},
-            {"parameters", parameters},
-        };
+        QVariantMap result;
+        result.insert("@type", "setTdlibParameters");
+        result.insert("parameters", parameters);
 
-        json.sendObject(clientId);
+        sendRequest(result);
     }
 
     if (authorizationStateType == "authorizationStateWaitEncryptionKey")
@@ -935,6 +844,13 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
     {
         m_state = AuthorizationStateReady;
         emit authorizationStateReady();
+
+        QVariantMap result;
+        result.insert("@type", "loadChats");
+        result.insert("chat_list", {});
+        result.insert("limit", ChatSliceLimit);
+
+        TdApi::getInstance().sendRequest(result);
     }
     if (authorizationStateType == "authorizationStateClosed")
     {

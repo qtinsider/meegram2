@@ -5,7 +5,6 @@ import com.nokia.extras 1.1
 Item {
     id: root
 
-    signal clicked
     signal pressAndHold
 
     height: 88; width: parent.width
@@ -94,7 +93,7 @@ Item {
             id: countBubble
 
             CustomBubble {
-                isMute: model.isMute
+                isMuted: model.isMuted
                 value: model.unreadCount
             }
         }
@@ -134,10 +133,8 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chat: myChatModel.get(model.id) })
+            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chat: myChatModel.get(index) })
         }
-        onPressAndHold: {
-            createChatContextMenu(model.id, model.chatList, model.isPinned)
-        }
+        onPressAndHold: root.pressAndHold()
     }
 }

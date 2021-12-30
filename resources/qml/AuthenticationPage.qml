@@ -1,7 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import com.nokia.extras 1.1
-import com.strawberry.meegram 0.1
+import com.strawberry.meegram 1.0
 
 Sheet {
     id: sheet

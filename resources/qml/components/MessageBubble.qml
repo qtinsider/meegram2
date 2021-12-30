@@ -8,6 +8,8 @@ Item {
     property string date: model.date
     property bool isOutgoing: model.isOutgoing
 
+    property bool isServiceMessage: model.isServiceMessage
+
     property alias content: contentItem.children
 
     property int childrenWidth
@@ -15,7 +17,7 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (isOutgoing ? 28 : 30);
+    height: isServiceMessage ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (isOutgoing ? 28 : 30);
     width: parent.width
 
     BorderImage {
@@ -23,9 +25,9 @@ Item {
         width: Math.max(childrenWidth, messageDate.paintedWidth + (isOutgoing ? 28 : 0),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: isOutgoing ? 10 : parent.width - width - 10
+            leftMargin: isOutgoing ? 10 : !isServiceMessage ? parent.width - width - 10 : (parent.width - width) / 2
             top: parent.top
-            topMargin: isOutgoing ? 8 : 1
+            topMargin: isServiceMessage ? 2 : isOutgoing ? 8 : 1
         }
 
         source: internal.getBubbleImage();
@@ -46,16 +48,16 @@ Item {
     Label {
         id: senderLabel
         y: 18
-        width: parent.width - 100
+        width: parent.width -100
         anchors { left: parent.left; leftMargin: 80 }
         color: "white"
+        text: sender
         font.pixelSize: 20
         font.bold: true
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
         horizontalAlignment: Text.AlignRight
-        text: sender
-        visible: text !== ""
+        visible: text !== "" && !isServiceMessage
     }
 
     Item {
@@ -64,7 +66,7 @@ Item {
         height: contentItem.children[0].height
         anchors {
             top: parent.top
-            topMargin: senderLabel.text === "" ? 16 : 46
+            topMargin: isServiceMessage ? 15 : senderLabel.text === "" ? 16 : 46
         }
     }
 
@@ -83,6 +85,7 @@ Item {
         font.pixelSize: 16
         font.weight: Font.Light
         horizontalAlignment: isOutgoing ? Text.AlignLeft : Text.AlignRight
+        visible: !isServiceMessage
     }
 
     QtObject {
@@ -90,11 +93,14 @@ Item {
 
         function getBubbleImage() {
             var imageSrc = "qrc:/images/";
+            if (isServiceMessage) {
+                imageSrc += "notification"
+            } else {
+                imageSrc += isOutgoing ? "outgoing" : "incoming"
+                imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
+            }
 
-            imageSrc += isOutgoing ? "outgoing" : "incoming"
-            imageSrc += mouseArea.pressed ? "-pressed.png" : "-normal.png"
-
-            return imageSrc;
+            return imageSrc + ".png";
         }
     }
 

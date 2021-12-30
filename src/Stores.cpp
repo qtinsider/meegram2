@@ -5,11 +5,11 @@
 void BasicGroupStore::initialize(TdApi *controller)
 {
     connect(controller, SIGNAL(updateBasicGroup(const QVariantMap &)), SLOT(handleUpdateBasicGroup(const QVariantMap &)));
-    connect(controller, SIGNAL(updateBasicGroupFullInfo(int, const QVariantMap &)),
-            SLOT(handleUpdateBasicGroupFullInfo(int, const QVariantMap &)));
+    connect(controller, SIGNAL(updateBasicGroupFullInfo(qint64, const QVariantMap &)),
+            SLOT(handleUpdateBasicGroupFullInfo(qint64, const QVariantMap &)));
 }
 
-QVariantMap BasicGroupStore::get(int groupId) const
+QVariantMap BasicGroupStore::get(qint64 groupId) const
 {
     if (m_basicGroup.contains(groupId))
         return m_basicGroup.value(groupId);
@@ -17,7 +17,7 @@ QVariantMap BasicGroupStore::get(int groupId) const
     return {};
 }
 
-QVariantMap BasicGroupStore::getFullInfo(int groupId) const
+QVariantMap BasicGroupStore::getFullInfo(qint64 groupId) const
 {
     if (m_fullInfo.contains(groupId))
         return m_fullInfo.value(groupId);
@@ -27,12 +27,12 @@ QVariantMap BasicGroupStore::getFullInfo(int groupId) const
 
 void BasicGroupStore::handleUpdateBasicGroup(const QVariantMap &basicGroup)
 {
-    auto groupId = basicGroup.value("id").toInt();
+    auto groupId = basicGroup.value("id").toLongLong();
 
     m_basicGroup.insert(groupId, basicGroup);
 }
 
-void BasicGroupStore::handleUpdateBasicGroupFullInfo(int basicGroupId, const QVariantMap &basicGroupFullInfo)
+void BasicGroupStore::handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo)
 {
     m_fullInfo.insert(basicGroupId, basicGroupFullInfo);
 }
@@ -46,6 +46,7 @@ void ChatStore::initialize(TdApi *controller)
             SLOT(handleChatPermissions(qint64, const QVariantMap &)));
     connect(controller, SIGNAL(updateChatLastMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatLastMessage(qint64, const QVariantMap &, const QVariantList &)));
+    connect(controller, SIGNAL(updateChatPosition(qint64, const QVariantMap &)), SLOT(handleChatPosition(qint64, const QVariantMap &)));
     connect(controller, SIGNAL(updateChatIsMarkedAsUnread(qint64, bool)), SLOT(handleChatIsMarkedAsUnread(qint64, bool)));
     connect(controller, SIGNAL(updateChatIsBlocked(qint64, bool)), SLOT(handleChatIsBlocked(qint64, bool)));
     connect(controller, SIGNAL(updateChatHasScheduledMessages(qint64, bool)), SLOT(handleChatHasScheduledMessages(qint64, bool)));
@@ -60,6 +61,11 @@ void ChatStore::initialize(TdApi *controller)
     connect(controller, SIGNAL(updateChatReplyMarkup(qint64, qint64)), SLOT(handleChatReplyMarkup(qint64, qint64)));
     connect(controller, SIGNAL(updateChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)));
+}
+
+QList<qint64> ChatStore::getIds() const noexcept
+{
+    return m_chats.keys();
 }
 
 QVariantMap ChatStore::get(qint64 chatId) const
@@ -106,6 +112,12 @@ void ChatStore::handleChatLastMessage(qint64 chatId, const QVariantMap &lastMess
         it->insert("last_message", lastMessage);
         it->insert("positions", positions);
     }
+}
+
+void ChatStore::handleChatPosition(qint64 chatId, const QVariantMap &position)
+{
+    if (auto it = m_chats.find(chatId); it != m_chats.end())
+        it->insert("positions", QVariantList() << position);
 }
 
 void ChatStore::handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
@@ -232,11 +244,11 @@ void OptionStore::handleUpdateOption(const QString &name, const QVariantMap &val
 void SupergroupStore::initialize(TdApi *controller)
 {
     connect(controller, SIGNAL(updateSupergroup(const QVariantMap &)), SLOT(handleUpdateSupergroup(const QVariantMap &)));
-    connect(controller, SIGNAL(updateSupergroupFullInfo(int, const QVariantMap &)),
-            SLOT(handleUpdateSupergroupFullInfo(int, const QVariantMap &)));
+    connect(controller, SIGNAL(updateSupergroupFullInfo(qint64, const QVariantMap &)),
+            SLOT(handleUpdateSupergroupFullInfo(qint64, const QVariantMap &)));
 }
 
-QVariantMap SupergroupStore::get(int groupId) const
+QVariantMap SupergroupStore::get(qint64 groupId) const
 {
     if (m_supergroup.contains(groupId))
         return m_supergroup.value(groupId);
@@ -244,7 +256,7 @@ QVariantMap SupergroupStore::get(int groupId) const
     return {};
 }
 
-QVariantMap SupergroupStore::getFullInfo(int groupId) const
+QVariantMap SupergroupStore::getFullInfo(qint64 groupId) const
 {
     if (m_fullInfo.contains(groupId))
         return m_fullInfo.value(groupId);
@@ -254,31 +266,32 @@ QVariantMap SupergroupStore::getFullInfo(int groupId) const
 
 void SupergroupStore::handleUpdateSupergroup(const QVariantMap &supergroup)
 {
-    m_supergroup.insert(supergroup.value("id").toInt(), supergroup);
+    m_supergroup.insert(supergroup.value("id").toLongLong(), supergroup);
 }
 
-void SupergroupStore::handleUpdateSupergroupFullInfo(int supergroupId, const QVariantMap &supergroupFullInfo)
+void SupergroupStore::handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo)
 {
     m_fullInfo.insert(supergroupId, supergroupFullInfo);
 }
 
 void UserStore::initialize(TdApi *controller)
 {
-    connect(controller, SIGNAL(updateUserStatus(int, const QVariantMap &)), SLOT(handleUpdateUserStatus(int, const QVariantMap &)));
+    connect(controller, SIGNAL(updateUserStatus(qint64, const QVariantMap &)), SLOT(handleUpdateUserStatus(qint64, const QVariantMap &)));
     connect(controller, SIGNAL(updateUser(const QVariantMap &)), SLOT(handleUpdateUser(const QVariantMap &)));
-    connect(controller, SIGNAL(updateUserFullInfo(int, const QVariantMap &)), SLOT(handleUpdateUserFullInfo(int, const QVariantMap &)));
+    connect(controller, SIGNAL(updateUserFullInfo(qint64, const QVariantMap &)),
+            SLOT(handleUpdateUserFullInfo(qint64, const QVariantMap &)));
 }
 
-int UserStore::getMyId() const
+qint64 UserStore::getMyId() const
 {
     auto myId = TdApi::getInstance().optionStore->get("my_id");
     if (myId.isNull())
         return {};
 
-    return myId.toInt();
+    return myId.toLongLong();
 }
 
-QVariantMap UserStore::get(int userId) const
+QVariantMap UserStore::get(qint64 userId) const
 {
     if (m_users.contains(userId))
         return m_users.value(userId);
@@ -286,7 +299,7 @@ QVariantMap UserStore::get(int userId) const
     return {};
 }
 
-QVariantMap UserStore::getFullInfo(int userId) const
+QVariantMap UserStore::getFullInfo(qint64 userId) const
 {
     if (m_fullInfo.contains(userId))
         return m_fullInfo.value(userId);
@@ -294,7 +307,7 @@ QVariantMap UserStore::getFullInfo(int userId) const
     return {};
 }
 
-void UserStore::handleUpdateUserStatus(int userId, const QVariantMap &status)
+void UserStore::handleUpdateUserStatus(qint64 userId, const QVariantMap &status)
 {
     if (auto it = m_users.find(userId); it != m_users.end())
         it->insert("status", status);
@@ -302,12 +315,12 @@ void UserStore::handleUpdateUserStatus(int userId, const QVariantMap &status)
 
 void UserStore::handleUpdateUser(const QVariantMap &user)
 {
-    auto userId = user.value("id").toInt();
+    auto userId = user.value("id").toLongLong();
 
     m_users.insert(userId, user);
 }
 
-void UserStore::handleUpdateUserFullInfo(int userId, const QVariantMap &userFullInfo)
+void UserStore::handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo)
 {
     m_fullInfo.insert(userId, userFullInfo);
 }
