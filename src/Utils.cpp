@@ -362,7 +362,7 @@ QString Utils::getChatTitle(qint64 chatId, bool showSavedMessages)
 
     auto title = chat.value("title").toString();
 
-    return title.isNull() ? QObject::tr("HiddenName") : title;
+    return title.isEmpty() ? QObject::tr("HiddenName") : title;
 }
 
 int Utils::getChatMuteFor(qint64 chatId)

@@ -47,6 +47,10 @@ public:
 
     Q_INVOKABLE QVariantMap get(qint64 chatId) const;
 
+signals:
+    void updateChatItem(qint64 chatId);
+    void updateChatPosition(qint64 chatId);
+
 private slots:
     void handleNewChat(const QVariantMap &chat);
     void handleChatTitle(qint64 chatId, const QString &title);
@@ -67,6 +71,8 @@ private slots:
     void handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions);
 
 private:
+    void setChatPositions(qint64 chatId, const QVariantList &positions) noexcept;
+
     QHash<qint64, QVariantMap> m_chats;
 };
 

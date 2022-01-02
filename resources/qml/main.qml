@@ -23,8 +23,10 @@ PageStackWindow {
         onError: {
             banner.text = data.message
 
-            if (data.code !== "404")
+            if (data.code !== "404") {
                 banner.show()
+                console.log(data.message, data.code)
+            }
         }
         onUpdateAuthorizationState: {
             authorizationStateData = authorizationState
@@ -37,21 +39,6 @@ PageStackWindow {
         z: 100
     }
 
-    Rectangle {
-        z: 2
-        anchors.fill: parent
-        visible: pageStack.busy
-        color: "#70000000"
-
-        BusyIndicator  {
-            anchors {
-                horizontalCenter: parent.horizontalCenter
-                verticalCenter: parent.verticalCenter
-            }
-            running: true
-            platformStyle: BusyIndicatorStyle { size: "large" }
-        }
-    }
 
     Component.onCompleted: tdapi.listen()
 }

@@ -79,7 +79,14 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: qsTr("NoChats")
-        visible: myChatModel.count === 0 && isAuthorized
+        visible: myChatModel.count === 0 && !populateTimer.running && isAuthorized
+    }
+
+    BusyIndicator {
+        anchors.centerIn: listView
+        running: populateTimer.running
+        visible: populateTimer.running
+        platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
     Item {
@@ -166,6 +173,8 @@ Page {
     ChatModel {
         id: myChatModel
         chatList: TdApi.ChatListMain
+
+        onChatListChanged: { populateTimer.restart() }
     }
 
     ContextMenu {
@@ -177,7 +186,7 @@ Page {
                 text: myChatModel.get(listView.currentIndex).isPinned ? qsTr("UnpinFromTop") : qsTr("PinFromTop")
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
-                    myChatModel.populate()
+                    populateTimer.restart()
                 }
             }
         }
@@ -186,16 +195,19 @@ Page {
     Connections {
         target: tdapi
 
-        onAuthorizationStateReady: myChatModel.populate()
+        onAuthorizationStateReady: populateTimer.restart()
+    }
+
+    Timer {
+        id: populateTimer
+
+        interval: 200
+        repeat: false
+        onTriggered: { myChatModel.populate() }
     }
 
     ScrollDecorator {
         flickableItem: listView
-    }
-
-    SelectionDialog {
-        id: addDialog
-        titleText: qsTr("Create")
     }
 
     AboutDialog {
@@ -217,12 +229,6 @@ Page {
             iconSource: "qrc:/images/help-icon.png"
 
             onClicked: aboutDialog.open()
-        }
-
-        ToolIcon {
-            visible: isAuthorized
-            platformIconId: "toolbar-refresh"
-            onClicked: myChatModel.populate()
         }
 
         ToolIcon {

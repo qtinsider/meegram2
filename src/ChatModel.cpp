@@ -5,12 +5,16 @@
 
 #include <fnv-cpp/fnv.h>
 
+#include <QDebug>
+
 #include <algorithm>
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_sortTimer(new QTimer(this))
 {
+    connect(TdApi::getInstance().chatStore, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
+    connect(TdApi::getInstance().chatStore, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
     connect(&TdApi::getInstance(), SIGNAL(error(const QVariantMap &)), SLOT(handleError(const QVariantMap &)));
     connect(this, SIGNAL(chatListChanged()), SLOT(refresh()));
 
@@ -210,7 +214,6 @@ void ChatModel::toggleChatIsPinned(qint64 chatId, bool isPinned)
     TdApi::getInstance().sendRequest(result);
 }
 
-
 void ChatModel::populate()
 {
     m_chatIds.clear();
@@ -221,6 +224,13 @@ void ChatModel::populate()
         {
             if (Utils::chatListEquals(position.toMap().value("list").toMap(), m_list))
                 m_chatIds.append(id);
+
+            auto chatPhoto = chat.value("photo").toMap();
+            if (!chat.value("photo").isNull() &&
+                !chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+            {
+                TdApi::getInstance().downloadFile(chatPhoto.value("small").toMap().value("id").toInt(), 1, 0, 0, false);
+            }
         }
     }
 
@@ -260,6 +270,39 @@ void ChatModel::sortChats()
     emit layoutChanged();
 }
 
+void ChatModel::handleChatItem(qint64 chatId)
+{
+    auto it = std::ranges::find_if(m_chatIds, [chatId](qint64 id) { return id == chatId; });
+
+    if (it != m_chatIds.end())
+    {
+        auto index = std::distance(m_chatIds.begin(), it);
+        QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
+
+        qDebug() << chatId;
+
+        emit dataChanged(modelIndex, modelIndex);
+    }
+}
+
+void ChatModel::handleChatPhoto(int fileId)
+{
+}
+
+void ChatModel::handleChatPosition(qint64 chatId)
+{
+    auto it = std::ranges::find_if(m_chatIds, [chatId](qint64 id) { return id == chatId; });
+
+    if (it != m_chatIds.end())
+    {
+        // emit delayed event
+        if (not m_sortTimer->isActive())
+            m_sortTimer->start();
+
+        qDebug() << chatId;
+    }
+}
+
 void ChatModel::handleError(const QVariantMap &error)
 {
     if (error.value("@extra").toString() == "load_chats_error" && error.value("@extra").toInt() == 404)
@@ -292,11 +335,4 @@ void ChatModel::loadChats()
     result.insert("@extra", "load_chats_error");
 
     TdApi::getInstance().sendRequest(result);
-}
-
-void ChatModel::itemChanged(int64_t index)
-{
-    QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
-
-    emit dataChanged(modelIndex, modelIndex);
 }

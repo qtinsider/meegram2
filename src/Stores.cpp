@@ -1,6 +1,9 @@
 #include "Stores.hpp"
 
 #include "TdApi.hpp"
+#include "Utils.hpp"
+
+#include <algorithm>
 
 void BasicGroupStore::initialize(TdApi *controller)
 {
@@ -86,6 +89,8 @@ void ChatStore::handleChatTitle(qint64 chatId, const QString &title)
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("title", title);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -94,6 +99,8 @@ void ChatStore::handleChatPhoto(qint64 chatId, const QVariantMap &photo)
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("photo", photo);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -102,6 +109,8 @@ void ChatStore::handleChatPermissions(qint64 chatId, const QVariantMap &permissi
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("permissions", permissions);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -110,32 +119,49 @@ void ChatStore::handleChatLastMessage(qint64 chatId, const QVariantMap &lastMess
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("last_message", lastMessage);
-        it->insert("positions", positions);
+
+        if (not positions.isEmpty())
+            emit updateChatPosition(chatId);
+
+        emit updateChatItem(chatId);
     }
+
+    setChatPositions(chatId, positions);
 }
 
 void ChatStore::handleChatPosition(qint64 chatId, const QVariantMap &position)
 {
-    if (auto it = m_chats.find(chatId); it != m_chats.end())
-        it->insert("positions", QVariantList() << position);
+    setChatPositions(chatId, QVariantList() << position);
 }
 
 void ChatStore::handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
 {
     if (auto it = m_chats.find(chatId); it != m_chats.end())
+    {
         it->insert("is_marked_as_unread", isMarkedAsUnread);
+
+        emit updateChatItem(chatId);
+    }
 }
 
 void ChatStore::handleChatIsBlocked(qint64 chatId, bool isBlocked)
 {
     if (auto it = m_chats.find(chatId); it != m_chats.end())
+    {
         it->insert("is_blocked", isBlocked);
+
+        emit updateChatItem(chatId);
+    }
 }
 
 void ChatStore::handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledMessages)
 {
     if (auto it = m_chats.find(chatId); it != m_chats.end())
+    {
         it->insert("has_scheduled_messages", hasScheduledMessages);
+
+        emit updateChatItem(chatId);
+    }
 }
 
 void ChatStore::handleChatDefaultDisableNotification(qint64 chatId, bool defaultDisableNotification)
@@ -143,6 +169,8 @@ void ChatStore::handleChatDefaultDisableNotification(qint64 chatId, bool default
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("default_disable_notification", defaultDisableNotification);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -152,6 +180,8 @@ void ChatStore::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId
     {
         it->insert("last_read_inbox_message_id", lastReadInboxMessageId);
         it->insert("unread_count", unreadCount);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -160,6 +190,8 @@ void ChatStore::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessage
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("last_read_outbox_message_id", lastReadOutboxMessageId);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -168,6 +200,8 @@ void ChatStore::handleChatUnreadMentionCount(qint64 chatId, int unreadMentionCou
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("unread_mention_count", unreadMentionCount);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -176,6 +210,8 @@ void ChatStore::handleChatNotificationSettings(qint64 chatId, const QVariantMap 
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("notification_settings", notificationSettings);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -184,6 +220,8 @@ void ChatStore::handleChatActionBar(qint64 chatId, const QVariantMap &actionBar)
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("action_bar", actionBar);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -192,6 +230,8 @@ void ChatStore::handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("reply_markup_message_id", replyMarkupMessageId);
+
+        emit updateChatItem(chatId);
     }
 }
 
@@ -200,7 +240,34 @@ void ChatStore::handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMe
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->insert("draft_message", draftMessage);
-        it->insert("positions", positions);
+
+        if (not positions.isEmpty())
+            emit updateChatPosition(chatId);
+
+        emit updateChatItem(chatId);
+    }
+
+    setChatPositions(chatId, positions);
+}
+
+void ChatStore::setChatPositions(qint64 chatId, const QVariantList &positions) noexcept
+{
+    if (auto it = m_chats.find(chatId); it != m_chats.end())
+    {
+        QVariantList result(it->value("positions").toList());
+
+        std::ranges::for_each(positions, [&result](const auto &position) {
+            result.erase(std::remove_if(result.begin(), result.end(),
+                                        [position](const auto &value) {
+                                            return Utils::chatListEquals(value.toMap().value("list").toMap(),
+                                                                         position.toMap().value("list").toMap());
+                                        }),
+                         result.end());
+
+            result.append(position);
+        });
+
+        it->insert("positions", QVariantList() << result);
     }
 }
 

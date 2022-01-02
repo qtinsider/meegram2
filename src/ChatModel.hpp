@@ -68,11 +68,12 @@ public slots:
     void sortChats();
 
 private slots:
+    void handleChatItem(qint64 chatId);
+    void handleChatPhoto(int fileId);
+    void handleChatPosition(qint64 chatId);
     void handleError(const QVariantMap &error);
 
 private:
-    void itemChanged(int64_t index);
-
     void loadChats();
 
     bool m_loading{true};

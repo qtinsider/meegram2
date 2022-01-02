@@ -38,11 +38,18 @@ Page {
         model: myChatModel
     }
 
+    BusyIndicator {
+        anchors.centerIn: listView
+        running: populateTimer.running
+        visible: populateTimer.running
+        platformStyle: BusyIndicatorStyle { size: "large" }
+    }
+
     ChatModel {
         id: myChatModel
         chatList: TdApi.ChatListArchive
 
-        Component.onCompleted: populate()
+        Component.onCompleted: populateTimer.restart()
     }
 
     ContextMenu {
@@ -53,7 +60,7 @@ Page {
                 text: myChatModel.get(listView.currentIndex).isPinned ? qsTr("UnpinFromTop") : qsTr("PinFromTop")
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
-                    myChatModel.populate()
+                    populateTimer.restart()
                 }
             }
         }
@@ -68,5 +75,13 @@ Page {
             platformIconId: "toolbar-back"
             onClicked: pageStack.pop()
         }
+    }
+
+    Timer {
+        id: populateTimer
+
+        interval: 200
+        repeat: false
+        onTriggered: { myChatModel.populate() }
     }
 }
