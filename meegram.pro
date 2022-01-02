@@ -61,7 +61,7 @@ contains(MEEGO_EDITION, harmattan) {
     icon.files = resources/meegram80.png
     icon.path = /usr/share/icons/hicolor/80x80/apps
 
-    libs.files = lib/libtdjson.so.1.8.0 lib/libstdc++.so.6
+    libs.files = libssl.so.1.1 libcrypto.so.1.1 libtdjson.so.1.8.0 libz.so.1 libstdc++.so.6 libatomic.so.1
     libs.path = /opt/meegram/lib
 
     splash.files = resources/meegram-splash.png
