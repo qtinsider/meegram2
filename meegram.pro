@@ -83,8 +83,6 @@ DISTFILES += \
     debian/copyright \
     debian/meegram.aegis \
     debian/rules \
-    tools/tdlib-build.sh \
-    BUILD.md \
     README.md
 
 TRANSLATIONS += \

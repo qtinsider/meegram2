@@ -1,3 +1,11 @@
+meegram (0.1.0) unstable; urgency=high
+
+  * Update TDLib version to 1.8.0.
+  * Update OpenSSL version to 1.1.1m.
+  * Bug fixes and performance improvements.
+
+ -- Chukwudi Nwutobo <nwutobo@outlook.com>  Mon, 03 Jan 2022 14:57:19 +0100
+
 meegram (0.0.1) unstable; urgency=low
 
   * Initial Release.
