@@ -9,7 +9,7 @@ Page {
 
     TopBar {
         id: header
-        text: isAuthorized ? "Chats" : "MeeGram"
+        text: tdapi.isAuthorized ? "Chats" : "MeeGram"
 
         Image {
             anchors {
@@ -18,12 +18,12 @@ Page {
                 verticalCenter: parent.verticalCenter
             }
             source: "image://theme/meegotouch-combobox-indicator-inverted"
-            visible: isAuthorized
+            visible: tdapi.isAuthorized
         }
 
         MouseArea {
             anchors.fill: parent
-            onClicked: isAuthorized ? selectionDialog.open() : null
+            onClicked: tdapi.isAuthorized ? selectionDialog.open() : null
         }
     }
 
@@ -71,7 +71,7 @@ Page {
 
         model: myChatModel
         snapMode: ListView.SnapToItem
-        visible: isAuthorized
+        visible: tdapi.isAuthorized
     }
 
     Label {
@@ -79,7 +79,7 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: qsTr("NoChats")
-        visible: myChatModel.count === 0 && !populateTimer.running && isAuthorized
+        visible: myChatModel.count === 0 && !populateTimer.running && tdapi.isAuthorized
     }
 
     BusyIndicator {
@@ -100,7 +100,7 @@ Page {
         }
 
         clip: true
-        visible: !isAuthorized
+        visible: !tdapi.isAuthorized
 
         Column {
             id: signInInfoColumn
@@ -195,7 +195,10 @@ Page {
     Connections {
         target: tdapi
 
-        onAuthorizationStateReady: populateTimer.restart()
+        onIsAuthorizedChanged: {
+            if (tdapi.isAuthorized)
+                populateTimer.restart()
+        }
     }
 
     Timer {
@@ -218,13 +221,13 @@ Page {
         id: commonTools
 
         ToolIcon {
-            visible: !isAuthorized
+            visible: !tdapi.isAuthorized
             platformIconId: "toolbar-back"
             onClicked: Qt.quit()
         }
 
         ToolIcon {
-            visible: !isAuthorized
+            visible: !tdapi.isAuthorized
             anchors.right: parent.right
             iconSource: "qrc:/images/help-icon.png"
 
@@ -232,7 +235,7 @@ Page {
         }
 
         ToolIcon {
-            visible: isAuthorized
+            visible: tdapi.isAuthorized
             platformIconId: "toolbar-view-menu"
             anchors.right: (parent === undefined) ? undefined : parent.right
             onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()

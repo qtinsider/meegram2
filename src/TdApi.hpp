@@ -9,8 +9,9 @@
 class TdApi : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(AuthorizationState ChatList)
-    Q_PROPERTY(TdApi::AuthorizationState authorizationState READ getAuthorizationState NOTIFY authorizationStateChanged)
+    Q_ENUMS(ChatList)
+    Q_PROPERTY(bool busy READ busy WRITE setBusy NOTIFY busyChanged)
+    Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
 
     std::vector<std::unique_ptr<Store>> stores;
 
@@ -21,20 +22,6 @@ public:
     TdApi &operator=(const TdApi &) = delete;
 
     static TdApi &getInstance();
-
-    enum AuthorizationState {
-        AuthorizationStateWaitTdlibParameters,
-        AuthorizationStateWaitEncryptionKey,
-        AuthorizationStateWaitPhoneNumber,
-        AuthorizationStateWaitCode,
-        AuthorizationStateWaitOtherDeviceConfirmation,
-        AuthorizationStateWaitRegistration,
-        AuthorizationStateWaitPassword,
-        AuthorizationStateReady,
-        AuthorizationStateLoggingOut,
-        AuthorizationStateClosing,
-        AuthorizationStateClosed,
-    };
 
     enum ChatList {
         ChatListMain,
@@ -47,7 +34,8 @@ public:
     Q_INVOKABLE void sendRequest(const QVariantMap &js);
     Q_INVOKABLE void log(const QVariantMap &js) noexcept;
 
-    [[nodiscard]] AuthorizationState getAuthorizationState() const noexcept;
+    [[nodiscard]] bool busy() const noexcept;
+    [[nodiscard]] bool isAuthorized() const noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
@@ -103,8 +91,12 @@ public slots:
     void listen();
 
 signals:
-    void authorizationStateReady();
-    void authorizationStateChanged(TdApi::AuthorizationState authorizationState);
+    void codeRequested(const QVariant &codeInfo);
+    void passwordRequested(const QVariant &passwordInfo);
+    void registrationRequested(const QVariant &termsOfService);
+
+    void busyChanged();
+    void isAuthorizedChanged();
 
     void updateAuthorizationState(const QVariantMap &authorizationState);
     void updateConnectionState(const QVariantMap &connectionState);
@@ -187,7 +179,9 @@ private:
     TdApi();
 
     void initEvents();
+
     void handleAuthorizationState(const QVariantMap &data);
+    void setBusy(bool busy);
 
     template <typename T>
     requires std::is_base_of_v<Store, T> T &emplace()
@@ -201,7 +195,8 @@ private:
 
     std::jthread m_worker;
 
-    AuthorizationState m_state{AuthorizationStateClosed};
+    bool m_busy{false};
+    bool m_isAuthorized{false};
 
     std::unordered_map<std::string, std::function<void(const QVariantMap &)>> m_events;
 };

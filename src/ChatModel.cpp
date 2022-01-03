@@ -298,8 +298,6 @@ void ChatModel::handleChatPosition(qint64 chatId)
         // emit delayed event
         if (not m_sortTimer->isActive())
             m_sortTimer->start();
-
-        qDebug() << chatId;
     }
 }
 

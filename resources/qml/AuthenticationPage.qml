@@ -6,23 +6,21 @@ import com.strawberry.meegram 1.0
 Sheet {
     id: sheet
 
-    property string phoneNumber: ""
-    property int timeout: 0
+    property int timeout
 
-    property string passwordHint;
-    property bool hasRecoveryEmailAddress;
-    property string recoveryEmailAddressPattern;
+    property string passwordHint: ""
 
-    property bool loading: false
+    property string termsOfServiceString: ""
 
-    property alias __codeTitle: codeTitle.text
-    property alias __codeTypeString: codeType.text
+    property alias __title: codeTitle.text
+    property alias __subtitle: codeType.text
     property alias __isNextTypeSms: isNextTypeSms.visible
     property alias __nextTypeString: nextTypeLabel.text
-
-    property int __codeLength
+    property int __length
 
     rejectButtonText: "Cancel"
+
+    state: "Phone"
 
     content: Item {
         id: background
@@ -61,7 +59,7 @@ Sheet {
                     width: parent.width
                     spacing: 16
 
-                    visible: (sheet.state != "Phone") ? false : true
+                    visible: (sheet.state !== "Phone") ? false : true
 
                     Label {
                         id: countryNameLabel
@@ -91,8 +89,6 @@ Sheet {
 
                         TextField {
                             id: phoneNumber
-                            enabled: !loading
-                            opacity: enabled ? 1.0 : 0.5
                             inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
                             placeholderText: "Phone number"
                         }
@@ -106,18 +102,20 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !loading
+                        enabled: !tdapi.busy
                         text: qsTr("Next")
                         width: parent.width / 2
+
+                        platformStyle: ButtonStyle { inverted: true }
+
                         onClicked: {
                             if (phoneNumber.text.length > 0) {
                                 tdapi.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
-                                loading = true
                             }
                         }
 
                         BusyIndicator {
-                            visible: loading
+                            visible: tdapi.busy
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -131,7 +129,7 @@ Sheet {
                     width: parent.width
                     spacing: 16
 
-                    visible: (sheet.state != "Code") ? false : true
+                    visible: (sheet.state !== "Code") ? false : true
 
                     Label {
                         id: codeTitle
@@ -146,14 +144,10 @@ Sheet {
                             width: parent.width
                             inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
                             placeholderText: qsTr("Code")
+
                             onTextChanged: {
-                                if(text.length >= __codeLength) {
+                                if(text.length >= __length) {
                                     tdapi.checkCode(code.text)
-
-                                    code.focus = false
-                                    code.text = ""
-
-                                    loading = true
                                 }
                             }
                         }
@@ -166,19 +160,18 @@ Sheet {
 
                         Button {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            enabled: !loading
+                            enabled: !tdapi.busy
                             text: qsTr("Next")
                             width: parent.width / 2
+
+                            platformStyle: ButtonStyle { inverted: true }
+
                             onClicked: {
                                 tdapi.checkCode(code.text)
-
-                                code.focus = false
-                                code.text = ""
-                                loading = true
                             }
 
                             BusyIndicator {
-                                visible: loading
+                                visible: tdapi.busy
                                 running: visible
                                 anchors.centerIn: parent
                             }
@@ -201,8 +194,6 @@ Sheet {
                                 anchors.fill: parent
                                 onClicked: {
                                     tdapi.resendCode()
-
-                                    loading = true
                                 }
                             }
                         }
@@ -230,15 +221,12 @@ Sheet {
                             interval: 1000
                             repeat: true
                             onTriggered: {
-
-                                timeout = timeout - 1000
-                                codeTimeText.text = Utils.formatTime(timeout / 1000)
+                                timeout = timeout - 1000;
+                                codeTimeText.text = Utils.formatTime(timeout / 1000);
                                 if (timeout === 0) {
                                     codeExpireTimer.stop()
-                                    codeTextRow.visible = false
+                                    codeTextRow.visible = false;
                                     tdapi.resendCode()
-
-                                    loading = true
                                 }
                             }
                         }
@@ -252,7 +240,7 @@ Sheet {
                     width: parent.width
                     spacing: 10
 
-                    visible: (sheet.state != "Password") ? false : true
+                    visible: (sheet.state !== "Password") ? false : true
 
 
                     Label {
@@ -290,21 +278,20 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !loading
+                        enabled: !tdapi.busy
                         text: qsTr("Next")
                         width: parent.width / 2
+
+                        platformStyle: ButtonStyle { inverted: true }
+
                         onClicked: {
                             if (password.text.length > 0) {
                                 tdapi.checkPassword(password.text)
-                                password.focus = false
-                                password.text = ""
-
-                                loading = true
                             }
                         }
 
                         BusyIndicator {
-                            visible: loading
+                            visible: tdapi.busy
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -319,7 +306,7 @@ Sheet {
                     width: parent.width
                     spacing: 10
 
-                    visible: (sheet.state != "Registration") ? false : true
+                    visible: (sheet.state !== "Registration") ? false : true
 
                     Label {
                         text: qsTr("RegisterText2")
@@ -358,20 +345,18 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !loading
+                        enabled: !tdapi.busy
                         width: parent.width / 2
                         text: qsTr("Done")
+
+                        platformStyle: ButtonStyle { inverted: true }
+
                         onClicked: {
                             tdapi.registerUser(firstName.text, lastName.text)
-
-                            firstName.focus = false
-                            lastName.focus = false
-
-                            loading = true
                         }
 
                         BusyIndicator {
-                            visible: loading
+                            visible: tdapi.busy
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -380,64 +365,6 @@ Sheet {
 
             }
         }
-    }
-
-    SelectionDialog {
-        id: selectionDialog
-        titleText: qsTr("ChooseCountry")
-        selectedIndex: myCountryModel.defaultIndex
-        model: myCountryModel
-    }
-
-    Connections {
-        target: tdapi
-        onUpdateAuthorizationState: {
-            switch (authorizationState['@type']) {
-            case 'authorizationStateWaitPhoneNumber': {
-                state = "Phone"
-
-                loading = false
-                break;
-            }
-            case 'authorizationStateWaitCode': {
-                state = "Code"
-
-                loading = false
-                var codeInfo = authorizationState.code_info
-
-                __codeTitle = internal.getTitle(codeInfo);
-                __codeTypeString = internal.getSubtitle(codeInfo);
-                __isNextTypeSms = internal.isNextTypeSms(codeInfo);
-                __nextTypeString = internal.getNextTypeString(codeInfo);
-
-                __codeLength = internal.getCodeLength(codeInfo);
-
-                phoneNumber = codeInfo.phone_number;
-                timeout = codeInfo.timeout * 1000;
-
-                loading = false
-                break;
-            }
-            case 'authorizationStateWaitRegistration': {
-                state = "Registration"
-
-                loading = false
-                break;
-            }
-            case 'authorizationStateWaitPassword': {
-                state = "Password"
-
-                passwordHint = authorizationState.password_hint;
-                hasRecoveryEmailAddress = authorizationState.has_recovery_email_address;
-                recoveryEmailAddressPattern = authorizationState.recovery_email_address_pattern;
-
-
-                loading = false
-                break;
-            }
-            }
-        }
-        onAuthorizationStateReady:  sheet.accept()
     }
 
     states: [
@@ -459,151 +386,69 @@ Sheet {
         }
     ]
 
-    onTimeoutChanged: {
-        codeExpireTimer.start()
-        codeTimeText.text = Utils.formatTime(timeout / 1000)
-    }
-
     QtObject {
         id: internal
-
-        function isNextTypeSms(codeInfo) {
-            if (!codeInfo) return false;
-            if (!codeInfo.next_type) return false;
-
-            if (codeInfo.next_type['@type'] === "authenticationCodeTypeSms")
-                return true;
-
-            return false;
-        }
-
-        function getNextTypeString(codeInfo) {
-            if (!codeInfo) return "";
-            if (!codeInfo.next_type) return "";
-
-            switch (codeInfo.next_type['@type']) {
-            case 'authenticationCodeTypeCall':
-                return qsTr("CallText");
-            case 'authenticationCodeTypeSms':
-                return qsTr("SmsText");
-            }
-            return "";
-        }
-
-        function getTitle(codeInfo) {
-            if (!codeInfo) return "";
-            if (!codeInfo.type) return "";
-
-            switch (codeInfo.type['@type']) {
-            case 'authenticationCodeTypeTelegramMessage': {
-                return qsTr("SentAppCodeTitle");
-            }
-            case 'authenticationCodeTypeCall':
-            case 'authenticationCodeTypeSms': {
-                return qsTr("SentSmsCodeTitle");
-            }
-            }
-
-            return "Title";
-        }
-
-        function getCodeLength(codeInfo) {
-            if (!codeInfo) return 0;
-            if (!codeInfo.type) return 0;
-
-            switch (codeInfo.type['@type']) {
-            case 'authenticationCodeTypeCall': {
-                return codeInfo.type.length;
-            }
-            case 'authenticationCodeTypeFlashCall': {
-                return 0;
-            }
-            case 'authenticationCodeTypeSms': {
-                return codeInfo.type.length;
-            }
-            case 'authenticationCodeTypeTelegramMessage': {
-                return codeInfo.type.length;
-            }
-            }
-
-            return 0;
-        }
-
-        function getSubtitle(codeInfo) {
-            if (!codeInfo) return "";
-            if (!codeInfo.type) return "";
-
-            var phoneNumber = codeInfo.phone_number
-            switch (codeInfo.type['@type']) {
-            case 'authenticationCodeTypeCall': {
-                return qsTr("SentCallCode").arg(phoneNumber);
-            }
-            case 'authenticationCodeTypeFlashCall': {
-                return qsTr("SentCallOnly").arg(phoneNumber);
-            }
-            case 'authenticationCodeTypeSms': {
-                return qsTr("SentSmsCode").arg(phoneNumber);
-            }
-            case 'authenticationCodeTypeTelegramMessage': {
-                return qsTr("SentAppCode");
-            }
-            }
-
-            return "";
-        }
-        
         function showTermsOfService() {
             var dialog = termsOfServiceComponent.createObject(sheet, { termsOfService: termsOfServiceString });
             dialog.open();
         }
     }
 
-    Component.onCompleted: {
-        switch (tdapi.authorizationState) {
-        case TdApi.AuthorizationStateWaitPhoneNumber: {
-            state = "Phone"
+    Component {
+        id: termsOfServiceComponent
 
-            break;
-        }
-        case TdApi.AuthorizationStateWaitCode: {
-            state = "Code"
+        QueryDialog {
+            property string termsOfService
 
-
-            var codeInfo = authorizationStateData.code_info;
-
-            __codeTitle = internal.getTitle(codeInfo);
-            __codeTypeString = internal.getSubtitle(codeInfo);
-            __isNextTypeSms = internal.isNextTypeSms(codeInfo);
-            __nextTypeString = internal.getNextTypeString(codeInfo);
-
-            phoneNumber = codeInfo.phone_number;
-            timeout = codeInfo.timeout * 1000;
-
-            __codeLength = internal.getCodeLength(codeInfo);
-
-            loading = false
-
-            break;
-        }
-        case TdApi.AuthorizationStateWaitRegistration: {
-            state = "Registration"
-
-            loading = false
-
-            break;
-        }
-        case TdApi.AuthorizationStateWaitPassword: {
-            state = "Password"
-
-            passwordHint = authorizationStateData.password_hint;
-            hasRecoveryEmailAddress = authorizationStateData.has_recovery_email_address;
-            recoveryEmailAddressPattern = authorizationStateData.recovery_email_address_pattern;
-
-            loading = false
-
-            break;
-        }
+            titleText: "Terms of Service"
+            message: termsOfService
+            rejectButtonText: "Close"
         }
     }
 
+    SelectionDialog {
+        id: selectionDialog
+        titleText: qsTr("ChooseCountry")
+        selectedIndex: myCountryModel.defaultIndex
+        model: CountryModel { id: myCountryModel }
+    }
+
+    Connections {
+        target: tdapi
+
+        onCodeRequested: {
+            state = "Code"
+
+            timeout = codeInfo.timeout * 1000
+
+            __title = codeInfo.title
+            __subtitle = codeInfo.subtitle
+            __nextTypeString = codeInfo.nextTypeString
+            __isNextTypeSms = codeInfo.isNextTypeSms
+
+            __length = codeInfo.length
+        }
+
+        onRegistrationRequested: {
+            state = "Registration";
+            termsOfServiceString = termsOfService.text
+        }
+
+        onPasswordRequested: {
+            state = "Password"
+            passwordHint = passwordInfo.passwordHint
+        }
+
+        onIsAuthorizedChanged: {
+            sheet.accept()
+            codeExpireTimer.stop()
+        }
+    }
+
+    onTimeoutChanged: {
+        codeExpireTimer.start()
+        codeTimeText.text = Utils.formatTime(timeout / 1000)
+    }
+
+    onRejected: tdapi.busy = false
 }

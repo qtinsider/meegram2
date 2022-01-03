@@ -50,7 +50,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
     qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
 
-    qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
 
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");

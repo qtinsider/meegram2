@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.0" language="en">
+<TS version="2.1" language="en">
 <context>
     <name>ArchivedChatPage</name>
     <message>
@@ -17,126 +17,118 @@
 <context>
     <name>AuthenticationPage</name>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="446"/>
+        <location filename="../qml/AuthenticationPage.qml" line="374"/>
         <source>YourPhone</source>
         <translation>Your Phone</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="104"/>
+        <location filename="../qml/AuthenticationPage.qml" line="100"/>
         <source>StartText</source>
         <translation>Please confirm your country code and enter your phone number.</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="110"/>
-        <location filename="../qml/AuthenticationPage.qml" line="170"/>
-        <location filename="../qml/AuthenticationPage.qml" line="294"/>
+        <location filename="../qml/AuthenticationPage.qml" line="106"/>
+        <location filename="../qml/AuthenticationPage.qml" line="164"/>
+        <location filename="../qml/AuthenticationPage.qml" line="283"/>
         <source>Next</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="450"/>
+        <location filename="../qml/AuthenticationPage.qml" line="378"/>
         <source>YourCode</source>
         <translation>Phone verification</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="148"/>
+        <location filename="../qml/AuthenticationPage.qml" line="146"/>
         <source>Code</source>
         <translation>Code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="196"/>
+        <location filename="../qml/AuthenticationPage.qml" line="189"/>
         <source>DidNotGetTheCodeSms</source>
         <translation>Send the code as an SMS</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="454"/>
+        <location filename="../qml/AuthenticationPage.qml" line="382"/>
         <source>TwoStepVerification</source>
         <translation>Two-Step Verification</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="260"/>
+        <location filename="../qml/AuthenticationPage.qml" line="249"/>
         <source>LoginPasswordText</source>
         <translation>You have Two-Step Verification enabled, so your account is protected with an additional password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="268"/>
+        <location filename="../qml/AuthenticationPage.qml" line="257"/>
         <source>YourPassword</source>
         <translation>Your Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="275"/>
+        <location filename="../qml/AuthenticationPage.qml" line="264"/>
         <source>Password</source>
         <translation>Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="458"/>
+        <location filename="../qml/AuthenticationPage.qml" line="386"/>
         <source>YourName</source>
         <translation>Your Name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="325"/>
+        <location filename="../qml/AuthenticationPage.qml" line="313"/>
         <source>RegisterText2</source>
         <translation>Enter your name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="336"/>
+        <location filename="../qml/AuthenticationPage.qml" line="324"/>
         <source>FirstName</source>
         <translation>First name (required)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="342"/>
+        <location filename="../qml/AuthenticationPage.qml" line="330"/>
         <source>LastName</source>
         <translation>Last name (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="363"/>
+        <location filename="../qml/AuthenticationPage.qml" line="351"/>
         <source>Done</source>
         <translation>Done</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="387"/>
+        <location filename="../qml/AuthenticationPage.qml" line="412"/>
         <source>ChooseCountry</source>
         <translation>Choose a country</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="486"/>
         <source>CallText</source>
-        <translation>Telegram will call you in </translation>
+        <translation type="obsolete">Telegram will call you in </translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="488"/>
         <source>SmsText</source>
-        <translation>Sending you an SMS in </translation>
+        <translation type="obsolete">Sending you an SMS in </translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="499"/>
         <source>SentAppCodeTitle</source>
-        <translation>Check your Telegram messages</translation>
+        <translation type="obsolete">Check your Telegram messages</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="503"/>
         <source>SentSmsCodeTitle</source>
-        <translation>Enter code</translation>
+        <translation type="obsolete">Enter code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="539"/>
         <source>SentCallCode</source>
-        <translation>We&apos;re calling your phone %1 Don&apos;t accept the call, Telegram will process everything automatically.</translation>
+        <translation type="obsolete">We&apos;re calling your phone %1 Don&apos;t accept the call, Telegram will process everything automatically.</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="542"/>
         <source>SentCallOnly</source>
-        <translation>Calling your phone %1 to dictate the code</translation>
+        <translation type="obsolete">Calling your phone %1 to dictate the code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="545"/>
         <source>SentSmsCode</source>
-        <translation>We&apos;ve sent an SMS with an activation code to your phone %1</translation>
+        <translation type="obsolete">We&apos;ve sent an SMS with an activation code to your phone %1</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="548"/>
         <source>SentAppCode</source>
-        <translation>We&apos;ve sent the code to the &lt;b&gt;Telegram&lt;/b&gt; app on your other device</translation>
+        <translation type="obsolete">We&apos;ve sent the code to the &lt;b&gt;Telegram&lt;/b&gt; app on your other device</translation>
     </message>
 </context>
 <context>
@@ -779,6 +771,46 @@
         <location filename="../../src/Utils.cpp" line="703"/>
         <source>HiddenName</source>
         <translation>Deleted Account</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="25"/>
+        <source>SentAppCodeTitle</source>
+        <translation>Check your Telegram messages</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="29"/>
+        <source>SentSmsCodeTitle</source>
+        <translation>Enter code</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="45"/>
+        <source>SentCallCode</source>
+        <translation>We&apos;re calling your phone %1 Don&apos;t accept the call, Telegram will process everything automatically.</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="48"/>
+        <source>SentCallOnly</source>
+        <translation>Calling your phone %1 to dictate the code</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="51"/>
+        <source>SentSmsCode</source>
+        <translation>We&apos;ve sent an SMS with an activation code to your phone %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="54"/>
+        <source>SentAppCode</source>
+        <translation>We&apos;ve sent the code to the &lt;b&gt;Telegram&lt;/b&gt; app on your other device</translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="69"/>
+        <source>CallText</source>
+        <translation>Telegram will call you in </translation>
+    </message>
+    <message>
+        <location filename="../../src/TdApi.cpp" line="72"/>
+        <source>SmsText</source>
+        <translation>Sending you an SMS in </translation>
     </message>
 </context>
 <context>

@@ -12,6 +12,103 @@
 #include <QStringBuilder>
 #include <QTimer>
 
+namespace {
+
+[[nodiscard]] QString authentication_code_title(const QVariantMap &codeInfo)
+{
+    auto type = codeInfo.value("type").toMap();
+
+    auto codeInfoType = type.value("@type").toByteArray();
+    switch (fnv::hashRuntime(codeInfoType.constData()))
+    {
+        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
+            return QObject::tr("SentAppCodeTitle");
+        }
+        case fnv::hash("authenticationCodeTypeCall"):
+        case fnv::hash("authenticationCodeTypeSms"): {
+            return QObject::tr("SentSmsCodeTitle");
+        }
+    }
+
+    return "Title";
+}
+
+[[nodiscard]] QString authentication_code_subtitle(const QVariantMap &codeInfo)
+{
+    auto phoneNumber = codeInfo.value("phone_number").toString();
+    auto type = codeInfo.value("type").toMap();
+
+    auto codeInfoType = type.value("@type").toByteArray();
+    switch (fnv::hashRuntime(codeInfoType.constData()))
+    {
+        case fnv::hash("authenticationCodeTypeCall"): {
+            return QObject::tr("SentCallCode").arg(phoneNumber);
+        }
+        case fnv::hash("authenticationCodeTypeFlashCall"): {
+            return QObject::tr("SentCallOnly").arg(phoneNumber);
+        }
+        case fnv::hash("authenticationCodeTypeSms"): {
+            return QObject::tr("SentSmsCode").arg(phoneNumber);
+        }
+        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
+            return QObject::tr("SentAppCode");
+        }
+    }
+
+    return {};
+}
+
+[[nodiscard]] QString authentication_code_next_type_string(const QVariantMap &codeInfo)
+{
+    auto nextType = codeInfo.value("next_type").toMap();
+
+    auto codeInfoType = nextType.value("@type").toByteArray();
+    switch (fnv::hashRuntime(codeInfoType.constData()))
+    {
+        case fnv::hash("authenticationCodeTypeCall"): {
+            return QObject::tr("CallText");
+        }
+        case fnv::hash("authenticationCodeTypeSms"): {
+            return QObject::tr("SmsText");
+        }
+    }
+
+    return {};
+}
+
+[[nodiscard]] bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
+{
+    auto codeInfoType = codeInfo.value("next_type").toMap().value("@type").toByteArray();
+
+    return codeInfoType == "authenticationCodeTypeSms";
+}
+
+[[nodiscard]] int authentication_code_length(const QVariantMap &codeInfo)
+{
+    auto type = codeInfo.value("type").toMap();
+
+    auto codeInfoType = type.value("@type").toByteArray();
+    switch (fnv::hashRuntime(codeInfoType.constData()))
+    {
+        case fnv::hash("authenticationCodeTypeCall"): {
+            return type.value("length").toInt();
+        }
+        case fnv::hash("authenticationCodeTypeFlashCall"): {
+            return {};
+        }
+        case fnv::hash("authenticationCodeTypeSms"): {
+            return type.value("length").toInt();
+        }
+        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
+            return type.value("length").toInt();
+        }
+    }
+
+    return {};
+}
+
+}  // namespace
+
 TdApi::TdApi()
     : basicGroupStore(&emplace<BasicGroupStore>())
     , chatStore(&emplace<ChatStore>())
@@ -52,9 +149,14 @@ void TdApi::log(const QVariantMap &js) noexcept
     qDebug() << json.dump(2).c_str();
 }
 
-TdApi::AuthorizationState TdApi::getAuthorizationState() const noexcept
+bool TdApi::busy() const noexcept
 {
-    return m_state;
+    return m_busy;
+}
+
+bool TdApi::isAuthorized() const noexcept
+{
+    return m_isAuthorized;
 }
 
 void TdApi::checkCode(const QString &code) noexcept
@@ -835,15 +937,10 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
         td_send(clientId, R"({"@type":"checkDatabaseEncryptionKey","encryption_key":""})");
     }
 
-    if (authorizationStateType == "authorizationStateWaitPhoneNumber")
-    {
-        m_state = AuthorizationStateWaitPhoneNumber;
-    }
-
     if (authorizationStateType == "authorizationStateReady")
     {
-        m_state = AuthorizationStateReady;
-        emit authorizationStateReady();
+        m_isAuthorized = true;
+        emit isAuthorizedChanged();
 
         QVariantMap result;
         result.insert("@type", "loadChats");
@@ -854,25 +951,64 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
     }
     if (authorizationStateType == "authorizationStateClosed")
     {
-        m_state = AuthorizationStateClosed;
         m_worker.request_stop();
     }
 
     if (authorizationStateType == "authorizationStateWaitCode")
     {
-        m_state = AuthorizationStateWaitCode;
+        const auto codeInfo = authorizationState.value("code_info").toMap();
+
+        QVariantMap result;
+        result.insert("subtitle", authentication_code_subtitle(codeInfo));
+        result.insert("title", authentication_code_title(codeInfo));
+        result.insert("length", authentication_code_length(codeInfo));
+
+        result.insert("isNextTypeSms", authentication_code_is_next_type_sms(codeInfo));
+        result.insert("nextTypeString", authentication_code_next_type_string(codeInfo));
+
+        result.insert("timeout", codeInfo.value("timeout").toInt());
+
+        setBusy(false);
+
+        emit codeRequested(result);
     }
 
     if (authorizationStateType == "authorizationStateWaitPassword")
     {
-        m_state = AuthorizationStateWaitPassword;
+        const auto password = authorizationState.value("password").toMap();
+
+        QVariantMap result;
+        result.insert("passwordHint", password.value("password_hint").toString());
+        result.insert("hasRecoveryEmailAddress", password.value("has_recovery_email_address").toBool());
+        result.insert("recoveryEmailAddressPattern", password.value("recovery_email_address_pattern").toString());
+
+        setBusy(false);
+
+        emit passwordRequested(result);
     }
 
     if (authorizationStateType == "authorizationStateWaitRegistration")
     {
-        m_state = AuthorizationStateWaitRegistration;
+        const auto termsOfService = authorizationState.value("terms_of_service").toMap();
+
+        QVariantMap result;
+        result.insert("text", termsOfService.value("text").toMap().value("text").toString());
+        result.insert("minUserAge", termsOfService.value("min_user_age").toInt());
+        result.insert("showPopup", termsOfService.value("show_popup").toBool());
+
+        setBusy(false);
+
+        emit registrationRequested(result);
     }
 
-    emit authorizationStateChanged(m_state);
     emit updateAuthorizationState(authorizationState);
+}
+
+void TdApi::setBusy(bool busy)
+{
+    if (m_busy == busy)
+        return;
+
+    m_busy = busy;
+    emit busyChanged();
 }

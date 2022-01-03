@@ -7,9 +7,6 @@ import "components"
 PageStackWindow {
     id: appWindow
 
-    property bool isAuthorized: tdapi.authorizationState == TdApi.AuthorizationStateReady
-    property variant authorizationStateData: null
-
     property QtObject icons: Icons {}
 
     property bool isPortrait: (screen.currentOrientation === Screen.Landscape) ? false : true
@@ -27,9 +24,6 @@ PageStackWindow {
                 banner.show()
                 console.log(data.message, data.code)
             }
-        }
-        onUpdateAuthorizationState: {
-            authorizationStateData = authorizationState
         }
     }
 
