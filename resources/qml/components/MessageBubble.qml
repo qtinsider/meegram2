@@ -84,7 +84,7 @@ Item {
         color: isOutgoing ? "black" : "white"
         font.pixelSize: 16
         font.weight: Font.Light
-        horizontalAlignment: isOutgoing ? Text.AlignLeft : Text.AlignRight
+        horizontalAlignment: isServiceMessage ? Text.AlignHCenter : isOutgoing ? Text.AlignLeft : Text.AlignRight
         visible: !isServiceMessage
     }
 

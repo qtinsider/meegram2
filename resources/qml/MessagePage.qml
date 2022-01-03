@@ -6,7 +6,7 @@ import "components"
 Page {
     id: root
 
-    property variant chat: null
+    property string chatId: ""
 
     property string messageThreadId: ""
     property string replyToMessageId: ""
@@ -81,7 +81,7 @@ Page {
                         height: 50
                         width: 50
 
-                        source: chat.photo ? "image://telegram/" + chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
+                        source: myMessageModel.chat.photo ? "image://telegram/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
 
                         MouseArea {
                             anchors.fill: parent
@@ -360,10 +360,10 @@ Page {
                     text: message
                 }
             }
-            tdapi.sendMessage(chat.id, messageThreadId, replyToMessageId, options, replyMarkup, inputMessageContent)
+            tdapi.sendMessage(myMessageModel.chat.id, messageThreadId, replyToMessageId, options, replyMarkup, inputMessageContent)
         }
     }
 
-    Component.onCompleted: myMessageModel.openChat(chat.id)
+    Component.onCompleted: myMessageModel.openChat(chatId)
     Component.onDestruction: myMessageModel.closeChat()
 }

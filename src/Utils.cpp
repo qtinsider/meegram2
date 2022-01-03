@@ -377,7 +377,7 @@ int Utils::getChatMuteFor(qint64 chatId)
 QString Utils::getServiceMessageContent(const QVariantMap &message)
 {
     auto ttl = message.value("ttl").toInt();
-    auto sender = message.value("sender").toMap();
+    auto sender = message.value("sender_id").toMap();
     auto content = message.value("content").toMap();
     auto isOutgoing = message.value("is_outgoing").toBool();
 
@@ -707,7 +707,7 @@ QString Utils::getUserShortName(qint64 userId) noexcept
 
 QString Utils::getTitle(const QVariantMap &message) noexcept
 {
-    auto sender = message.value("sender").toMap();
+    auto sender = message.value("sender_id").toMap();
 
     auto senderType = sender.value("@type").toByteArray();
     if (senderType == "messageSenderUser")
@@ -739,7 +739,7 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
 QString Utils::getContent(const QVariantMap &message) noexcept
 {
     auto content = message.value("content").toMap();
-    auto sender = message.value("sender").toMap();
+    auto sender = message.value("sender_id").toMap();
 
     auto textOneLine = [](QString text) {
         auto result = std::move(text);
@@ -925,7 +925,7 @@ QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
     if (isServiceMessage(message))
         return QString();
 
-    auto sender = message.value("sender").toMap();
+    auto sender = message.value("sender_id").toMap();
 
     auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
 

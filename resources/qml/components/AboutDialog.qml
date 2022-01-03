@@ -58,7 +58,7 @@ Dialog {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 color: "white"
-                text: "Copyright \u00a9 2021 Chukwudi Nwutobo<br/>Contact: <a href='mailto:nwutobo@outlook.com?subject=Meegram'>nwutobo@outlook.com</a>"
+                text: "Copyright \u00a9 2022 Chukwudi Nwutobo<br/>Contact: <a href='mailto:nwutobo@outlook.com?subject=Meegram'>nwutobo@outlook.com</a>"
                 onLinkActivated: Qt.openUrlExternally(link)
             }
         }

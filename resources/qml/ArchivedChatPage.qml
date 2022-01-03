@@ -40,8 +40,8 @@ Page {
 
     BusyIndicator {
         anchors.centerIn: listView
-        running: populateTimer.running
-        visible: populateTimer.running
+        running: populateTimer.running || myChatModel.loading
+        visible: running
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
@@ -49,7 +49,10 @@ Page {
         id: myChatModel
         chatList: TdApi.ChatListArchive
 
-        Component.onCompleted: populateTimer.restart()
+        onLoadingChanged: {
+            if (!loading)
+                populateTimer.restart()
+        }
     }
 
     ContextMenu {

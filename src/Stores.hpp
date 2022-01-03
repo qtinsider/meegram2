@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QVariant>
 
+#include <unordered_map>
+
 class TdApi;
 
 class Store : public QObject
@@ -32,8 +34,8 @@ private slots:
     void handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
 
 private:
-    QHash<qint64, QVariantMap> m_basicGroup;
-    QHash<qint64, QVariantMap> m_fullInfo;
+    std::unordered_map<qint64, QVariantMap> m_basicGroup;
+    std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };
 
 class ChatStore : public Store
@@ -73,7 +75,7 @@ private slots:
 private:
     void setChatPositions(qint64 chatId, const QVariantList &positions) noexcept;
 
-    QHash<qint64, QVariantMap> m_chats;
+    std::unordered_map<qint64, QVariantMap> m_chats;
 };
 
 class FileStore : public Store
@@ -89,7 +91,7 @@ private slots:
     void handleUpdateFile(const QVariantMap &file);
 
 private:
-    QHash<int, QVariantMap> m_files;
+    std::unordered_map<int, QVariantMap> m_files;
 };
 
 class OptionStore : public Store
@@ -123,8 +125,8 @@ private slots:
     void handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
 
 private:
-    QHash<qint64, QVariantMap> m_supergroup;
-    QHash<qint64, QVariantMap> m_fullInfo;
+    std::unordered_map<qint64, QVariantMap> m_supergroup;
+    std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };
 
 class UserStore : public Store
@@ -144,6 +146,6 @@ private slots:
     void handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
 
 private:
-    QHash<qint64, QVariantMap> m_users;
-    QHash<qint64, QVariantMap> m_fullInfo;
+    std::unordered_map<qint64, QVariantMap> m_users;
+    std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };

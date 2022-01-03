@@ -5,31 +5,35 @@
 
 #include <fnv-cpp/fnv.h>
 
-#include <QDebug>
-
 #include <algorithm>
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_sortTimer(new QTimer(this))
+    , m_loadingTimer(new QTimer(this))
 {
     connect(TdApi::getInstance().chatStore, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
     connect(TdApi::getInstance().chatStore, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
-    connect(&TdApi::getInstance(), SIGNAL(error(const QVariantMap &)), SLOT(handleError(const QVariantMap &)));
-    connect(this, SIGNAL(chatListChanged()), SLOT(refresh()));
 
-    connect(m_sortTimer, SIGNAL(timeout()), SLOT(sortChats()));
+    connect(&TdApi::getInstance(), SIGNAL(error(const QVariantMap &)), SLOT(handleError(const QVariantMap &)));
+
+    connect(this, SIGNAL(chatListChanged()), this, SLOT(refresh()));
+
+    connect(m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
+    connect(m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
+
     m_sortTimer->setInterval(1000);
     m_sortTimer->setSingleShot(true);
 
+    m_loadingTimer->setInterval(500);
+
     setRoleNames(roleNames());
-    loadChats();
 }
 
 ChatModel::~ChatModel()
 {
-    if (m_sortTimer)
-        delete m_sortTimer;
+    delete m_sortTimer;
+    delete m_loadingTimer;
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -53,9 +57,6 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     if (parent.isValid())
         return;
 
-    if (m_loading)
-        loadChats();
-
     const int remainder = m_chatIds.size() - m_count;
     const auto itemsToFetch = qMin(ChatSliceLimit, remainder);
 
@@ -67,8 +68,6 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     m_count += itemsToFetch;
 
     endInsertRows();
-
-    populate();
 
     emit countChanged();
 }
@@ -229,14 +228,19 @@ void ChatModel::populate()
             if (!chat.value("photo").isNull() &&
                 !chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
             {
-                TdApi::getInstance().downloadFile(chatPhoto.value("small").toMap().value("id").toInt(), 1, 0, 0, false);
+                QVariantMap result;
+                result.insert("@type", "downloadFile");
+                result.insert("file_id", chatPhoto.value("small").toMap().value("id").toInt());
+                result.insert("priority", 1);
+
+                TdApi::getInstance().sendRequest(result);
             }
         }
     }
 
     sortChats();
 
-    if (m_count == 0 && !m_chatIds.isEmpty())
+    if (!m_chatIds.isEmpty())
         fetchMore();
 }
 
@@ -256,7 +260,8 @@ void ChatModel::refresh()
     m_loading = true;
 
     clear();
-    loadChats();
+
+    m_loadingTimer->start();
 
     emit loadingChanged();
 }
@@ -279,14 +284,8 @@ void ChatModel::handleChatItem(qint64 chatId)
         auto index = std::distance(m_chatIds.begin(), it);
         QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
 
-        qDebug() << chatId;
-
         emit dataChanged(modelIndex, modelIndex);
     }
-}
-
-void ChatModel::handleChatPhoto(int fileId)
-{
 }
 
 void ChatModel::handleChatPosition(qint64 chatId)
@@ -303,9 +302,11 @@ void ChatModel::handleChatPosition(qint64 chatId)
 
 void ChatModel::handleError(const QVariantMap &error)
 {
-    if (error.value("@extra").toString() == "load_chats_error" && error.value("@extra").toInt() == 404)
+    if (error.value("@extra").toByteArray() == "load_chats_error" && error.value("code").toInt() == 404)
     {
         m_loading = false;
+        m_loadingTimer->stop();
+
         emit loadingChanged();
     }
 }

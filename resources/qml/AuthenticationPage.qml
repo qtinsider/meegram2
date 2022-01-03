@@ -18,6 +18,8 @@ Sheet {
     property alias __nextTypeString: nextTypeLabel.text
     property int __length
 
+    property bool loading: false
+
     rejectButtonText: "Cancel"
 
     state: "Phone"
@@ -102,7 +104,7 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !tdapi.busy
+                        enabled: !sheet.loading
                         text: qsTr("Next")
                         width: parent.width / 2
 
@@ -111,11 +113,13 @@ Sheet {
                         onClicked: {
                             if (phoneNumber.text.length > 0) {
                                 tdapi.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
+
+                                sheet.loading = true;
                             }
                         }
 
                         BusyIndicator {
-                            visible: tdapi.busy
+                            visible: sheet.loading
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -160,7 +164,7 @@ Sheet {
 
                         Button {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            enabled: !tdapi.busy
+                            enabled: !sheet.loading
                             text: qsTr("Next")
                             width: parent.width / 2
 
@@ -171,7 +175,7 @@ Sheet {
                             }
 
                             BusyIndicator {
-                                visible: tdapi.busy
+                                visible: sheet.loading
                                 running: visible
                                 anchors.centerIn: parent
                             }
@@ -278,7 +282,7 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !tdapi.busy
+                        enabled: !sheet.loading
                         text: qsTr("Next")
                         width: parent.width / 2
 
@@ -291,7 +295,7 @@ Sheet {
                         }
 
                         BusyIndicator {
-                            visible: tdapi.busy
+                            visible: sheet.loading
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -345,7 +349,7 @@ Sheet {
 
                     Button {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        enabled: !tdapi.busy
+                        enabled: !sheet.loading
                         width: parent.width / 2
                         text: qsTr("Done")
 
@@ -356,7 +360,7 @@ Sheet {
                         }
 
                         BusyIndicator {
-                            visible: tdapi.busy
+                            visible: sheet.loading
                             running: visible
                             anchors.centerIn: parent
                         }
@@ -427,16 +431,22 @@ Sheet {
             __isNextTypeSms = codeInfo.isNextTypeSms
 
             __length = codeInfo.length
+
+            sheet.loading = false
         }
 
         onRegistrationRequested: {
             state = "Registration";
             termsOfServiceString = termsOfService.text
+
+            sheet.loading = false
         }
 
         onPasswordRequested: {
             state = "Password"
             passwordHint = passwordInfo.passwordHint
+
+            sheet.loading = false
         }
 
         onIsAuthorizedChanged: {
@@ -445,10 +455,23 @@ Sheet {
         }
     }
 
+    Timer {
+        id: loadingTimer
+
+        interval: 10000
+        repeat: false
+        onTriggered: { sheet.loading = false; }
+    }
+
+    onLoadingChanged: {
+        if (loading)
+            loadingTimer.restart()
+    }
+
     onTimeoutChanged: {
         codeExpireTimer.start()
         codeTimeText.text = Utils.formatTime(timeout / 1000)
     }
 
-    onRejected: tdapi.busy = false
+    onRejected: sheet.loading = false
 }

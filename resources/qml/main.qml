@@ -18,11 +18,9 @@ PageStackWindow {
     Connections {
         target: tdapi
         onError: {
-            banner.text = data.message
-
             if (data.code !== "404") {
+                banner.text = data.message
                 banner.show()
-                console.log(data.message, data.code)
             }
         }
     }

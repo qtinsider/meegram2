@@ -63,18 +63,19 @@ signals:
 
 public slots:
     void populate();
-    void clear();
     void refresh();
-    void sortChats();
 
 private slots:
+    void loadChats();
+    void sortChats();
+
     void handleChatItem(qint64 chatId);
-    void handleChatPhoto(int fileId);
     void handleChatPosition(qint64 chatId);
     void handleError(const QVariantMap &error);
 
+
 private:
-    void loadChats();
+    void clear();
 
     bool m_loading{true};
 
@@ -84,6 +85,7 @@ private:
     TdApi::ChatList m_chatList{TdApi::ChatListMain};
 
     QTimer *m_sortTimer;
+    QTimer *m_loadingTimer;
 
     QVector<qint64> m_chatIds;
 

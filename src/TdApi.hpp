@@ -10,7 +10,6 @@ class TdApi : public QObject
 {
     Q_OBJECT
     Q_ENUMS(ChatList)
-    Q_PROPERTY(bool busy READ busy WRITE setBusy NOTIFY busyChanged)
     Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
 
     std::vector<std::unique_ptr<Store>> stores;
@@ -34,7 +33,6 @@ public:
     Q_INVOKABLE void sendRequest(const QVariantMap &js);
     Q_INVOKABLE void log(const QVariantMap &js) noexcept;
 
-    [[nodiscard]] bool busy() const noexcept;
     [[nodiscard]] bool isAuthorized() const noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
@@ -95,7 +93,6 @@ signals:
     void passwordRequested(const QVariant &passwordInfo);
     void registrationRequested(const QVariant &termsOfService);
 
-    void busyChanged();
     void isAuthorizedChanged();
 
     void updateAuthorizationState(const QVariantMap &authorizationState);
@@ -181,7 +178,6 @@ private:
     void initEvents();
 
     void handleAuthorizationState(const QVariantMap &data);
-    void setBusy(bool busy);
 
     template <typename T>
     requires std::is_base_of_v<Store, T> T &emplace()
@@ -195,7 +191,6 @@ private:
 
     std::jthread m_worker;
 
-    bool m_busy{false};
     bool m_isAuthorized{false};
 
     std::unordered_map<std::string, std::function<void(const QVariantMap &)>> m_events;

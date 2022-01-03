@@ -149,11 +149,6 @@ void TdApi::log(const QVariantMap &js) noexcept
     qDebug() << json.dump(2).c_str();
 }
 
-bool TdApi::busy() const noexcept
-{
-    return m_busy;
-}
-
 bool TdApi::isAuthorized() const noexcept
 {
     return m_isAuthorized;
@@ -274,7 +269,6 @@ void TdApi::createNewSecretChat(qint32 userId)
 
 void TdApi::createNewSupergroupChat(const QString &title, bool isChannel, const QString &description, const QVariantMap &location)
 {
-    // clang-format off
     QVariantMap result;
     result.insert("@type", "createNewSupergroupChat");
     result.insert("title", title);
@@ -282,7 +276,6 @@ void TdApi::createNewSupergroupChat(const QString &title, bool isChannel, const 
     result.insert("description", description);
     result.insert("location", location);
 
-    // clang-format on
     sendRequest(result);
 }
 
@@ -910,105 +903,89 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
     auto authorizationState = data.value("authorization_state").toMap();
     auto authorizationStateType = authorizationState.value("@type").toByteArray();
 
-    if (authorizationStateType == "authorizationStateWaitTdlibParameters")
+    switch (fnv::hashRuntime(authorizationStateType.constData()))
     {
-        QVariantMap parameters;
-        parameters.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
-        parameters.insert("use_file_database", true);
-        parameters.insert("use_chat_info_database", true);
-        parameters.insert("use_message_database", true);
-        parameters.insert("use_secret_chats", true);
-        parameters.insert("api_id", ApiId);
-        parameters.insert("api_hash", ApiHash);
-        parameters.insert("system_language_code", SystemLanguageCode);
-        parameters.insert("device_model", DeviceModel);
-        parameters.insert("system_version", SystemVersion);
-        parameters.insert("application_version", AppVersion);
+        case fnv::hash("authorizationStateWaitTdlibParameters"): {
+            QVariantMap parameters;
+            parameters.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
+            parameters.insert("use_file_database", true);
+            parameters.insert("use_chat_info_database", true);
+            parameters.insert("use_message_database", true);
+            parameters.insert("use_secret_chats", true);
+            parameters.insert("api_id", ApiId);
+            parameters.insert("api_hash", ApiHash);
+            parameters.insert("system_language_code", SystemLanguageCode);
+            parameters.insert("device_model", DeviceModel);
+            parameters.insert("system_version", SystemVersion);
+            parameters.insert("application_version", AppVersion);
 
-        QVariantMap result;
-        result.insert("@type", "setTdlibParameters");
-        result.insert("parameters", parameters);
+            QVariantMap result;
+            result.insert("@type", "setTdlibParameters");
+            result.insert("parameters", parameters);
 
-        sendRequest(result);
-    }
+            sendRequest(result);
+            break;
+        }
+        case fnv::hash("authorizationStateWaitEncryptionKey"): {
+            td_send(clientId, R"({"@type":"checkDatabaseEncryptionKey","encryption_key":""})");
+            break;
+        }
+        case fnv::hash("authorizationStateWaitCode"): {
+            const auto codeInfo = authorizationState.value("code_info").toMap();
 
-    if (authorizationStateType == "authorizationStateWaitEncryptionKey")
-    {
-        td_send(clientId, R"({"@type":"checkDatabaseEncryptionKey","encryption_key":""})");
-    }
+            QVariantMap result;
+            result.insert("subtitle", authentication_code_subtitle(codeInfo));
+            result.insert("title", authentication_code_title(codeInfo));
+            result.insert("length", authentication_code_length(codeInfo));
 
-    if (authorizationStateType == "authorizationStateReady")
-    {
-        m_isAuthorized = true;
-        emit isAuthorizedChanged();
+            result.insert("isNextTypeSms", authentication_code_is_next_type_sms(codeInfo));
+            result.insert("nextTypeString", authentication_code_next_type_string(codeInfo));
 
-        QVariantMap result;
-        result.insert("@type", "loadChats");
-        result.insert("chat_list", {});
-        result.insert("limit", ChatSliceLimit);
+            result.insert("timeout", codeInfo.value("timeout").toInt());
 
-        TdApi::getInstance().sendRequest(result);
-    }
-    if (authorizationStateType == "authorizationStateClosed")
-    {
-        m_worker.request_stop();
-    }
+            emit codeRequested(result);
+            break;
+        }
+        case fnv::hash("authorizationStateWaitPassword"): {
+            const auto password = authorizationState.value("password").toMap();
 
-    if (authorizationStateType == "authorizationStateWaitCode")
-    {
-        const auto codeInfo = authorizationState.value("code_info").toMap();
+            QVariantMap result;
+            result.insert("passwordHint", password.value("password_hint").toString());
+            result.insert("hasRecoveryEmailAddress", password.value("has_recovery_email_address").toBool());
+            result.insert("recoveryEmailAddressPattern", password.value("recovery_email_address_pattern").toString());
 
-        QVariantMap result;
-        result.insert("subtitle", authentication_code_subtitle(codeInfo));
-        result.insert("title", authentication_code_title(codeInfo));
-        result.insert("length", authentication_code_length(codeInfo));
+            emit passwordRequested(result);
+            break;
+        }
+        case fnv::hash("authorizationStateWaitRegistration"): {
+            const auto termsOfService = authorizationState.value("terms_of_service").toMap();
 
-        result.insert("isNextTypeSms", authentication_code_is_next_type_sms(codeInfo));
-        result.insert("nextTypeString", authentication_code_next_type_string(codeInfo));
+            QVariantMap result;
+            result.insert("text", termsOfService.value("text").toMap().value("text").toString());
+            result.insert("minUserAge", termsOfService.value("min_user_age").toInt());
+            result.insert("showPopup", termsOfService.value("show_popup").toBool());
 
-        result.insert("timeout", codeInfo.value("timeout").toInt());
+            emit registrationRequested(result);
+            break;
+        }
+        case fnv::hash("authorizationStateReady"): {
+            QVariantMap result;
+            result.insert("@type", "loadChats");
+            result.insert("chat_list", {});
+            result.insert("limit", ChatSliceLimit);
 
-        setBusy(false);
+            TdApi::getInstance().sendRequest(result);
 
-        emit codeRequested(result);
-    }
+            m_isAuthorized = true;
 
-    if (authorizationStateType == "authorizationStateWaitPassword")
-    {
-        const auto password = authorizationState.value("password").toMap();
-
-        QVariantMap result;
-        result.insert("passwordHint", password.value("password_hint").toString());
-        result.insert("hasRecoveryEmailAddress", password.value("has_recovery_email_address").toBool());
-        result.insert("recoveryEmailAddressPattern", password.value("recovery_email_address_pattern").toString());
-
-        setBusy(false);
-
-        emit passwordRequested(result);
-    }
-
-    if (authorizationStateType == "authorizationStateWaitRegistration")
-    {
-        const auto termsOfService = authorizationState.value("terms_of_service").toMap();
-
-        QVariantMap result;
-        result.insert("text", termsOfService.value("text").toMap().value("text").toString());
-        result.insert("minUserAge", termsOfService.value("min_user_age").toInt());
-        result.insert("showPopup", termsOfService.value("show_popup").toBool());
-
-        setBusy(false);
-
-        emit registrationRequested(result);
+            emit isAuthorizedChanged();
+            break;
+        }
+        case fnv::hash("authorizationStateClosed"): {
+            m_worker.request_stop();
+            break;
+        }
     }
 
     emit updateAuthorizationState(authorizationState);
-}
-
-void TdApi::setBusy(bool busy)
-{
-    if (m_busy == busy)
-        return;
-
-    m_busy = busy;
-    emit busyChanged();
 }

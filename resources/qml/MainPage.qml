@@ -79,13 +79,13 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: qsTr("NoChats")
-        visible: myChatModel.count === 0 && !populateTimer.running && tdapi.isAuthorized
+        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
     BusyIndicator {
         anchors.centerIn: listView
-        running: populateTimer.running
-        visible: populateTimer.running
+        running: populateTimer.running || myChatModel.loading
+        visible: running
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
@@ -174,7 +174,10 @@ Page {
         id: myChatModel
         chatList: TdApi.ChatListMain
 
-        onChatListChanged: { populateTimer.restart() }
+        onLoadingChanged: {
+            if (!loading)
+                populateTimer.restart()
+        }
     }
 
     ContextMenu {
@@ -197,7 +200,7 @@ Page {
 
         onIsAuthorizedChanged: {
             if (tdapi.isAuthorized)
-                populateTimer.restart()
+                myChatModel.refresh()
         }
     }
 
