@@ -297,7 +297,7 @@ void ChatModel::handleChatPosition(qint64 chatId)
 
 void ChatModel::handleError(const QVariantMap &error)
 {
-    if (error.value("@extra").toByteArray() == "load_chats_error" && error.value("code").toInt() == 404)
+    if (error.value("@extra").toByteArray() == "loadChats_completed" && error.value("code").toInt() == 404)
     {
         m_loading = false;
         m_loadingTimer->stop();
@@ -326,7 +326,7 @@ void ChatModel::loadChats()
     result.insert("@type", "loadChats");
     result.insert("chat_list", m_list);
     result.insert("limit", ChatSliceLimit);
-    result.insert("@extra", "load_chats_error");
+    result.insert("@extra", "loadChats_completed");
 
     TdApi::getInstance().sendRequest(result);
 }

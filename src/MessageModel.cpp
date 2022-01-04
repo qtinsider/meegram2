@@ -256,12 +256,12 @@ void MessageModel::loadHistory() noexcept
     }
 }
 
-void MessageModel::openChat(const QString &chatId) noexcept
+void MessageModel::openChat(qint64 chatId) noexcept
 {
     clearAll();
 
-    m_chat = TdApi::getInstance().chatStore->get(chatId.toLongLong());
-    m_chatId = m_chat.value("id").toLongLong();
+    m_chatId = chatId;
+    m_chat = TdApi::getInstance().chatStore->get(m_chatId);
 
     auto unread = m_chat.value("unread_count").toInt() > 0;
     auto fromMessageId =

@@ -71,7 +71,7 @@ public:
 
     Q_INVOKABLE void loadHistory() noexcept;
 
-    Q_INVOKABLE void openChat(const QString &chatId) noexcept;
+    Q_INVOKABLE void openChat(qint64 chatId) noexcept;
     Q_INVOKABLE void closeChat() noexcept;
 
     Q_INVOKABLE void deleteMessage(qint64 messageId) noexcept;

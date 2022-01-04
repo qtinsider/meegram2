@@ -1,5 +1,5 @@
 # MeeGram
-Telegram client for Nokia N9 (used tdlib)
+Telegram for Nokia N9
 
 MeeGram is unofficial Telegram client for Nokia N9
 

@@ -100,7 +100,7 @@ Page {
         }
 
         clip: true
-        visible: !tdapi.isAuthorized
+        visible: !tdapi.isAuthorized && !focusTimer.running
 
         Column {
             id: signInInfoColumn
@@ -212,6 +212,13 @@ Page {
         onTriggered: { myChatModel.populate() }
     }
 
+    Timer {
+        id: focusTimer
+
+        interval: 200
+        repeat: false
+    }
+
     ScrollDecorator {
         flickableItem: listView
     }
@@ -244,4 +251,6 @@ Page {
             onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()
         }
     }
+
+    Component.onCompleted: focusTimer.start()
 }
