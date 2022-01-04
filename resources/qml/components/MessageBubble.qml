@@ -25,7 +25,7 @@ Item {
         width: Math.max(childrenWidth, messageDate.paintedWidth + (isOutgoing ? 28 : 0),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: isOutgoing ? 10 : !isServiceMessage ? parent.width - width - 10 : (parent.width - width) / 2
+            leftMargin: isServiceMessage ? (parent.width - width) / 2 : isOutgoing ? 10 : parent.width - width - 10
             top: parent.top
             topMargin: isServiceMessage ? 2 : isOutgoing ? 8 : 1
         }

@@ -14,7 +14,7 @@
 
 namespace {
 
-[[nodiscard]] QString authentication_code_title(const QVariantMap &codeInfo)
+ QString authentication_code_title(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 
@@ -33,7 +33,7 @@ namespace {
     return "Title";
 }
 
-[[nodiscard]] QString authentication_code_subtitle(const QVariantMap &codeInfo)
+ QString authentication_code_subtitle(const QVariantMap &codeInfo)
 {
     auto phoneNumber = codeInfo.value("phone_number").toString();
     auto type = codeInfo.value("type").toMap();
@@ -58,7 +58,7 @@ namespace {
     return {};
 }
 
-[[nodiscard]] QString authentication_code_next_type_string(const QVariantMap &codeInfo)
+ QString authentication_code_next_type_string(const QVariantMap &codeInfo)
 {
     auto nextType = codeInfo.value("next_type").toMap();
 
@@ -76,14 +76,14 @@ namespace {
     return {};
 }
 
-[[nodiscard]] bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
+ bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
 {
     auto codeInfoType = codeInfo.value("next_type").toMap().value("@type").toByteArray();
 
     return codeInfoType == "authenticationCodeTypeSms";
 }
 
-[[nodiscard]] int authentication_code_length(const QVariantMap &codeInfo)
+ int authentication_code_length(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 

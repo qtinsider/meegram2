@@ -33,7 +33,7 @@ public:
     Q_INVOKABLE void sendRequest(const QVariantMap &js);
     Q_INVOKABLE void log(const QVariantMap &js) noexcept;
 
-    [[nodiscard]] bool isAuthorized() const noexcept;
+     bool isAuthorized() const noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;

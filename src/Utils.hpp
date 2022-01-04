@@ -10,16 +10,16 @@ class Utils : public QObject
 public:
     explicit Utils(QObject *parent = nullptr);
 
-    [[nodiscard]] static QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList);
-    [[nodiscard]] static bool isChatPinned(qint64 chatId, const QVariantMap &chatList);
-    [[nodiscard]] static qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList);
-    [[nodiscard]] static bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
+     static QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList);
+     static bool isChatPinned(qint64 chatId, const QVariantMap &chatList);
+     static qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList);
+     static bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
 
-    [[nodiscard]]static QString getChatTitle(qint64 chatId, bool showSavedMessages = false);
-    [[nodiscard]] static int getChatMuteFor(qint64 chatId);
+     static QString getChatTitle(qint64 chatId, bool showSavedMessages = false);
+     static int getChatMuteFor(qint64 chatId);
 
-    [[nodiscard]] static QString getServiceMessageContent(const QVariantMap &message);
-    [[nodiscard]] static bool isServiceMessage(const QVariantMap &message);
+     static QString getServiceMessageContent(const QVariantMap &message);
+     static bool isServiceMessage(const QVariantMap &message);
 
     Q_INVOKABLE static QString getUserShortName(qint64 userId) noexcept;
 

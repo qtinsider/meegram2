@@ -45,7 +45,7 @@ class ChatStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    [[nodiscard]] QList<qint64> getIds() const noexcept;
+     QList<qint64> getIds() const noexcept;
 
     Q_INVOKABLE QVariantMap get(qint64 chatId) const;
 

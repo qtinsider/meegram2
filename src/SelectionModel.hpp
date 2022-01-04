@@ -23,10 +23,10 @@ public:
 
     Q_INVOKABLE QVariantMap get(int index) const noexcept;
 
-    [[nodiscard]] int count() const noexcept;
+     int count() const noexcept;
 
 private:
-    [[nodiscard]] int getDefaultIndex() const noexcept;
+     int getDefaultIndex() const noexcept;
 };
 
 class ChatFilterModel : public QAbstractListModel
@@ -49,7 +49,7 @@ public:
 
     Q_INVOKABLE QVariantMap get(int index) const noexcept;
 
-    [[nodiscard]] int count() const noexcept;
+     int count() const noexcept;
 
 signals:
     void countChanged();
