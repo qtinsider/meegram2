@@ -86,15 +86,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TitleRole:
             return Utils::getChatTitle(chatId);
         case PhotoRole: {
-            // TODO(strawberry):
+            // NOTE(strawberry):
             auto chat = TdApi::getInstance().chatStore->get(chatId);
 
-            auto chatPhoto = chat.value("photo").toMap();
-            if (chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
-            {
-                return chatPhoto.value("small").toMap().value("local").toMap().value("path").toString();
-            }
-            return {};
+            return chat.value("photo").toMap();
         }
         case LastMessageSenderRole: {
             auto chat = TdApi::getInstance().chatStore->get(chatId);

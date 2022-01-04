@@ -60,7 +60,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     viewer->rootContext()->setContextProperty("tdapi", &TdApi::getInstance());
     viewer->rootContext()->setContextProperty("Utils", utils.data());
 
-    viewer->engine()->addImageProvider("telegram", new TdImageProvider);
+    viewer->engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 
     QObject::connect(app.data(), SIGNAL(aboutToQuit()), &TdApi::getInstance(), SLOT(close()));
     QObject::connect(viewer->engine(), SIGNAL(quit()), viewer.data(), SLOT(close()));

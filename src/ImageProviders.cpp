@@ -4,14 +4,24 @@
 
 #include <QImageReader>
 
-TdImageProvider::TdImageProvider()
+ChatPhotoProvider::ChatPhotoProvider()
     : QDeclarativeImageProvider(QDeclarativeImageProvider::Image)
 {
 }
 
-QImage TdImageProvider::requestImage(const QString &id, QSize *size, const QSize &/*requestedSize*/)
+QImage ChatPhotoProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize)
 {
-    QImageReader reader(id);
+    QString path(":/images/avatar-placeholder.png");
+
+    auto chat = TdApi::getInstance().chatStore->get(id.toLongLong());
+
+    auto chatPhoto = chat.value("photo").toMap();
+    if (chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+    {
+        path = chatPhoto.value("small").toMap().value("local").toMap().value("path").toString();
+    }
+
+    QImageReader reader(path);
     QImage result = reader.read();
 
     if (!result.isNull() && size)

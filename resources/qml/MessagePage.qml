@@ -81,7 +81,7 @@ Page {
                         height: 50
                         width: 50
 
-                        source: myMessageModel.chat.photo ? "image://telegram/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
+                        source: "image://chatPhoto/" + myMessageModel.chat.id
 
                         MouseArea {
                             anchors.fill: parent

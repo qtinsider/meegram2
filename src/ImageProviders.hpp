@@ -2,10 +2,10 @@
 
 #include <QDeclarativeImageProvider>
 
-class TdImageProvider : public QDeclarativeImageProvider
+class ChatPhotoProvider : public QDeclarativeImageProvider
 {
 public:
-    TdImageProvider();
+    ChatPhotoProvider();
 
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
 };
