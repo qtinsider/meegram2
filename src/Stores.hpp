@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QVariant>
+#include <QVector>
 
 #include <unordered_map>
 
@@ -26,8 +27,8 @@ class BasicGroupStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariantMap get(qint64 groupId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(qint64 groupId) const;
+    QVariantMap get(qint64 groupId) const;
+    QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
     void handleUpdateBasicGroup(const QVariantMap &basicGroup);
@@ -45,9 +46,9 @@ class ChatStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-     QList<qint64> getIds() const noexcept;
+    QVector<qint64> getIds() const noexcept;
 
-    Q_INVOKABLE QVariantMap get(qint64 chatId) const;
+    QVariantMap get(qint64 chatId) const;
 
 signals:
     void updateChatItem(qint64 chatId);
@@ -85,7 +86,7 @@ class FileStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariantMap get(int fileId) const;
+    QVariantMap get(int fileId) const;
 
 private slots:
     void handleUpdateFile(const QVariantMap &file);
@@ -101,7 +102,7 @@ class OptionStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariant get(const QString &name) const;
+    QVariant get(const QString &name) const;
 
 private slots:
     void handleUpdateOption(const QString &name, const QVariantMap &value);
@@ -117,8 +118,8 @@ class SupergroupStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE QVariantMap get(qint64 groupId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(qint64 groupId) const;
+    QVariantMap get(qint64 groupId) const;
+    QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
     void handleUpdateSupergroup(const QVariantMap &supergroup);
@@ -136,9 +137,9 @@ class UserStore : public Store
 public:
     void initialize(TdApi *controller) override;
 
-    Q_INVOKABLE qint64 getMyId() const;
-    Q_INVOKABLE QVariantMap get(qint64 userId) const;
-    Q_INVOKABLE QVariantMap getFullInfo(qint64 userId) const;
+    qint64 getMyId() const;
+    QVariantMap get(qint64 userId) const;
+    QVariantMap getFullInfo(qint64 userId) const;
 
 private slots:
     void handleUpdateUserStatus(qint64 userId, const QVariantMap &status);

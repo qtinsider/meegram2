@@ -70,9 +70,9 @@ void ChatStore::initialize(TdApi *controller)
             SLOT(handleChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)));
 }
 
-QList<qint64> ChatStore::getIds() const noexcept
+QVector<qint64> ChatStore::getIds() const noexcept
 {
-    QList<qint64> result;
+    QVector<qint64> result;
     result.reserve(m_chats.size());
 
     std::ranges::transform(m_chats, std::back_inserter(result), [](const auto &value) { return value.first; });
