@@ -9,7 +9,7 @@ Page {
 
     TopBar {
         id: header
-        text: tdapi.isAuthorized ? "Chats" : "MeeGram"
+        text: tdapi.isAuthorized ? chatFilterModel.get(chatFilterDialog.selectedIndex).name : "MeeGram"
 
         Image {
             anchors {
@@ -23,7 +23,7 @@ Page {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: tdapi.isAuthorized ? selectionDialog.open() : null
+            onClicked: tdapi.isAuthorized ? chatFilterDialog.open() : null
         }
     }
 
@@ -154,10 +154,10 @@ Page {
     }
 
     SelectionDialog {
-        id: selectionDialog
+        id: chatFilterDialog
         titleText: qsTr("Filters")
         selectedIndex: 0
-        model: ChatFilterModel {}
+        model: ChatFilterModel { id: chatFilterModel }
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {

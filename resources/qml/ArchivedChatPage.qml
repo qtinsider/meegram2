@@ -38,6 +38,14 @@ Page {
         model: myChatModel
     }
 
+    Label {
+        anchors.centerIn: listView
+        font.pixelSize: 60
+        color: "gray"
+        text: qsTr("NoChats")
+        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
+    }
+
     BusyIndicator {
         anchors.centerIn: listView
         running: populateTimer.running || myChatModel.loading

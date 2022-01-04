@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="en">
+<TS version="2.0" language="en">
 <context>
     <name>ArchivedChatPage</name>
     <message>
-        <location filename="../qml/ArchivedChatPage.qml" line="60"/>
+        <location filename="../qml/ArchivedChatPage.qml" line="45"/>
+        <source>NoChats</source>
+        <translation type="unfinished">No chats yet</translation>
+    </message>
+    <message>
+        <location filename="../qml/ArchivedChatPage.qml" line="71"/>
         <source>UnpinFromTop</source>
         <translation>Unpin from top</translation>
     </message>
     <message>
-        <location filename="../qml/ArchivedChatPage.qml" line="60"/>
+        <location filename="../qml/ArchivedChatPage.qml" line="71"/>
         <source>PinFromTop</source>
         <translation>Pin to top</translation>
     </message>
@@ -17,84 +22,84 @@
 <context>
     <name>AuthenticationPage</name>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="374"/>
+        <location filename="../qml/AuthenticationPage.qml" line="377"/>
         <source>YourPhone</source>
         <translation>Your Phone</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="100"/>
+        <location filename="../qml/AuthenticationPage.qml" line="102"/>
         <source>StartText</source>
         <translation>Please confirm your country code and enter your phone number.</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="106"/>
-        <location filename="../qml/AuthenticationPage.qml" line="164"/>
-        <location filename="../qml/AuthenticationPage.qml" line="283"/>
+        <location filename="../qml/AuthenticationPage.qml" line="108"/>
+        <location filename="../qml/AuthenticationPage.qml" line="168"/>
+        <location filename="../qml/AuthenticationPage.qml" line="286"/>
         <source>Next</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="378"/>
+        <location filename="../qml/AuthenticationPage.qml" line="381"/>
         <source>YourCode</source>
         <translation>Phone verification</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="146"/>
+        <location filename="../qml/AuthenticationPage.qml" line="150"/>
         <source>Code</source>
         <translation>Code</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="189"/>
+        <location filename="../qml/AuthenticationPage.qml" line="193"/>
         <source>DidNotGetTheCodeSms</source>
         <translation>Send the code as an SMS</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="382"/>
+        <location filename="../qml/AuthenticationPage.qml" line="385"/>
         <source>TwoStepVerification</source>
         <translation>Two-Step Verification</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="249"/>
+        <location filename="../qml/AuthenticationPage.qml" line="252"/>
         <source>LoginPasswordText</source>
         <translation>You have Two-Step Verification enabled, so your account is protected with an additional password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="257"/>
+        <location filename="../qml/AuthenticationPage.qml" line="260"/>
         <source>YourPassword</source>
         <translation>Your Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="264"/>
+        <location filename="../qml/AuthenticationPage.qml" line="267"/>
         <source>Password</source>
         <translation>Password</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="386"/>
+        <location filename="../qml/AuthenticationPage.qml" line="389"/>
         <source>YourName</source>
         <translation>Your Name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="313"/>
+        <location filename="../qml/AuthenticationPage.qml" line="316"/>
         <source>RegisterText2</source>
         <translation>Enter your name</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="324"/>
+        <location filename="../qml/AuthenticationPage.qml" line="327"/>
         <source>FirstName</source>
         <translation>First name (required)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="330"/>
+        <location filename="../qml/AuthenticationPage.qml" line="333"/>
         <source>LastName</source>
         <translation>Last name (optional)</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="351"/>
+        <location filename="../qml/AuthenticationPage.qml" line="354"/>
         <source>Done</source>
         <translation>Done</translation>
     </message>
     <message>
-        <location filename="../qml/AuthenticationPage.qml" line="412"/>
+        <location filename="../qml/AuthenticationPage.qml" line="415"/>
         <source>ChooseCountry</source>
         <translation>Choose a country</translation>
     </message>
@@ -142,6 +147,10 @@
 <context>
     <name>MainPage</name>
     <message>
+        <source>FilterAllChats</source>
+        <translation type="obsolete">All Chats</translation>
+    </message>
+    <message>
         <location filename="../qml/MainPage.qml" line="81"/>
         <source>NoChats</source>
         <translation>No chats yet</translation>
@@ -157,12 +166,12 @@
         <translation>Folders</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="186"/>
+        <location filename="../qml/MainPage.qml" line="189"/>
         <source>UnpinFromTop</source>
         <translation>Unpin from top</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="186"/>
+        <location filename="../qml/MainPage.qml" line="189"/>
         <source>PinFromTop</source>
         <translation>Pin to top</translation>
     </message>
