@@ -71,8 +71,9 @@ private slots:
 
     void handleChatItem(qint64 chatId);
     void handleChatPosition(qint64 chatId);
-    void handleError(const QVariantMap &error);
 
+    void handleChatPhoto(const QVariantMap &file);
+    void handleError(const QVariantMap &error);
 
 private:
     void clear();

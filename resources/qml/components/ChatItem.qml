@@ -26,7 +26,8 @@ Item {
             leftMargin: 16
             verticalCenter: parent.verticalCenter
         }
-        source: "image://chatPhoto/" + model.id
+
+        source: model.photo ? "image://chatPhoto/" + model.photo : "image://theme/icon-l-content-avatar-placeholder"
     }
 
     Item {

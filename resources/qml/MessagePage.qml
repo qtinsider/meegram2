@@ -81,7 +81,7 @@ Page {
                         height: 50
                         width: 50
 
-                        source: "image://chatPhoto/" + myMessageModel.chat.id
+                        source: myMessageModel.chat.photo ? "image://chatPhoto/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
 
                         MouseArea {
                             anchors.fill: parent

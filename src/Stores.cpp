@@ -89,6 +89,11 @@ QVariantMap ChatStore::get(qint64 chatId) const
     return {};
 }
 
+void ChatStore::set(const QVariantMap &chat) noexcept
+{
+    m_chats.insert_or_assign(chat.value("id").toLongLong(), chat);
+}
+
 void ChatStore::handleNewChat(const QVariantMap &chat)
 {
     m_chats.emplace(chat.value("id").toLongLong(), chat);

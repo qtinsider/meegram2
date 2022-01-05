@@ -16,6 +16,7 @@ ChatModel::ChatModel(QObject *parent)
     connect(TdApi::getInstance().chatStore, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
 
     connect(&TdApi::getInstance(), SIGNAL(error(const QVariantMap &)), SLOT(handleError(const QVariantMap &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateFile(const QVariantMap &)), SLOT(handleChatPhoto(const QVariantMap &)));
 
     connect(this, SIGNAL(chatListChanged()), this, SLOT(refresh()));
 
@@ -86,10 +87,15 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TitleRole:
             return Utils::getChatTitle(chatId);
         case PhotoRole: {
-            // NOTE(strawberry):
             auto chat = TdApi::getInstance().chatStore->get(chatId);
 
-            return chat.value("photo").toMap();
+            if (auto chatPhoto = chat.value("photo").toMap();
+                chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+            {
+                return chatPhoto.value("small").toMap().value("local").toMap().value("path").toString();
+            }
+
+            return {};
         }
         case LastMessageSenderRole: {
             auto chat = TdApi::getInstance().chatStore->get(chatId);
@@ -292,6 +298,33 @@ void ChatModel::handleChatPosition(qint64 chatId)
         // emit delayed event
         if (not m_sortTimer->isActive())
             m_sortTimer->start();
+    }
+}
+
+void ChatModel::handleChatPhoto(const QVariantMap &file)
+{
+    if (file.value("local").toMap().value("is_downloading_completed").toBool())
+    {
+        auto it = std::ranges::find_if(m_chatIds, [file](qint64 chatId) {
+            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            return chat.value("photo").toMap().value("small").toMap().value("id").toInt() == file.value("id").toInt();
+        });
+
+        if (it != m_chatIds.end())
+        {
+            QVariantMap chatPhoto;
+            chatPhoto.insert("small", file);
+
+            auto chat = TdApi::getInstance().chatStore->get(*it);
+            chat.insert("photo", chatPhoto);
+
+            TdApi::getInstance().chatStore->set(chat);
+
+            auto index = std::distance(m_chatIds.begin(), it);
+            QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
+
+            emit dataChanged(modelIndex, modelIndex);
+        }
     }
 }
 

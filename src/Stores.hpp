@@ -50,6 +50,8 @@ public:
 
     QVariantMap get(qint64 chatId) const;
 
+    void set(const QVariantMap &chat) noexcept;
+
 signals:
     void updateChatItem(qint64 chatId);
     void updateChatPosition(qint64 chatId);
