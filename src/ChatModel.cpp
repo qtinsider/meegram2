@@ -85,7 +85,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TypeRole:
             return {};
         case TitleRole:
-            return Utils::getChatTitle(chatId);
+            return Utils::getChatTitle(chatId, true);
         case PhotoRole: {
             auto chat = TdApi::getInstance().chatStore->get(chatId);
 

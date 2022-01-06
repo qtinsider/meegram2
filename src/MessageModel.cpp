@@ -427,8 +427,6 @@ void MessageModel::openChat(qint64 chatId) noexcept
 
     TdApi::getInstance().sendRequest(result);
 
-    getChatHistory(m_chat.value("last_read_inbox_message_id").toLongLong(), -1, MessageSliceLimit);
-
     emit chatChanged();
     emit statusChanged();
 }
@@ -524,9 +522,8 @@ int MessageModel::getMessageIndex(qint64 messageId) const noexcept
 
 int MessageModel::getLastMessageIndex() const noexcept
 {
-    auto unread = m_chat.value("unread_count").toInt() > 1;
+    auto unread = m_chat.value("unread_count").toInt() > 0;
     auto fromMessageId =
-
         unread ? m_chat.value("last_read_inbox_message_id").toLongLong() : m_chat.value("last_message").toMap().value("id").toLongLong();
 
     auto it = std::ranges::find_if(m_messages, [=](const auto &message) { return message.value("id").toLongLong() == fromMessageId; });
@@ -706,6 +703,31 @@ void MessageModel::handleMessages(const QVariantMap &messages)
 {
     const auto list = messages.value("messages").toList();
 
+    if (m_needsReload)
+    {
+        m_needsReload = false;
+
+        auto unread = m_chat.value("unread_count").toInt() > 0;
+        auto fromMessageId = unread ? m_chat.value("last_read_inbox_message_id").toLongLong()
+                                    : m_chat.value("last_message").toMap().value("id").toLongLong();
+
+        if (std::ranges::none_of(
+                list, [fromMessageId](const auto &message) { return message.toMap().value("id").toLongLong() == fromMessageId; }))
+        {
+            std::ranges::for_each(list, [this](const auto &message) {
+                m_messages.append(message.toMap());
+                m_messageIds.emplace(message.toMap().value("id").toLongLong());
+            });
+
+            if (auto max = std::ranges::max_element(m_messageIds); max != m_messageIds.end())
+            {
+                getChatHistory(*max, -MessageSliceLimit, MessageSliceLimit);
+            }
+
+            return;
+        }
+    }
+
     QVariantList result;
     std::ranges::copy_if(list, std::back_inserter(result), [this](const auto &message) {
         return !m_messageIds.contains(message.toMap().value("id").toLongLong()) &&
@@ -735,7 +757,7 @@ void MessageModel::handleMessages(const QVariantMap &messages)
     emit countChanged();
 }
 
-void MessageModel::insertMessages(const QVariantList &messages)
+void MessageModel::insertMessages(const QVariantList &messages) noexcept
 {
     if (auto min = std::ranges::min_element(m_messageIds);
         min != m_messageIds.end() && messages.last().toMap().value("id").toLongLong() < *min)
@@ -745,12 +767,12 @@ void MessageModel::insertMessages(const QVariantList &messages)
         beginInsertRows(QModelIndex(), 0, messages.count() - 1);
 
         int offset = 0;
-        for (const auto &message : messages)
-        {
+
+        std::ranges::for_each(messages, [this, &offset](const auto &message) {
             m_messages.insert(offset, message.toMap());
             m_messageIds.emplace(message.toMap().value("id").toLongLong());
             ++offset;
-        }
+        });
 
         endInsertRows();
 
@@ -764,11 +786,11 @@ void MessageModel::insertMessages(const QVariantList &messages)
 
     beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
 
-    for (const auto &message : messages)
-    {
+    std::ranges::for_each(messages, [this](const auto &message) {
         m_messages.append(message.toMap());
         m_messageIds.emplace(message.toMap().value("id").toLongLong());
-    }
+    });
+
     endInsertRows();
 
     QVariantList messageIds;
@@ -792,9 +814,16 @@ void MessageModel::insertMessages(const QVariantList &messages)
     emit loadingChanged();
 }
 
-void MessageModel::loadMessages()
+void MessageModel::loadMessages() noexcept
 {
-    getChatHistory(m_chat.value("last_read_inbox_message_id").toLongLong(), -1, MessageSliceLimit);
+    auto unread = m_chat.value("unread_count").toInt() > 0;
+    auto fromMessageId =
+        unread ? m_chat.value("last_read_inbox_message_id").toLongLong() : m_chat.value("last_message").toMap().value("id").toLongLong();
+
+    auto offset = unread ? -1 - MessageSliceLimit : 0;
+    auto limit = unread ? 2 * MessageSliceLimit : MessageSliceLimit;
+
+    getChatHistory(fromMessageId, offset, limit);
 }
 
 void MessageModel::itemChanged(int64_t index)

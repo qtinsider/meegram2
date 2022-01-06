@@ -91,7 +91,6 @@ public:
     Q_INVOKABLE int getMessageIndex(qint64 messageId) const noexcept;
     Q_INVOKABLE int getLastMessageIndex() const noexcept;
 
-
 signals:
     void chatChanged();
     void countChanged();
@@ -121,10 +120,10 @@ private slots:
     void handleMessage(const QVariantMap &message);
     void handleMessages(const QVariantMap &messages);
 
-    void loadMessages();
+    void loadMessages() noexcept;
 
 private:
-    void insertMessages(const QVariantList &messages);
+    void insertMessages(const QVariantList &messages) noexcept;
 
     void itemChanged(int64_t index);
 
@@ -135,6 +134,8 @@ private:
 
     bool m_loading{true};
     bool m_loadingHistory{true};
+
+    bool m_needsReload{true};
 
     QTimer *m_getHistoryTimer;
 

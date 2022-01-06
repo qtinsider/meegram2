@@ -218,7 +218,10 @@ Page {
                             listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Contain)
                     }
 
-                    onAtYBeginningChanged: if (atYBeginning) myMessageModel.loadHistory()
+                    onAtYBeginningChanged: {
+                        if (atYBeginning && !myMessageModel.loading)
+                            myMessageModel.loadHistory()
+                    }
 
                     Connections {
                         target: inputContext
@@ -329,15 +332,6 @@ Page {
                     ]
                 }
             }
-        }
-    }
-
-    Timer {
-        id: positioner
-        interval: 100
-        onTriggered: {
-            if (!listView.moving)
-                listView.positionViewAtEnd()
         }
     }
 
