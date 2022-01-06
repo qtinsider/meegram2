@@ -7,6 +7,7 @@ Page {
     id: root
 
     property string chatId: ""
+    property bool loading: true
 
     Flickable {
         id: contentArea
@@ -215,10 +216,10 @@ Page {
                             font.bold: true
                             text: section
                             anchors.horizontalCenter: parent.horizontalCenter
-                            anchors.topMargin: 6
-                            anchors.bottomMargin: 6
-
+                            anchors.topMargin: 12
+                            anchors.bottomMargin: 12
                         }
+
                         property: "section"
                     }
 
@@ -230,12 +231,18 @@ Page {
                     }
 
                     onCountChanged: {
-                        if (!myMessageModel.loading)
-                            listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Contain)
+                        if (!myMessageModel.loading && loading) {
+                            if (myMessageModel.chat.unread_count > 0)
+                                listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Center)
+                            else
+                                listView.positionViewAtEnd();
+
+                            loading = false
+                        }
                     }
 
                     onAtYBeginningChanged: {
-                        if (atYBeginning && !myMessageModel.loading)
+                        if (atYBeginning && !loading)
                             myMessageModel.loadHistory()
                     }
 

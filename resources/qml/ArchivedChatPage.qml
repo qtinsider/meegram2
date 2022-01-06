@@ -7,6 +7,8 @@ import "components"
 Page {
     id: root
 
+    orientationLock: PageOrientation.LockPortrait
+
     TopBar {
         id: header
         text: "Archived Chats"

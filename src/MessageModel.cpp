@@ -193,18 +193,22 @@ int MessageModel::rowCount(const QModelIndex &parent) const
 
 bool MessageModel::canFetchMore(const QModelIndex &parent) const
 {
+    if (parent.isValid())
+        return 0;
+
     auto lastMessageId = m_chat.value("last_message").toMap().value("id").toLongLong();
 
     if (m_messages.size() > 0)
         return !m_loading && lastMessageId != *std::ranges::max_element(m_messageIds);
-
-    Q_UNUSED(parent)
 
     return false;
 }
 
 void MessageModel::fetchMore(const QModelIndex &parent)
 {
+    if (parent.isValid())
+        return;
+
     if (!m_loading)
     {
         if (auto max = std::ranges::max_element(m_messageIds); max != m_messageIds.end())
@@ -213,6 +217,8 @@ void MessageModel::fetchMore(const QModelIndex &parent)
         }
 
         m_loading = true;
+
+        emit loadingChanged();
     }
 }
 
@@ -300,9 +306,9 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return Utils::isServiceMessage(message);
         }
         case SectionRole: {
-            auto date = QDateTime::fromMSecsSinceEpoch(message.value("date").toLongLong() * 1000);
+            const auto date = QDateTime::fromMSecsSinceEpoch(message.value("date").toLongLong() * 1000);
 
-            auto days = date.daysTo(QDateTime::currentDateTime());
+            const auto days = date.daysTo(QDateTime::currentDateTime());
 
             if (days == 0)
                 return tr("Today");
@@ -369,6 +375,11 @@ bool MessageModel::loading() const noexcept
     return m_loading;
 }
 
+bool MessageModel::loadingHistory() const noexcept
+{
+    return m_loadingHistory;
+}
+
 QVariant MessageModel::getChat() const noexcept
 {
     return m_chat;
@@ -413,6 +424,8 @@ void MessageModel::loadHistory() noexcept
         m_loadingHistory = true;
 
         getChatHistory(*min, 0, MessageSliceLimit);
+
+        emit loadingChanged();
     }
 }
 
@@ -496,15 +509,8 @@ void MessageModel::deleteMessage(qint64 messageId) noexcept
 
 QVariantMap MessageModel::get(qint64 messageId) const noexcept
 {
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
-
-    if (it != m_messages.end())
-    {
-        auto index = std::distance(m_messages.begin(), it);
-        return m_messages.value(index);
-    }
-
-    return {};
+    auto index = getMessageIndex(messageId);
+    return m_messages.value(index);
 }
 
 int MessageModel::getMessageIndex(qint64 messageId) const noexcept
@@ -526,21 +532,17 @@ int MessageModel::getLastMessageIndex() const noexcept
     auto fromMessageId =
         unread ? m_chat.value("last_read_inbox_message_id").toLongLong() : m_chat.value("last_message").toMap().value("id").toLongLong();
 
-    auto it = std::ranges::find_if(m_messages, [=](const auto &message) { return message.value("id").toLongLong() == fromMessageId; });
-
-    if (it != m_messages.end())
-    {
-        auto index = std::distance(m_messages.begin(), it);
-        return static_cast<int>(index);
-    }
-
-    return -1;
+    return getMessageIndex(fromMessageId);
 }
 
-void MessageModel::clearAll() noexcept
+void MessageModel::refresh() noexcept
 {
     if (m_messages.isEmpty())
         return;
+
+    m_loading = true;
+    m_loadingHistory = true;
+    m_needsReload = true;
 
     beginResetModel();
     m_messages.clear();
@@ -649,18 +651,11 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
     QListIterator<QVariant> it(messageIds);
     while (it.hasNext())
     {
-        qlonglong messageId = it.next().toLongLong();
-        auto it =
-            std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
+        auto index = getMessageIndex(it.next().toLongLong());
 
-        if (it != m_messages.end())
-        {
-            auto index = std::distance(m_messages.begin(), it);
-
-            beginRemoveRows(QModelIndex(), index, index);
-            m_messages.removeAt(index);
-            endRemoveRows();
-        }
+        beginRemoveRows(QModelIndex(), index, index);
+        m_messages.removeAt(index);
+        endRemoveRows();
     }
 }
 
@@ -706,6 +701,7 @@ void MessageModel::handleMessages(const QVariantMap &messages)
     if (m_needsReload)
     {
         m_needsReload = false;
+        m_loadingHistory = false;
 
         auto unread = m_chat.value("unread_count").toInt() > 0;
         auto fromMessageId = unread ? m_chat.value("last_read_inbox_message_id").toLongLong()
@@ -719,10 +715,10 @@ void MessageModel::handleMessages(const QVariantMap &messages)
                 m_messageIds.emplace(message.toMap().value("id").toLongLong());
             });
 
-            if (auto max = std::ranges::max_element(m_messageIds); max != m_messageIds.end())
-            {
-                getChatHistory(*max, -MessageSliceLimit, MessageSliceLimit);
-            }
+            std::sort(m_messages.begin(), m_messages.end(),
+                      [](const auto &a, const auto &b) { return std::cmp_less(a.value("id").toLongLong(), b.value("id").toLongLong()); });
+
+            getChatHistory(m_messages.back().value("id").toLongLong(), -MessageSliceLimit, MessageSliceLimit);
 
             return;
         }
@@ -744,6 +740,8 @@ void MessageModel::handleMessages(const QVariantMap &messages)
         {
             m_loading = false;
         }
+
+        emit loadingChanged();
     }
     else
     {
@@ -763,6 +761,8 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
         min != m_messageIds.end() && messages.last().toMap().value("id").toLongLong() < *min)
     {
         m_loadingHistory = false;
+
+        emit loadingChanged();
 
         beginInsertRows(QModelIndex(), 0, messages.count() - 1);
 
@@ -808,8 +808,6 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
 
     if (messageIds.size() > 0)
         viewMessages(messageIds);
-
-    messageIds.clear();
 
     emit loadingChanged();
 }

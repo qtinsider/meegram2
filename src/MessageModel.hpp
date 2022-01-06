@@ -15,6 +15,7 @@ class MessageModel : public QAbstractListModel
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
+    Q_PROPERTY(bool loadingHistory READ loadingHistory NOTIFY loadingChanged)
 
 public:
     explicit MessageModel(QObject *parent = nullptr);
@@ -67,7 +68,9 @@ public:
     QHash<int, QByteArray> roleNames() const noexcept;
 
     int count() const noexcept;
+
     bool loading() const noexcept;
+    bool loadingHistory() const noexcept;
 
     QVariant getChat() const noexcept;
     QString getChatSubtitle() const noexcept;
@@ -100,7 +103,7 @@ signals:
     void loadingChanged();
 
 public slots:
-    void clearAll() noexcept;
+    void refresh() noexcept;
 
 private slots:
     void handleNewMessage(const QVariantMap &message);
