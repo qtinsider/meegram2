@@ -121,7 +121,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return chat.value("unread_count").toInt();
         }
         case IsMutedRole: {
-            return Utils::getChatMuteFor(chatId) > 0;
+            return Utils::isChatMuted(chatId);
         }
     }
 
@@ -210,6 +210,27 @@ void ChatModel::toggleChatIsPinned(qint64 chatId, bool isPinned)
     result.insert("chat_list", m_list);
     result.insert("chat_id", chatId);
     result.insert("is_pinned", isPinned);
+
+    TdApi::getInstance().sendRequest(result);
+}
+
+void ChatModel::toggleChatNotificationSettings(qint64 chatId, bool isMuted)
+{
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+
+    auto isMutedPrev = Utils::isChatMuted(chatId);
+    if (isMutedPrev == isMuted)
+        return;
+
+    auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
+    QVariantMap newNotificationSettings;
+    newNotificationSettings.insert("use_default_mute_for", false);
+    newNotificationSettings.insert("mute_for", muteFor);
+
+    QVariantMap result;
+    result.insert("@type", "setChatNotificationSettings");
+    result.insert("chat_id", chatId);
+    result.insert("notification_settings", newNotificationSettings);
 
     TdApi::getInstance().sendRequest(result);
 }

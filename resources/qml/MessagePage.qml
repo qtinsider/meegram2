@@ -206,6 +206,22 @@ Page {
 
                     model: myMessageModel
 
+                    section {
+                        delegate: Label {
+                            id: sectionLabel
+                            wrapMode: Text.WordWrap
+                            color: "black"
+                            font.pixelSize: 18
+                            font.bold: true
+                            text: section
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            anchors.topMargin: 6
+                            anchors.bottomMargin: 6
+
+                        }
+                        property: "section"
+                    }
+
                     footer: Item { height: 10 }
 
                     header: Item {

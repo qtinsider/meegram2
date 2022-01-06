@@ -365,6 +365,11 @@ QString Utils::getChatTitle(qint64 chatId, bool showSavedMessages)
     return title.isEmpty() ? QObject::tr("HiddenName") : title;
 }
 
+bool Utils::isChatMuted(qint64 chatId)
+{
+    return getChatMuteFor(chatId) > 0;
+}
+
 int Utils::getChatMuteFor(qint64 chatId)
 {
     auto chat = TdApi::getInstance().chatStore->get(chatId);
@@ -735,8 +740,6 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
 
     return QLocale::system().toString(date.date(), QLocale::ShortFormat);
 }
-
-
 
 QString Utils::getContent(const QVariantMap &message) noexcept
 {

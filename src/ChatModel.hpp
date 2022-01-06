@@ -54,6 +54,7 @@ public:
     Q_INVOKABLE QVariant get(int index) const noexcept;
 
     Q_INVOKABLE void toggleChatIsPinned(qint64 chatId, bool isPinned);
+    Q_INVOKABLE void toggleChatNotificationSettings(qint64 chatId, bool isMuted);
 
 signals:
     void countChanged();

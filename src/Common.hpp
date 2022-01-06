@@ -19,3 +19,6 @@ static constexpr auto WaitTimeout = 30.0;  // 30 sec
 [[maybe_unused]] static constexpr auto ServiceNotificationsUserIds = {42777, 333000, 777000};
 static constexpr auto ChatSliceLimit = 25;
 static constexpr auto MessageSliceLimit = 20;
+
+static constexpr auto MutedValueMax = 2147483647; // int32.max = 2^32 - 1
+static constexpr auto MutedValueMin = 0;

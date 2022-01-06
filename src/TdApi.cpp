@@ -14,7 +14,7 @@
 
 namespace {
 
- QString authentication_code_title(const QVariantMap &codeInfo)
+QString authentication_code_title(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 
@@ -33,7 +33,7 @@ namespace {
     return "Title";
 }
 
- QString authentication_code_subtitle(const QVariantMap &codeInfo)
+QString authentication_code_subtitle(const QVariantMap &codeInfo)
 {
     auto phoneNumber = codeInfo.value("phone_number").toString();
     auto type = codeInfo.value("type").toMap();
@@ -58,7 +58,7 @@ namespace {
     return {};
 }
 
- QString authentication_code_next_type_string(const QVariantMap &codeInfo)
+QString authentication_code_next_type_string(const QVariantMap &codeInfo)
 {
     auto nextType = codeInfo.value("next_type").toMap();
 
@@ -76,14 +76,14 @@ namespace {
     return {};
 }
 
- bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
+bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
 {
     auto codeInfoType = codeInfo.value("next_type").toMap().value("@type").toByteArray();
 
     return codeInfoType == "authenticationCodeTypeSms";
 }
 
- int authentication_code_length(const QVariantMap &codeInfo)
+int authentication_code_length(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 
@@ -119,22 +119,19 @@ TdApi::TdApi()
 {
     // disable TDLib logging
     td_execute(R"({"@type":"setLogVerbosityLevel","new_verbosity_level":0})");
-}
 
-TdApi &TdApi::getInstance()
-{
-    static TdApi staticObject;
-    return staticObject;
-}
-
-void TdApi::initialize()
-{
     for (auto &store : stores)
     {
         store->initialize(this);
     }
 
     initEvents();
+}
+
+TdApi &TdApi::getInstance()
+{
+    static TdApi staticObject;
+    return staticObject;
 }
 
 void TdApi::sendRequest(const QVariantMap &js)
@@ -396,16 +393,6 @@ void TdApi::sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariant
     result.insert("chat_id", chatId);
     result.insert("message_thread_id", messageThreadId);
     result.insert("action", action);
-
-    sendRequest(result);
-}
-
-void TdApi::setChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings)
-{
-    QVariantMap result;
-    result.insert("@type", "setChatNotificationSettings");
-    result.insert("chat_id", chatId);
-    result.insert("notification_settings", notificationSettings);
 
     sendRequest(result);
 }

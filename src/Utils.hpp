@@ -16,6 +16,7 @@ public:
      static bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
 
      static QString getChatTitle(qint64 chatId, bool showSavedMessages = false);
+     static bool isChatMuted(qint64 chatId);
      static int getChatMuteFor(qint64 chatId);
 
      static QString getServiceMessageContent(const QVariantMap &message);

@@ -194,6 +194,14 @@ Page {
                     populateTimer.restart()
                 }
             }
+
+            MenuItem {
+                text: myChatModel.get(listView.currentIndex).isMuted ? qsTr("ChatsUnmute") : qsTr("ChatsMute")
+                onClicked: {
+                    myChatModel.toggleChatNotificationSettings(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isMuted);
+                    populateTimer.restart()
+                }
+            }
         }
     }
 

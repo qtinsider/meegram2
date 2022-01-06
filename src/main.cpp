@@ -68,7 +68,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     viewer->setResizeMode(QDeclarativeView::SizeRootObjectToView);
     viewer->setSource(QUrl("qrc:/qml/main.qml"));
 
-    TdApi::getInstance().initialize();
     viewer->showFullScreen();
 
     return app->exec();

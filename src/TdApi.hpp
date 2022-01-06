@@ -28,8 +28,6 @@ public:
         ChatListFilter,
     };
 
-    Q_INVOKABLE void initialize();
-
     Q_INVOKABLE void sendRequest(const QVariantMap &js);
     Q_INVOKABLE void log(const QVariantMap &js) noexcept;
 
@@ -67,7 +65,6 @@ public:
     Q_INVOKABLE void leaveChat(qint64 chatId);
 
     Q_INVOKABLE void sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action);
-    Q_INVOKABLE void setChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings);
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);

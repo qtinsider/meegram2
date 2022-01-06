@@ -151,29 +151,39 @@
         <translation type="obsolete">All Chats</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="81"/>
+        <location filename="../qml/MainPage.qml" line="83"/>
         <source>NoChats</source>
         <translation>No chats yet</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="140"/>
+        <location filename="../qml/MainPage.qml" line="142"/>
         <source>StartMessaging</source>
         <translation>Start Messaging</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="158"/>
+        <location filename="../qml/MainPage.qml" line="160"/>
         <source>Filters</source>
         <translation>Folders</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="189"/>
+        <location filename="../qml/MainPage.qml" line="191"/>
         <source>UnpinFromTop</source>
         <translation>Unpin from top</translation>
     </message>
     <message>
-        <location filename="../qml/MainPage.qml" line="189"/>
+        <location filename="../qml/MainPage.qml" line="191"/>
         <source>PinFromTop</source>
         <translation>Pin to top</translation>
+    </message>
+    <message>
+        <location filename="../qml/MainPage.qml" line="199"/>
+        <source>ChatsUnmute</source>
+        <translation>Unmute</translation>
+    </message>
+    <message>
+        <location filename="../qml/MainPage.qml" line="199"/>
+        <source>ChatsMute</source>
+        <translation>Mute</translation>
     </message>
     <message>
         <source>Create</source>
@@ -183,12 +193,12 @@
 <context>
     <name>MessageModel</name>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="296"/>
+        <location filename="../../src/MessageModel.cpp" line="308"/>
         <source>Today</source>
         <translation>Today</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="298"/>
+        <location filename="../../src/MessageModel.cpp" line="310"/>
         <source>Yesterday</source>
         <translation>Yesterday</translation>
     </message>
@@ -701,70 +711,70 @@
         <translation>Yesterday</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="764"/>
+        <location filename="../../src/Utils.cpp" line="766"/>
         <source>AttachGif</source>
         <translation>GIF</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="768"/>
+        <location filename="../../src/Utils.cpp" line="770"/>
         <source>AttachMusic</source>
         <translation>Music</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="781"/>
+        <location filename="../../src/Utils.cpp" line="783"/>
         <source>CallMessageWithDuration</source>
         <translation>%1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="814"/>
+        <location filename="../../src/Utils.cpp" line="816"/>
         <source>AttachContact</source>
         <translation>Contact</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="830"/>
+        <location filename="../../src/Utils.cpp" line="832"/>
         <source>AttachDocument</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="833"/>
-        <location filename="../../src/Utils.cpp" line="864"/>
+        <location filename="../../src/Utils.cpp" line="835"/>
+        <location filename="../../src/Utils.cpp" line="866"/>
         <source>AttachPhoto</source>
         <translation>Photo</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="836"/>
-        <location filename="../../src/Utils.cpp" line="897"/>
+        <location filename="../../src/Utils.cpp" line="838"/>
+        <location filename="../../src/Utils.cpp" line="899"/>
         <source>AttachVideo</source>
         <translation>Video</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="839"/>
+        <location filename="../../src/Utils.cpp" line="841"/>
         <source>AttachGame</source>
         <translation>Game</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="849"/>
-        <location filename="../../src/Utils.cpp" line="894"/>
+        <location filename="../../src/Utils.cpp" line="851"/>
+        <location filename="../../src/Utils.cpp" line="896"/>
         <source>AttachLocation</source>
         <translation>Location</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="882"/>
+        <location filename="../../src/Utils.cpp" line="884"/>
         <source>AttachSticker</source>
         <translation>Sticker</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="900"/>
+        <location filename="../../src/Utils.cpp" line="902"/>
         <source>AttachRound</source>
         <translation>Video message</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="903"/>
+        <location filename="../../src/Utils.cpp" line="905"/>
         <source>AttachAudio</source>
         <translation>Voice message</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="910"/>
+        <location filename="../../src/Utils.cpp" line="912"/>
         <source>UnsupportedAttachment</source>
         <translation>Unsupported attachment</translation>
     </message>
@@ -774,7 +784,7 @@
         <translation>Saved Messages</translation>
     </message>
     <message>
-        <location filename="../../src/Utils.cpp" line="951"/>
+        <location filename="../../src/Utils.cpp" line="953"/>
         <source>FromYou</source>
         <translation>You</translation>
     </message>
