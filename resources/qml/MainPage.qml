@@ -7,6 +7,8 @@ import "components"
 Page {
     id: root
 
+    orientationLock: PageOrientation.LockPortrait
+
     TopBar {
         id: header
         text: tdapi.isAuthorized ? chatFilterModel.get(chatFilterDialog.selectedIndex).name : "MeeGram"
@@ -85,7 +87,7 @@ Page {
     BusyIndicator {
         anchors.centerIn: listView
         running: visible
-        visible: populateTimer.running || myChatModel.loading
+        visible: populateTimer.running || myChatModel.loading && tdapi.isAuthorized
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
