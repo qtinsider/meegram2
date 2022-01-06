@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QTimer>
 
 #include <unordered_set>
 
@@ -11,7 +12,9 @@ class MessageModel : public QAbstractListModel
     Q_PROPERTY(QVariant chat READ getChat NOTIFY chatChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
+
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
 public:
     explicit MessageModel(QObject *parent = nullptr);
@@ -64,6 +67,7 @@ public:
     QHash<int, QByteArray> roleNames() const noexcept;
 
     int count() const noexcept;
+    bool loading() const noexcept;
 
     QVariant getChat() const noexcept;
     QString getChatSubtitle() const noexcept;
@@ -74,17 +78,27 @@ public:
     Q_INVOKABLE void openChat(qint64 chatId) noexcept;
     Q_INVOKABLE void closeChat() noexcept;
 
+    Q_INVOKABLE void getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit);
+
+    Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
+
+    Q_INVOKABLE void viewMessages(const QVariantList &messageIds);
+
     Q_INVOKABLE void deleteMessage(qint64 messageId) noexcept;
-    Q_INVOKABLE void viewMessage(qint64 messageId) noexcept;
 
     Q_INVOKABLE QVariantMap get(qint64 messageId) const noexcept;
-    Q_INVOKABLE int getIndex(qint64 messageId) const noexcept;
+
+    Q_INVOKABLE int getMessageIndex(qint64 messageId) const noexcept;
+    Q_INVOKABLE int getLastMessageIndex() const noexcept;
+
 
 signals:
     void chatChanged();
     void countChanged();
     void moreHistoriesLoaded(int modelIndex);
     void statusChanged();
+
+    void loadingChanged();
 
 public slots:
     void clearAll() noexcept;
@@ -107,16 +121,10 @@ private slots:
     void handleMessage(const QVariantMap &message);
     void handleMessages(const QVariantMap &messages);
 
+    void loadMessages();
+
 private:
     void insertMessages(const QVariantList &messages);
-
-    QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) const noexcept;
-    QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
-    QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
-
-    static QString getUserStatus(const QVariantMap &user) noexcept;
-
-    static QString getMessageDate(int64_t time) noexcept;
 
     void itemChanged(int64_t index);
 
@@ -125,8 +133,10 @@ private:
 
     qint64 m_chatId{};
 
-    bool m_loading{};
-    bool m_loadingHistory{};
+    bool m_loading{true};
+    bool m_loadingHistory{true};
+
+    QTimer *m_getHistoryTimer;
 
     std::unordered_set<int64_t> m_messageIds;
 };

@@ -220,15 +220,6 @@ void TdApi::close() noexcept
     loop.exec();
 }
 
-void TdApi::closeChat(qint64 chatId)
-{
-    QVariantMap result;
-    result.insert("@type", "closeChat");
-    result.insert("chat_id", chatId);
-
-    sendRequest(result);
-}
-
 void TdApi::closeSecretChat(qint32 secretChatId)
 {
     QVariantMap result;
@@ -360,19 +351,6 @@ void TdApi::getChatFilter(qint32 chatFilterId)
     sendRequest(result);
 }
 
-void TdApi::getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal)
-{
-    QVariantMap result;
-    result.insert("@type", "getChatHistory");
-    result.insert("chat_id", chatId);
-    result.insert("from_message_id", fromMessageId);
-    result.insert("offset", offset);
-    result.insert("limit", limit);
-    result.insert("only_local", onlyLocal);
-
-    sendRequest(result);
-}
-
 void TdApi::getMessage(qint64 chatId, qint64 messageId)
 {
     QVariantMap result;
@@ -411,15 +389,6 @@ void TdApi::leaveChat(qint64 chatId)
     sendRequest(result);
 }
 
-void TdApi::openChat(qint64 chatId)
-{
-    QVariantMap result;
-    result.insert("@type", "openChat");
-    result.insert("chat_id", chatId);
-
-    sendRequest(result);
-}
-
 void TdApi::sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action)
 {
     QVariantMap result;
@@ -427,21 +396,6 @@ void TdApi::sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariant
     result.insert("chat_id", chatId);
     result.insert("message_thread_id", messageThreadId);
     result.insert("action", action);
-
-    sendRequest(result);
-}
-
-void TdApi::sendMessage(qint64 chatId, qint64 messageThreadId, qint64 replyToMessageId, const QVariantMap &options,
-                        const QVariantMap &replyMarkup, const QVariantMap &inputMessageContent)
-{
-    QVariantMap result;
-    result.insert("@type", "sendMessage");
-    result.insert("chat_id", chatId);
-    result.insert("message_thread_id", messageThreadId);
-    result.insert("reply_to_message_id", replyToMessageId);
-    result.insert("options", options);
-    result.insert("reply_markup", replyMarkup);
-    result.insert("input_message_content", inputMessageContent);
 
     sendRequest(result);
 }
@@ -494,18 +448,6 @@ void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
     result.insert("@type", "toggleChatIsMarkedAsUnread");
     result.insert("chat_id", chatId);
     result.insert("is_marked_as_unread", isMarkedAsUnread);
-
-    sendRequest(result);
-}
-
-void TdApi::viewMessages(qint64 chatId, qint64 messageThreadId, const QVariantList &messageIds, bool forceRead)
-{
-    QVariantMap result;
-    result.insert("@type", "viewMessages");
-    result.insert("chat_id", chatId);
-    result.insert("message_thread_id", messageThreadId);
-    result.insert("message_ids", messageIds);
-    result.insert("force_read", forceRead);
 
     sendRequest(result);
 }

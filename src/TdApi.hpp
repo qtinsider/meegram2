@@ -45,7 +45,6 @@ public:
 
     Q_INVOKABLE void close() noexcept;
 
-    Q_INVOKABLE void closeChat(qint64 chatId);
     Q_INVOKABLE void closeSecretChat(qint32 secretChatId);
     Q_INVOKABLE void createBasicGroupChat(qint32 basicGroupId, bool force);
     Q_INVOKABLE void createNewBasicGroupChat(const QVariantList &userIds, const QString &title);
@@ -61,22 +60,17 @@ public:
                                      const QVariantMap &inputMessageContent);
     Q_INVOKABLE void getChat(qint64 chatId);
     Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
-    Q_INVOKABLE void getChatHistory(qint64 chatId, qint64 fromMessageId, qint32 offset, qint32 limit, bool onlyLocal);
     Q_INVOKABLE void getMe();
     Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
     Q_INVOKABLE void getMessages(qint64 chatId, const QVariantList &messageIds);
     Q_INVOKABLE void joinChat(qint64 chatId);
     Q_INVOKABLE void leaveChat(qint64 chatId);
 
-    Q_INVOKABLE void openChat(qint64 chatId);
     Q_INVOKABLE void sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action);
-    Q_INVOKABLE void sendMessage(qint64 chatId, qint64 messageThreadId, qint64 replyToMessageId, const QVariantMap &options,
-                                 const QVariantMap &replyMarkup, const QVariantMap &inputMessageContent);
     Q_INVOKABLE void setChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings);
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
-    Q_INVOKABLE void viewMessages(qint64 chatId, qint64 messageThreadId, const QVariantList &messageIds, bool forceRead);
 
     BasicGroupStore *const basicGroupStore{};
     ChatStore *const chatStore{};

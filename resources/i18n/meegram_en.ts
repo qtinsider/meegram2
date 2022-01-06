@@ -6,7 +6,7 @@
     <message>
         <location filename="../qml/ArchivedChatPage.qml" line="45"/>
         <source>NoChats</source>
-        <translation type="unfinished">No chats yet</translation>
+        <translation>No chats yet</translation>
     </message>
     <message>
         <location filename="../qml/ArchivedChatPage.qml" line="71"/>
@@ -183,85 +183,70 @@
 <context>
     <name>MessageModel</name>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="155"/>
+        <location filename="../../src/MessageModel.cpp" line="296"/>
         <source>Today</source>
         <translation>Today</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="157"/>
+        <location filename="../../src/MessageModel.cpp" line="298"/>
         <source>Yesterday</source>
         <translation>Yesterday</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="674"/>
         <source>ServiceNotifications</source>
-        <translation>Service notifications</translation>
+        <translation type="obsolete">Service notifications</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="678"/>
         <source>SupportStatus</source>
-        <translation>support</translation>
+        <translation type="obsolete">support</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="683"/>
         <source>Bot</source>
-        <translation>bot</translation>
+        <translation type="obsolete">bot</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="691"/>
         <source>ALongTimeAgo</source>
-        <translation>last seen a long time ago</translation>
+        <translation type="obsolete">last seen a long time ago</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="693"/>
         <source>WithinAMonth</source>
-        <translation>last seen within a month</translation>
+        <translation type="obsolete">last seen within a month</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="695"/>
         <source>WithinAWeek</source>
-        <translation>last seen within a week</translation>
+        <translation type="obsolete">last seen within a week</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="699"/>
         <source>Invisible</source>
-        <translation>invisible</translation>
+        <translation type="obsolete">invisible</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="704"/>
-        <location filename="../../src/MessageModel.cpp" line="709"/>
         <source>LastSeenFormatted</source>
-        <translation>last seen</translation>
+        <translation type="obsolete">last seen</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="705"/>
         <source>TodayAtFormatted</source>
-        <translation> at </translation>
+        <translation type="obsolete"> at </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="710"/>
         <source>YesterdayAtFormatted</source>
-        <translation> yesterday at </translation>
+        <translation type="obsolete"> yesterday at </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="713"/>
         <source>formatDateAtTime</source>
-        <translation>%1 at %2</translation>
+        <translation type="obsolete">%1 at %2</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="714"/>
         <source>LastSeenDateFormatted</source>
-        <translation>last seen</translation>
+        <translation type="obsolete">last seen</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="718"/>
         <source>Online</source>
-        <translation>online</translation>
+        <translation type="obsolete">online</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="720"/>
         <source>Lately</source>
-        <translation>last seen recently</translation>
+        <translation type="obsolete">last seen recently</translation>
     </message>
 </context>
 <context>
@@ -572,18 +557,18 @@
         <translation>This message is not supported by your version of Telegram. Update the app to view: https://telegram.org/update</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="600"/>
-        <location filename="../../src/MessageModel.cpp" line="648"/>
+        <location filename="../../src/MessageModel.cpp" line="22"/>
+        <location filename="../../src/MessageModel.cpp" line="70"/>
         <source>YouWereKicked</source>
         <translation>you were removed</translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/MessageModel.cpp" line="603"/>
-        <location filename="../../src/MessageModel.cpp" line="608"/>
-        <location filename="../../src/MessageModel.cpp" line="611"/>
-        <location filename="../../src/MessageModel.cpp" line="659"/>
-        <location filename="../../src/MessageModel.cpp" line="664"/>
-        <location filename="../../src/MessageModel.cpp" line="667"/>
+        <location filename="../../src/MessageModel.cpp" line="25"/>
+        <location filename="../../src/MessageModel.cpp" line="30"/>
+        <location filename="../../src/MessageModel.cpp" line="33"/>
+        <location filename="../../src/MessageModel.cpp" line="81"/>
+        <location filename="../../src/MessageModel.cpp" line="86"/>
+        <location filename="../../src/MessageModel.cpp" line="89"/>
         <source>Members</source>
         <translation>
             <numerusform>%n member</numerusform>
@@ -591,9 +576,9 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/MessageModel.cpp" line="608"/>
-        <location filename="../../src/MessageModel.cpp" line="634"/>
-        <location filename="../../src/MessageModel.cpp" line="664"/>
+        <location filename="../../src/MessageModel.cpp" line="30"/>
+        <location filename="../../src/MessageModel.cpp" line="56"/>
+        <location filename="../../src/MessageModel.cpp" line="86"/>
         <source>OnlineCount</source>
         <translation>
             <numerusform>%n online</numerusform>
@@ -601,19 +586,19 @@
         </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="625"/>
+        <location filename="../../src/MessageModel.cpp" line="47"/>
         <source>ChannelPublic</source>
         <translation>Public Channel</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="625"/>
+        <location filename="../../src/MessageModel.cpp" line="47"/>
         <source>ChannelPrivate</source>
         <translation>Private Channel</translation>
     </message>
     <message numerus="yes">
-        <location filename="../../src/MessageModel.cpp" line="629"/>
-        <location filename="../../src/MessageModel.cpp" line="634"/>
-        <location filename="../../src/MessageModel.cpp" line="637"/>
+        <location filename="../../src/MessageModel.cpp" line="51"/>
+        <location filename="../../src/MessageModel.cpp" line="56"/>
+        <location filename="../../src/MessageModel.cpp" line="59"/>
         <source>Subscribers</source>
         <translation>
             <numerusform>%n subscriber</numerusform>
@@ -621,27 +606,96 @@
         </translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="653"/>
+        <location filename="../../src/MessageModel.cpp" line="75"/>
         <source>MegaLocation</source>
         <translation>Location-based Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="655"/>
+        <location filename="../../src/MessageModel.cpp" line="77"/>
         <source>MegaPublic</source>
         <translation>Public Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="655"/>
+        <location filename="../../src/MessageModel.cpp" line="77"/>
         <source>MegaPrivate</source>
         <translation>Private Group</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="735"/>
-        <source>Today</source>
-        <translation>Today</translation>
+        <location filename="../../src/MessageModel.cpp" line="96"/>
+        <source>ServiceNotifications</source>
+        <translation>Service notifications</translation>
     </message>
     <message>
-        <location filename="../../src/MessageModel.cpp" line="737"/>
+        <location filename="../../src/MessageModel.cpp" line="100"/>
+        <source>SupportStatus</source>
+        <translation>support</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="105"/>
+        <source>Bot</source>
+        <translation>bot</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="113"/>
+        <source>ALongTimeAgo</source>
+        <translation>last seen a long time ago</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="115"/>
+        <source>WithinAMonth</source>
+        <translation>last seen within a month</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="117"/>
+        <source>WithinAWeek</source>
+        <translation>last seen within a week</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="121"/>
+        <source>Invisible</source>
+        <translation>invisible</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="126"/>
+        <location filename="../../src/MessageModel.cpp" line="131"/>
+        <source>LastSeenFormatted</source>
+        <translation>last seen</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="127"/>
+        <source>TodayAtFormatted</source>
+        <translation> at </translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="132"/>
+        <source>YesterdayAtFormatted</source>
+        <translation> yesterday at </translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="135"/>
+        <source>formatDateAtTime</source>
+        <translation>%1 at %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="136"/>
+        <source>LastSeenDateFormatted</source>
+        <translation>last seen</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="140"/>
+        <source>Online</source>
+        <translation>online</translation>
+    </message>
+    <message>
+        <location filename="../../src/MessageModel.cpp" line="142"/>
+        <source>Lately</source>
+        <translation>last seen recently</translation>
+    </message>
+    <message>
+        <source>Today</source>
+        <translation type="obsolete">Today</translation>
+    </message>
+    <message>
         <location filename="../../src/Utils.cpp" line="732"/>
         <source>Yesterday</source>
         <translation>Yesterday</translation>

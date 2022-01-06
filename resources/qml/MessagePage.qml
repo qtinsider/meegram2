@@ -8,11 +8,6 @@ Page {
 
     property string chatId: ""
 
-    property string messageThreadId: ""
-    property string replyToMessageId: ""
-    property variant options: null
-    property variant replyMarkup: null
-
     Flickable {
         id: contentArea
 
@@ -145,7 +140,7 @@ Page {
 
                                     content: Text {
                                         id: messageText
-                                        text:  model.isServiceMessage ? model.serviceMessage : Utils.getFormattedText(model.content.text)
+                                        text:  model.isServiceMessage ? model.serviceMessage.trim() : Utils.getFormattedText(model.content.text)
 
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                         width: isPortrait ? 380 : 754
@@ -209,13 +204,18 @@ Page {
                         }
                     }
 
-                    model: MessageModel { id: myMessageModel }
+                    model: myMessageModel
 
                     footer: Item { height: 10 }
 
                     header: Item {
                         width: listView.width
                         height: Math.max(0, item.height - listView.contentHeight)
+                    }
+
+                    onCountChanged: {
+                        if (!myMessageModel.loading)
+                            listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Contain)
                     }
 
                     onAtYBeginningChanged: if (atYBeginning) myMessageModel.loadHistory()
@@ -315,7 +315,7 @@ Page {
                         text: "Send"
 
                         onClicked: {
-                            internal.sendMessage(textArea.text)
+                            myMessageModel.sendMessage(textArea.text)
                             textArea.text = ""
                         }
                     }
@@ -341,26 +341,11 @@ Page {
         }
     }
 
-    Connections {
-        target: myMessageModel
+    MessageModel {
+        id: myMessageModel
 
         onMoreHistoriesLoaded: {
             listView.positionViewAtIndex(modelIndex - 1, ListView.Beginning)
-        }
-    }
-
-    QtObject {
-        id: internal
-
-        function sendMessage(message) {
-            var inputMessageContent = {
-                '@type': "inputMessageText",
-                text: {
-                    '@type': "formattedText",
-                    text: message
-                }
-            }
-            tdapi.sendMessage(myMessageModel.chat.id, messageThreadId, replyToMessageId, options, replyMarkup, inputMessageContent)
         }
     }
 

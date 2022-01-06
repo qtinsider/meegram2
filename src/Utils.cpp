@@ -736,13 +736,15 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
     return QLocale::system().toString(date.date(), QLocale::ShortFormat);
 }
 
+
+
 QString Utils::getContent(const QVariantMap &message) noexcept
 {
     auto content = message.value("content").toMap();
     auto sender = message.value("sender_id").toMap();
 
-    auto textOneLine = [](QString text) {
-        auto result = std::move(text);
+    static auto textOneLine = [](const QString &text) {
+        auto result = text;
         result.replace("\n", " ");
         result.replace("\r", " ");
         return result;

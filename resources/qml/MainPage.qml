@@ -84,8 +84,8 @@ Page {
 
     BusyIndicator {
         anchors.centerIn: listView
-        running: populateTimer.running || myChatModel.loading
-        visible: running
+        running: visible
+        visible: populateTimer.running || myChatModel.loading
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
