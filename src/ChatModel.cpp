@@ -7,6 +7,36 @@
 
 #include <algorithm>
 
+namespace detail {
+
+QString getChatType(qint64 chatId)
+{
+    auto chat = TdApi::getInstance().chatStore->get(chatId);
+
+    auto type = chat.value("type").toMap();
+    auto chatType = type.value("@type").toByteArray();
+
+    switch (fnv::hashRuntime(chatType.constData()))
+    {
+        case fnv::hash("chatTypePrivate"):
+            return "private";
+        case fnv::hash("chatTypeSecret"):
+            return "secret";
+        case fnv::hash("chatTypeBasicGroup"):
+            return "group";
+        case fnv::hash("chatTypeSupergroup"): {
+            if (type.value("is_channel").toBool())
+                return "channel";
+
+            return "supergroup";
+        }
+    }
+
+    return {};
+}
+
+}  // namespace detail
+
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_sortTimer(new QTimer(this))
@@ -83,7 +113,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case IdRole:
             return QString::number(chatId);
         case TypeRole:
-            return {};
+            return detail::getChatType(chatId);
         case TitleRole:
             return Utils::getChatTitle(chatId, true);
         case PhotoRole: {

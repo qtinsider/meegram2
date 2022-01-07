@@ -134,7 +134,7 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chatId: myChatModel.get(index).id })
+            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chat: myChatModel.get(index) })
         }
         onPressAndHold: root.pressAndHold()
     }

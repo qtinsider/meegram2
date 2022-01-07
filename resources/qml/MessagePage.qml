@@ -6,7 +6,10 @@ import "components"
 Page {
     id: root
 
-    property string chatId: ""
+    property variant chat: null
+    property int replyMessageId: 0
+    property int editMessageId: 0
+
     property bool loading: true
 
     Flickable {
@@ -366,6 +369,6 @@ Page {
         }
     }
 
-    Component.onCompleted: myMessageModel.openChat(chatId)
+    Component.onCompleted: myMessageModel.openChat(chat.id)
     Component.onDestruction: myMessageModel.closeChat()
 }
