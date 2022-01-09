@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QMutex>
 #include <QObject>
 #include <QVariant>
 #include <QVector>
@@ -35,6 +36,8 @@ private slots:
     void handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
 
 private:
+    QMutex m_mutex;
+
     std::unordered_map<qint64, QVariantMap> m_basicGroup;
     std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };
@@ -78,6 +81,8 @@ private slots:
 private:
     void setChatPositions(qint64 chatId, const QVariantList &positions) noexcept;
 
+    QMutex m_mutex;
+
     std::unordered_map<qint64, QVariantMap> m_chats;
 };
 
@@ -94,6 +99,8 @@ private slots:
     void handleUpdateFile(const QVariantMap &file);
 
 private:
+    QMutex m_mutex;
+
     std::unordered_map<int, QVariantMap> m_files;
 };
 
@@ -110,6 +117,8 @@ private slots:
     void handleUpdateOption(const QString &name, const QVariantMap &value);
 
 private:
+    QMutex m_mutex;
+
     QVariantHash m_options;
 };
 
@@ -128,6 +137,8 @@ private slots:
     void handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
 
 private:
+    QMutex m_mutex;
+
     std::unordered_map<qint64, QVariantMap> m_supergroup;
     std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };
@@ -149,6 +160,8 @@ private slots:
     void handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
 
 private:
+    QMutex m_mutex;
+
     std::unordered_map<qint64, QVariantMap> m_users;
     std::unordered_map<qint64, QVariantMap> m_fullInfo;
 };

@@ -3,6 +3,8 @@
 #include "TdApi.hpp"
 #include "Utils.hpp"
 
+#include <QMutexLocker>
+
 #include <algorithm>
 
 void BasicGroupStore::initialize(TdApi *controller)
@@ -34,13 +36,15 @@ QVariantMap BasicGroupStore::getFullInfo(qint64 groupId) const
 
 void BasicGroupStore::handleUpdateBasicGroup(const QVariantMap &basicGroup)
 {
-    auto groupId = basicGroup.value("id").toLongLong();
+    QMutexLocker lock(&m_mutex);
 
-    m_basicGroup.emplace(groupId, basicGroup);
+    m_basicGroup.emplace(basicGroup.value("id").toLongLong(), basicGroup);
 }
 
 void BasicGroupStore::handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_fullInfo.emplace(basicGroupId, basicGroupFullInfo);
 }
 
@@ -91,16 +95,22 @@ QVariantMap ChatStore::get(qint64 chatId) const
 
 void ChatStore::set(const QVariantMap &chat) noexcept
 {
+    QMutexLocker lock(&m_mutex);
+
     m_chats.insert_or_assign(chat.value("id").toLongLong(), chat);
 }
 
 void ChatStore::handleNewChat(const QVariantMap &chat)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_chats.emplace(chat.value("id").toLongLong(), chat);
 }
 
 void ChatStore::handleChatTitle(qint64 chatId, const QString &title)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("title", title);
@@ -111,6 +121,8 @@ void ChatStore::handleChatTitle(qint64 chatId, const QString &title)
 
 void ChatStore::handleChatPhoto(qint64 chatId, const QVariantMap &photo)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("photo", photo);
@@ -121,6 +133,8 @@ void ChatStore::handleChatPhoto(qint64 chatId, const QVariantMap &photo)
 
 void ChatStore::handleChatPermissions(qint64 chatId, const QVariantMap &permissions)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("permissions", permissions);
@@ -131,6 +145,8 @@ void ChatStore::handleChatPermissions(qint64 chatId, const QVariantMap &permissi
 
 void ChatStore::handleChatLastMessage(qint64 chatId, const QVariantMap &lastMessage, const QVariantList &positions)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("last_message", lastMessage);
@@ -146,11 +162,15 @@ void ChatStore::handleChatLastMessage(qint64 chatId, const QVariantMap &lastMess
 
 void ChatStore::handleChatPosition(qint64 chatId, const QVariantMap &position)
 {
+    QMutexLocker lock(&m_mutex);
+
     setChatPositions(chatId, QVariantList() << position);
 }
 
 void ChatStore::handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("is_marked_as_unread", isMarkedAsUnread);
@@ -161,6 +181,8 @@ void ChatStore::handleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
 
 void ChatStore::handleChatIsBlocked(qint64 chatId, bool isBlocked)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("is_blocked", isBlocked);
@@ -171,6 +193,8 @@ void ChatStore::handleChatIsBlocked(qint64 chatId, bool isBlocked)
 
 void ChatStore::handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledMessages)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("has_scheduled_messages", hasScheduledMessages);
@@ -181,6 +205,8 @@ void ChatStore::handleChatHasScheduledMessages(qint64 chatId, bool hasScheduledM
 
 void ChatStore::handleChatDefaultDisableNotification(qint64 chatId, bool defaultDisableNotification)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("default_disable_notification", defaultDisableNotification);
@@ -191,6 +217,8 @@ void ChatStore::handleChatDefaultDisableNotification(qint64 chatId, bool default
 
 void ChatStore::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("last_read_inbox_message_id", lastReadInboxMessageId);
@@ -202,6 +230,8 @@ void ChatStore::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId
 
 void ChatStore::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("last_read_outbox_message_id", lastReadOutboxMessageId);
@@ -212,6 +242,8 @@ void ChatStore::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessage
 
 void ChatStore::handleChatUnreadMentionCount(qint64 chatId, int unreadMentionCount)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("unread_mention_count", unreadMentionCount);
@@ -222,6 +254,8 @@ void ChatStore::handleChatUnreadMentionCount(qint64 chatId, int unreadMentionCou
 
 void ChatStore::handleChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("notification_settings", notificationSettings);
@@ -232,6 +266,8 @@ void ChatStore::handleChatNotificationSettings(qint64 chatId, const QVariantMap 
 
 void ChatStore::handleChatActionBar(qint64 chatId, const QVariantMap &actionBar)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("action_bar", actionBar);
@@ -242,6 +278,8 @@ void ChatStore::handleChatActionBar(qint64 chatId, const QVariantMap &actionBar)
 
 void ChatStore::handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("reply_markup_message_id", replyMarkupMessageId);
@@ -252,6 +290,8 @@ void ChatStore::handleChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId
 
 void ChatStore::handleChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
         it->second.insert("draft_message", draftMessage);
@@ -303,6 +343,8 @@ QVariantMap FileStore::get(int fileId) const
 
 void FileStore::handleUpdateFile(const QVariantMap &file)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_files.emplace(file.value("id").toInt(), file);
 }
 
@@ -322,6 +364,8 @@ QVariant OptionStore::get(const QString &name) const
 
 void OptionStore::handleUpdateOption(const QString &name, const QVariantMap &value)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_options.insert(name, value.value("value"));
 }
 
@@ -354,11 +398,15 @@ QVariantMap SupergroupStore::getFullInfo(qint64 groupId) const
 
 void SupergroupStore::handleUpdateSupergroup(const QVariantMap &supergroup)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_supergroup.emplace(supergroup.value("id").toLongLong(), supergroup);
 }
 
 void SupergroupStore::handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_fullInfo.emplace(supergroupId, supergroupFullInfo);
 }
 
@@ -401,18 +449,22 @@ QVariantMap UserStore::getFullInfo(qint64 userId) const
 
 void UserStore::handleUpdateUserStatus(qint64 userId, const QVariantMap &status)
 {
+    QMutexLocker lock(&m_mutex);
+
     if (auto it = m_users.find(userId); it != m_users.end())
         it->second.insert("status", status);
 }
 
 void UserStore::handleUpdateUser(const QVariantMap &user)
 {
-    auto userId = user.value("id").toLongLong();
+    QMutexLocker lock(&m_mutex);
 
-    m_users.emplace(userId, user);
+    m_users.emplace(user.value("id").toLongLong(), user);
 }
 
 void UserStore::handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo)
 {
+    QMutexLocker lock(&m_mutex);
+
     m_fullInfo.emplace(userId, userFullInfo);
 }
