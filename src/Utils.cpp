@@ -379,7 +379,7 @@ int Utils::getChatMuteFor(qint64 chatId)
     return notificationSettings.value("mute_for").toInt();
 }
 
-QString Utils::getServiceMessageContent(const QVariantMap &message)
+QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUser)
 {
     auto ttl = message.value("ttl").toInt();
     auto sender = message.value("sender_id").toMap();
@@ -389,7 +389,14 @@ QString Utils::getServiceMessageContent(const QVariantMap &message)
     auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
 
     auto isChannel = isChannelChat(chat);
-    auto author = getMessageAuthor(chat, sender);
+
+    QString author =
+        openUser
+            ? !sender.value("user_id").toString().isEmpty()
+                  ? "<a style=\"text-decoration: none; font-weight: bold; color: grey \" href=\"userId://" +
+                        sender.value("user_id").toString() + "\">" + Utils::getUserShortName(sender.value("user_id").toLongLong()) + "</a>"
+                  : "<a style=\"text-decoration: none; font-weight: bold; color: grey" + chat.value("title").toString() + "</a>"
+            : getMessageAuthor(chat, sender);
 
     auto contentType = content.value("@type").toByteArray();
     if (ttl > 0)

@@ -164,7 +164,6 @@ Page {
                                 id: notSupportedMessageComponent
 
                                 MessageBubble {
-
                                     childrenWidth: notSupportedMessage.paintedWidth
 
                                     content: Label {

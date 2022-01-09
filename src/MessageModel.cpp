@@ -318,7 +318,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return QLocale::system().toString(date.date(), "dddd, d MMMM yyyy");
         }
         case ServiceMessageRole: {
-            return Utils::getServiceMessageContent(message);
+            return Utils::getServiceMessageContent(message, true);
         }
     }
     return QVariant();
