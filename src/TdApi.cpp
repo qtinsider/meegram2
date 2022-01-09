@@ -12,9 +12,9 @@
 #include <QStringBuilder>
 #include <QTimer>
 
-namespace {
+namespace detail {
 
-QString authentication_code_title(const QVariantMap &codeInfo)
+QString getAuthenticationCodeTitle(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 
@@ -33,7 +33,7 @@ QString authentication_code_title(const QVariantMap &codeInfo)
     return "Title";
 }
 
-QString authentication_code_subtitle(const QVariantMap &codeInfo)
+QString getAuthenticationCodeSubtitle(const QVariantMap &codeInfo)
 {
     auto phoneNumber = codeInfo.value("phone_number").toString();
     auto type = codeInfo.value("type").toMap();
@@ -58,7 +58,7 @@ QString authentication_code_subtitle(const QVariantMap &codeInfo)
     return {};
 }
 
-QString authentication_code_next_type_string(const QVariantMap &codeInfo)
+QString getAuthenticationCodeNextTypeString(const QVariantMap &codeInfo)
 {
     auto nextType = codeInfo.value("next_type").toMap();
 
@@ -76,14 +76,14 @@ QString authentication_code_next_type_string(const QVariantMap &codeInfo)
     return {};
 }
 
-bool authentication_code_is_next_type_sms(const QVariantMap &codeInfo)
+bool getAuthenticationCodeIsNextTypeSms(const QVariantMap &codeInfo)
 {
     auto codeInfoType = codeInfo.value("next_type").toMap().value("@type").toByteArray();
 
     return codeInfoType == "authenticationCodeTypeSms";
 }
 
-int authentication_code_length(const QVariantMap &codeInfo)
+int getAuthenticationCodeLength(const QVariantMap &codeInfo)
 {
     auto type = codeInfo.value("type").toMap();
 
@@ -107,7 +107,7 @@ int authentication_code_length(const QVariantMap &codeInfo)
     return {};
 }
 
-}  // namespace
+}  // namespace detail
 
 TdApi::TdApi()
     : basicGroupStore(&emplace<BasicGroupStore>())
@@ -120,10 +120,8 @@ TdApi::TdApi()
     // disable TDLib logging
     td_execute(R"({"@type":"setLogVerbosityLevel","new_verbosity_level":0})");
 
-    for (auto &store : stores)
-    {
+    for (auto &store : m_stores)
         store->initialize(this);
-    }
 
     initEvents();
 }
@@ -595,6 +593,12 @@ void TdApi::initEvents()
     });
     m_events.emplace("updateActiveNotifications",
                      [this](const QVariantMap &data) { emit updateActiveNotifications(data.value("groups").toList()); });
+    m_events.emplace("updateNotification", [this](const QVariantMap &data) {
+        const auto notificationGroupId = data.value("notification_group_id").toInt();
+        const auto notification = data.value("notification").toMap();
+
+        emit updateNotification(notificationGroupId, notification);
+    });
     m_events.emplace("updateNotificationGroup", [this](const QVariantMap &data) {
         const auto notificationGroupId = data.value("notification_group_id").toInt();
         const auto type = data.value("type").toMap();
@@ -863,12 +867,12 @@ void TdApi::handleAuthorizationState(const QVariantMap &data)
             const auto codeInfo = authorizationState.value("code_info").toMap();
 
             QVariantMap result;
-            result.insert("subtitle", authentication_code_subtitle(codeInfo));
-            result.insert("title", authentication_code_title(codeInfo));
-            result.insert("length", authentication_code_length(codeInfo));
+            result.insert("subtitle", detail::getAuthenticationCodeSubtitle(codeInfo));
+            result.insert("title", detail::getAuthenticationCodeTitle(codeInfo));
+            result.insert("length", detail::getAuthenticationCodeLength(codeInfo));
 
-            result.insert("isNextTypeSms", authentication_code_is_next_type_sms(codeInfo));
-            result.insert("nextTypeString", authentication_code_next_type_string(codeInfo));
+            result.insert("isNextTypeSms", detail::getAuthenticationCodeIsNextTypeSms(codeInfo));
+            result.insert("nextTypeString", detail::getAuthenticationCodeNextTypeString(codeInfo));
 
             result.insert("timeout", codeInfo.value("timeout").toInt());
 

@@ -12,7 +12,7 @@
 
 #include <algorithm>
 
-namespace details {
+namespace detail {
 QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) noexcept
 {
     auto status = basicGroup.value("status").toMap();
@@ -42,6 +42,12 @@ QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat)
     if (!supergroup.value("is_channel").toBool())
         return QString();
 
+    if (count == 0)
+    {
+        auto fullInfo = TdApi::getInstance().supergroupStore->getFullInfo(supergroup.value("id").toLongLong());
+        count = fullInfo.value("member_count").toInt();
+    }
+
     if (count <= 0)
     {
         return !username.isEmpty() ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
@@ -68,6 +74,12 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
 
     if (status.value("@type").toByteArray() == "chatMemberStatusBanned")
         return QObject::tr("YouWereKicked");
+
+    if (count == 0)
+    {
+        auto fullInfo = TdApi::getInstance().supergroupStore->getFullInfo(supergroup.value("id").toLongLong());
+        count = fullInfo.value("member_count").toInt();
+    }
 
     if (count <= 0)
     {
@@ -145,7 +157,7 @@ QString getUserStatus(const QVariantMap &user) noexcept
     return QString();
 }
 
-}  // namespace details
+}  // namespace detail
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -194,7 +206,7 @@ int MessageModel::rowCount(const QModelIndex &parent) const
 bool MessageModel::canFetchMore(const QModelIndex &parent) const
 {
     if (parent.isValid())
-        return 0;
+        return false;
 
     auto lastMessageId = m_chat.value("last_message").toMap().value("id").toLongLong();
 
@@ -395,17 +407,17 @@ QString MessageModel::getChatSubtitle() const noexcept
     {
         case fnv::hash("chatTypeBasicGroup"): {
             auto basicGroup = TdApi::getInstance().basicGroupStore->get(type.value("basic_group_id").toLongLong());
-            return details::getBasicGroupStatus(basicGroup, m_chat);
+            return detail::getBasicGroupStatus(basicGroup, m_chat);
         }
         case fnv::hash("chatTypePrivate"):
         case fnv::hash("chatTypeSecret"): {
             auto user = TdApi::getInstance().userStore->get(type.value("user_id").toLongLong());
-            return details::getUserStatus(user);
+            return detail::getUserStatus(user);
         }
         case fnv::hash("chatTypeSupergroup"): {
             auto supergroup = TdApi::getInstance().supergroupStore->get(type.value("supergroup_id").toLongLong());
-            return supergroup.value("is_channel").toBool() ? details::getChannelStatus(supergroup, m_chat)
-                                                           : details::getSupergroupStatus(supergroup, m_chat);
+            return supergroup.value("is_channel").toBool() ? detail::getChannelStatus(supergroup, m_chat)
+                                                           : detail::getSupergroupStatus(supergroup, m_chat);
         }
     }
 
@@ -509,11 +521,11 @@ void MessageModel::deleteMessage(qint64 messageId) noexcept
 
 QVariantMap MessageModel::get(qint64 messageId) const noexcept
 {
-    auto index = getMessageIndex(messageId);
+    auto index = findMessageIndex(messageId);
     return m_messages.value(index);
 }
 
-int MessageModel::getMessageIndex(qint64 messageId) const noexcept
+int MessageModel::findMessageIndex(qint64 messageId) const noexcept
 {
     auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
 
@@ -532,7 +544,7 @@ int MessageModel::getLastMessageIndex() const noexcept
     auto fromMessageId =
         unread ? m_chat.value("last_read_inbox_message_id").toLongLong() : m_chat.value("last_message").toMap().value("id").toLongLong();
 
-    return getMessageIndex(fromMessageId);
+    return findMessageIndex(fromMessageId);
 }
 
 void MessageModel::refresh() noexcept
@@ -542,7 +554,6 @@ void MessageModel::refresh() noexcept
 
     m_loading = true;
     m_loadingHistory = true;
-    m_needsReload = true;
 
     beginResetModel();
     m_messages.clear();
@@ -651,7 +662,7 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
     QListIterator<QVariant> it(messageIds);
     while (it.hasNext())
     {
-        auto index = getMessageIndex(it.next().toLongLong());
+        auto index = findMessageIndex(it.next().toLongLong());
 
         beginRemoveRows(QModelIndex(), index, index);
         m_messages.removeAt(index);
@@ -698,32 +709,6 @@ void MessageModel::handleMessages(const QVariantMap &messages)
 {
     const auto list = messages.value("messages").toList();
 
-    if (m_needsReload)
-    {
-        m_needsReload = false;
-        m_loadingHistory = false;
-
-        auto unread = m_chat.value("unread_count").toInt() > 0;
-        auto fromMessageId = unread ? m_chat.value("last_read_inbox_message_id").toLongLong()
-                                    : m_chat.value("last_message").toMap().value("id").toLongLong();
-
-        if (std::ranges::none_of(
-                list, [fromMessageId](const auto &message) { return message.toMap().value("id").toLongLong() == fromMessageId; }))
-        {
-            std::ranges::for_each(list, [this](const auto &message) {
-                m_messages.append(message.toMap());
-                m_messageIds.emplace(message.toMap().value("id").toLongLong());
-            });
-
-            std::sort(m_messages.begin(), m_messages.end(),
-                      [](const auto &a, const auto &b) { return std::cmp_less(a.value("id").toLongLong(), b.value("id").toLongLong()); });
-
-            getChatHistory(m_messages.back().value("id").toLongLong(), -MessageSliceLimit, MessageSliceLimit);
-
-            return;
-        }
-    }
-
     QVariantList result;
     std::ranges::copy_if(list, std::back_inserter(result), [this](const auto &message) {
         return !m_messageIds.contains(message.toMap().value("id").toLongLong()) &&
@@ -762,8 +747,6 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
     {
         m_loadingHistory = false;
 
-        emit loadingChanged();
-
         beginInsertRows(QModelIndex(), 0, messages.count() - 1);
 
         int offset = 0;
@@ -778,6 +761,8 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
 
         if (offset > 0)
             emit moreHistoriesLoaded(offset);
+
+        emit loadingChanged();
 
         return;
     }
@@ -805,6 +790,8 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
             }
         }
     });
+
+    m_loadingHistory = false;
 
     if (messageIds.size() > 0)
         viewMessages(messageIds);

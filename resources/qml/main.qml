@@ -31,6 +31,5 @@ PageStackWindow {
         z: 100
     }
 
-
     Component.onCompleted: tdapi.listen()
 }

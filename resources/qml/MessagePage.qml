@@ -10,7 +10,7 @@ Page {
     property int replyMessageId: 0
     property int editMessageId: 0
 
-    property bool loading: true
+    property bool __loading: true
 
     Flickable {
         id: contentArea
@@ -121,11 +121,12 @@ Page {
                     id: listView
 
                     anchors.fill: parent
-                    clip: true
-
                     spacing: 6
 
+                    clip: true
+
                     cacheBuffer: listView.height * 2
+                    pressDelay: 50
 
                     delegate: Component {
                         Loader {
@@ -233,18 +234,16 @@ Page {
                     }
 
                     onCountChanged: {
-                        if (!myMessageModel.loading && loading) {
+                        if (!myMessageModel.loading) {
                             if (myMessageModel.chat.unread_count > 0)
                                 listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Center)
                             else
                                 listView.positionViewAtEnd();
-
-                            loading = false
                         }
                     }
 
                     onAtYBeginningChanged: {
-                        if (atYBeginning && !loading)
+                        if (atYBeginning && !myMessageModel.loadingHistory)
                             myMessageModel.loadHistory()
                     }
 
@@ -257,9 +256,7 @@ Page {
                         }
                     }
 
-                    ScrollDecorator {
-                        flickableItem: listView
-                    }
+                    ScrollDecorator { flickableItem: listView }
                 }
 
                 Column {

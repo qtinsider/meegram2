@@ -2,7 +2,7 @@ TEMPLATE = app
 
 TARGET = meegram
 
-QT += declarative
+QT += dbus declarative
 
 # Additional import path used to resolve QML modules in Creator's code model
 QML_IMPORT_PATH = /opt/QtSDK/Simulator/Qt/gcc/imports
@@ -26,19 +26,23 @@ include(lib/warnings.pri)
 # The .cpp file which was generated for your project. Feel free to hack it.
 SOURCES += \
     src/ChatModel.cpp \
+    src/DBusAdaptor.cpp \
     src/ImageProviders.cpp \
-    src/Stores.cpp \
     src/main.cpp \
     src/MessageModel.cpp \
+    src/NotificationManager.cpp \
     src/SelectionModel.cpp \
+    src/Stores.cpp \
     src/TdApi.cpp \
     src/Utils.cpp
 
 HEADERS += \
     src/ChatModel.hpp \
+    src/DBusAdaptor.hpp \
     src/Common.hpp \
     src/ImageProviders.hpp \
     src/MessageModel.hpp \
+    src/NotificationManager.hpp \
     src/SelectionModel.hpp \
     src/Serialize.hpp \
     src/Stores.hpp \

@@ -91,7 +91,7 @@ public:
 
     Q_INVOKABLE QVariantMap get(qint64 messageId) const noexcept;
 
-    Q_INVOKABLE int getMessageIndex(qint64 messageId) const noexcept;
+    Q_INVOKABLE int findMessageIndex(qint64 messageId) const noexcept;
     Q_INVOKABLE int getLastMessageIndex() const noexcept;
 
 signals:
@@ -137,8 +137,6 @@ private:
 
     bool m_loading{true};
     bool m_loadingHistory{true};
-
-    bool m_needsReload{true};
 
     QTimer *m_getHistoryTimer;
 

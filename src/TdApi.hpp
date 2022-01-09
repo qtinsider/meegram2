@@ -12,8 +12,7 @@ class TdApi : public QObject
     Q_ENUMS(ChatList)
     Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
 
-    std::vector<std::unique_ptr<Store>> stores;
-
+    std::vector<std::unique_ptr<Store>> m_stores;
 public:
     ~TdApi() = default;
 
@@ -31,7 +30,7 @@ public:
     Q_INVOKABLE void sendRequest(const QVariantMap &js);
     Q_INVOKABLE void log(const QVariantMap &js) noexcept;
 
-     bool isAuthorized() const noexcept;
+    bool isAuthorized() const noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
@@ -105,10 +104,13 @@ signals:
     void updateUnreadMessageCount(const QVariantMap &chatList, int unreadCount, int unreadUnmutedCount);
     void updateUnreadChatCount(const QVariantMap &chatList, int totalCount, int unreadCount, int unreadUnmutedCount,
                                int markedAsUnreadCount, int markedAsUnreadUnmutedCount);
-    void updateActiveNotifications(const QVariantList &groups);
+
+    void updateScopeNotificationSettings(const QVariantMap &scope, const QVariantMap &notificationSettings);
+    void updateNotification(qint32 notificationGroupId, const QVariantMap &notification);
     void updateNotificationGroup(int notificationGroupId, const QVariantMap &type, qint64 chatId, qint64 notificationSettingsChatId,
                                  bool isSilent, int totalCount, const QVariantList &addedNotifications,
                                  const QVariantList &removedNotificationIds);
+    void updateActiveNotifications(const QVariantList &groups);
 
     void updateNewChat(const QVariantMap &chat);
     void updateChatTitle(qint64 chatId, const QString &title);
@@ -124,7 +126,6 @@ signals:
     void updateChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
     void updateChatUnreadMentionCount(qint64 chatId, int unreadMentionCount);
     void updateChatNotificationSettings(qint64 chatId, const QVariantMap &notificationSettings);
-    void updateScopeNotificationSettings(const QVariantMap &scope, const QVariantMap &notificationSettings);
     void updateChatActionBar(qint64 chatId, const QVariantMap &actionBar);
     void updateChatReplyMarkup(qint64 chatId, qint64 replyMarkupMessageId);
     void updateChatDraftMessage(qint64 chatId, const QVariantMap &draftMessage, const QVariantList &positions);
@@ -174,7 +175,7 @@ private:
     requires std::is_base_of_v<Store, T> T &emplace()
     {
         auto t = new T;
-        stores.emplace_back(std::unique_ptr<T>(t));
+        m_stores.emplace_back(std::unique_ptr<T>(t));
         return *t;
     }
 
