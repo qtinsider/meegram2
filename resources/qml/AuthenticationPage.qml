@@ -455,19 +455,6 @@ Sheet {
         }
     }
 
-    Timer {
-        id: loadingTimer
-
-        interval: 10000
-        repeat: false
-        onTriggered: { sheet.loading = false; }
-    }
-
-    onLoadingChanged: {
-        if (loading)
-            loadingTimer.restart()
-    }
-
     onTimeoutChanged: {
         codeExpireTimer.start()
         codeTimeText.text = Utils.formatTime(timeout / 1000)

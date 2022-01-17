@@ -16,27 +16,44 @@ Item {
         source: "image://theme/meegotouch-panel-background-pressed"
     }
 
-    Image {
-        id: photo
+    MaskedItem {
+        id: maskedItem
 
-        width: 64
-        height: 64
         anchors {
             left: parent.left
-            leftMargin: 16
+            leftMargin: 12
             verticalCenter: parent.verticalCenter
         }
 
-        source: model.photo ? "image://chatPhoto/" + model.photo : "image://theme/icon-l-content-avatar-placeholder"
+        width: 64
+        height: 64
+
+        mask: Image {
+            sourceSize.width: maskedItem.width
+            sourceSize.height: maskedItem.height
+            width: maskedItem.width
+            height: maskedItem.height
+            source: "qrc:/images/avatar-image-mask.png"
+        }
+
+        Image {
+            id: profilePhotoImage
+            anchors.fill: parent
+            cache:  false
+            smooth: true
+            fillMode: Image.PreserveAspectCrop
+            clip: true
+            source: model.photo ? "image://chatPhoto/" + model.photo : "image://theme/icon-l-content-avatar-placeholder"
+        }
     }
 
     Item {
         id: row1
 
-        width: parent.width - photo.width - 44
+        width: parent.width - maskedItem.width - 44
         height: 45
         anchors {
-            left: photo.right
+            left: maskedItem.right
             leftMargin: 16
             rightMargin: 16
         }
@@ -68,12 +85,12 @@ Item {
 
     Item {
         height: 30
-        width: parent.width - photo.width - 44
+        width: parent.width - maskedItem.width - 44
         anchors { left: row1.left; top: row1.bottom }
 
         Label {
             id: lastMessage
-            width: parent.width - bubbleLoader.width
+            width: parent.width - mentionLoader.width - bubbleLoader.width
             anchors.verticalCenter: parent.verticalCenter
             font.weight: Font.Light
             font.pixelSize: 22
@@ -87,7 +104,20 @@ Item {
 
             anchors { verticalCenter: parent.verticalCenter; right: parent.right }
 
-            sourceComponent: model.unreadCount ? countBubble : model.isPinned ? pinnedBubble : moreIndicator
+            sourceComponent: model.unreadCount > 0 ? countBubble : model.isPinned ? pinnedBubble : moreIndicator
+        }
+
+        Loader {
+            id: mentionLoader
+
+            anchors {
+                leftMargin: model.unreadCount > 1 ?  8 : 0
+                right: model.unreadCount > 1 ?  bubbleLoader.left : parent.right
+                rightMargin: model.unreadCount > 1 ?  8 : 0
+                verticalCenter: parent.verticalCenter
+            }
+
+            sourceComponent: model.unreadMentionCount > 0 && model.unreadCount > 0 ? mentionBubble : undefined
         }
 
         Component {
@@ -127,6 +157,29 @@ Item {
                 }
             }
         }
+
+        Component {
+            id: mentionBubble
+
+            BorderImage {
+                border { left: 10; top: 10; right: 10; bottom: 10 }
+                source: "image://theme/" + theme.colorString + "meegotouch-countbubble-background-large"
+
+                width: 32
+                height: 32
+
+                Text {
+                    id: text
+                    height: parent.height
+                    color: "#ffffff"
+                    font.family: icons.fontFamily
+                    font.pixelSize: 22
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    verticalAlignment: Text.AlignVCenter
+                    text: icons.username
+                }
+            }
+        }
     }
 
     MouseArea {
@@ -134,7 +187,7 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            pageStack.push(Qt.createComponent("qrc:/qml/MessagePage.qml"), { chat: myChatModel.get(index) })
+            appWindow.openChat(myChatModel.get(index).id);
         }
         onPressAndHold: root.pressAndHold()
     }

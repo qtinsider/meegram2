@@ -18,7 +18,7 @@ public:
     Store(const Store &) = delete;
     Store &operator=(const Store &) = delete;
 
-    virtual void initialize(TdApi *controller) = 0;
+    virtual void initialize(TdApi *client) = 0;
 };
 
 class BasicGroupStore : public Store
@@ -26,14 +26,14 @@ class BasicGroupStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
     QVariantMap get(qint64 groupId) const;
     QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
-    void handleUpdateBasicGroup(const QVariantMap &basicGroup);
-    void handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
+    void handleBasicGroup(const QVariantMap &basicGroup);
+    void handleBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo);
 
 private:
     QMutex m_mutex;
@@ -47,7 +47,7 @@ class ChatStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
     QVector<qint64> getIds() const noexcept;
 
@@ -91,12 +91,12 @@ class FileStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
     QVariantMap get(int fileId) const;
 
 private slots:
-    void handleUpdateFile(const QVariantMap &file);
+    void handleFile(const QVariantMap &file);
 
 private:
     QMutex m_mutex;
@@ -109,17 +109,17 @@ class OptionStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
-    QVariant get(const QString &name) const;
+     QVariant get(const QString &name) const;
 
 private slots:
-    void handleUpdateOption(const QString &name, const QVariantMap &value);
+    void handleOption(const QString &name, const QVariantMap &value);
 
 private:
     QMutex m_mutex;
 
-    QVariantHash m_options;
+    QHash<QString, QVariant> m_options;
 };
 
 class SupergroupStore : public Store
@@ -127,14 +127,14 @@ class SupergroupStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
     QVariantMap get(qint64 groupId) const;
     QVariantMap getFullInfo(qint64 groupId) const;
 
 private slots:
-    void handleUpdateSupergroup(const QVariantMap &supergroup);
-    void handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
+    void handleSupergroup(const QVariantMap &supergroup);
+    void handleSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo);
 
 private:
     QMutex m_mutex;
@@ -148,16 +148,16 @@ class UserStore : public Store
     Q_OBJECT
 
 public:
-    void initialize(TdApi *controller) override;
+    void initialize(TdApi *client) override;
 
     qint64 getMyId() const;
     QVariantMap get(qint64 userId) const;
     QVariantMap getFullInfo(qint64 userId) const;
 
 private slots:
-    void handleUpdateUserStatus(qint64 userId, const QVariantMap &status);
-    void handleUpdateUser(const QVariantMap &user);
-    void handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
+    void handleUserStatus(qint64 userId, const QVariantMap &status);
+    void handleUser(const QVariantMap &user);
+    void handleUserFullInfo(qint64 userId, const QVariantMap &userFullInfo);
 
 private:
     QMutex m_mutex;

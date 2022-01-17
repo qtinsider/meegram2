@@ -1,9 +1,6 @@
 #include "NotificationManager.hpp"
 
-#include "Serialize.hpp"
 #include "TdApi.hpp"
-
-#include <QDebug>
 
 NotificationManager::NotificationManager()
 {

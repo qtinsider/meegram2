@@ -26,7 +26,7 @@ namespace detail {
 
 bool isBotUser(qint64 userId) noexcept
 {
-    auto user = TdApi::getInstance().userStore->get(userId);
+    auto user = TdApi::getInstance().getUser(userId);
 
     auto userType = user.value("type").toMap();
     return userType.value("@type").toByteArray() == "userTypeBot";
@@ -137,7 +137,7 @@ QString getMessageAuthor(const QVariantMap &message, bool openUser) noexcept
                          sender.value("user_id").toString() + "\">" + Utils::getUserShortName(sender.value("user_id").toLongLong()) + "</a>"
                    : Utils::getUserShortName(sender.value("user_id").toLongLong());
 
-    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
+    auto chat = TdApi::getInstance().getChat(message.value("chat_id").toLongLong());
 
     return openUser ? "<a style=\"text-decoration: none; font-weight: bold; color: grey \" href=\"chatId://" +
                           sender.value("chat_id").toString() + "\">" + chat.value("title").toString() + "</a>"
@@ -146,7 +146,7 @@ QString getMessageAuthor(const QVariantMap &message, bool openUser) noexcept
 
 QString getUserFullName(qint64 userId) noexcept
 {
-    auto user = TdApi::getInstance().userStore->get(userId);
+    auto user = TdApi::getInstance().getUser(userId);
 
     auto type = user.value("type").toMap();
     auto firstName = user.value("first_name").toString();
@@ -158,7 +158,7 @@ QString getUserFullName(qint64 userId) noexcept
     {
         case fnv::hash("userTypeBot"):
         case fnv::hash("userTypeRegular"): {
-            return firstName % " " % lastName;
+            return QString(firstName % " " % lastName).trimmed();
         }
         case fnv::hash("userTypeDeleted"):
         case fnv::hash("userTypeUnknown"): {
@@ -242,7 +242,7 @@ QString getAudioTitle(const QVariantMap &audio) noexcept
 
 bool isUserBlocked(qint64 userId) noexcept
 {
-    auto fullInfo = TdApi::getInstance().userStore->getFullInfo(userId);
+    auto fullInfo = TdApi::getInstance().getUserFullInfo(userId);
 
     if (fullInfo.isEmpty())
         return false;
@@ -252,7 +252,7 @@ bool isUserBlocked(qint64 userId) noexcept
 
 bool isDeletedUser(qint64 userId)
 {
-    auto user = TdApi::getInstance().userStore->get(userId);
+    auto user = TdApi::getInstance().getUser(userId);
 
     auto userType = user.value("type").toMap();
     return userType.value("@type").toByteArray() == "userTypeDeleted";
@@ -272,7 +272,7 @@ Utils::Utils(QObject *parent)
 
 QVariantMap Utils::getChatPosition(qint64 chatId, const QVariantMap &chatList)
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
     auto positions = chat.value("positions").toList();
 
     auto chatListType = chatList.value("@type").toByteArray();
@@ -348,7 +348,7 @@ bool Utils::chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
 
 QString Utils::getChatTitle(qint64 chatId, bool showSavedMessages)
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     if (detail::isMeChat(chat) && showSavedMessages)
         return QObject::tr("SavedMessages");
@@ -365,7 +365,7 @@ bool Utils::isChatMuted(qint64 chatId)
 
 int Utils::getChatMuteFor(qint64 chatId)
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     auto notificationSettings = chat.value("notification_settings").toMap();
 
@@ -379,7 +379,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
     auto content = message.value("content").toMap();
     auto isOutgoing = message.value("is_outgoing").toBool();
 
-    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
+    auto chat = TdApi::getInstance().getChat(message.value("chat_id").toLongLong());
 
     auto isChannel = detail::isChannelChat(chat);
 
@@ -687,7 +687,7 @@ bool Utils::isServiceMessage(const QVariantMap &message)
 
 QString Utils::getUserShortName(qint64 userId) noexcept
 {
-    auto user = TdApi::getInstance().userStore->get(userId);
+    auto user = TdApi::getInstance().getUser(userId);
 
     auto type = user.value("type").toMap();
     auto firstName = user.value("first_name").toString();
@@ -719,7 +719,7 @@ QString Utils::getTitle(const QVariantMap &message) noexcept
     }
 
     if (senderType == "messageSenderChat")
-        return TdApi::getInstance().chatStore->get(sender.value("chat_id").toLongLong()).value("title").toString();
+        return TdApi::getInstance().getChat(sender.value("chat_id").toLongLong()).value("title").toString();
 
     return QString();
 }
@@ -916,7 +916,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
 
 bool Utils::isChatUnread(qint64 chatId) noexcept
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     auto isMarkedAsUnread = chat.value("is_marked_as_unread").toBool();
     auto unreadCount = chat.value("unread_count").toInt();
@@ -931,7 +931,7 @@ QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
 
     auto sender = message.value("sender_id").toMap();
 
-    auto chat = TdApi::getInstance().chatStore->get(message.value("chat_id").toLongLong());
+    auto chat = TdApi::getInstance().getChat(message.value("chat_id").toLongLong());
 
     auto chatType = chat.value("type").toMap().value("@type").toByteArray();
     switch (fnv::hashRuntime(chatType.constData()))
@@ -1107,7 +1107,7 @@ QImage Utils::getThumb(const QVariantMap &thumbnail) const noexcept
 
 bool Utils::isMessageUnread(qint64 chatId, const QVariantMap &message) noexcept
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     auto lastReadInboxMessageId = chat.value("last_read_inbox_message_id").toLongLong();
     auto lastReadOutboxMessageId = chat.value("last_read_outbox_message_id").toLongLong();

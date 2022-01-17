@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QDBusAbstractAdaptor>
+#include <QStringList>
 
 class QApplication;
 class QDeclarativeView;
@@ -14,7 +15,8 @@ public:
     ~DBusAdaptor();
 
 public slots:
-    void openChat(const QString &chatId);
+    Q_NOREPLY void openChat(const QStringList &ids);
+    Q_NOREPLY void activateWindow(const QStringList &dummy = QStringList()); // parameter for .desktop activation
 
 private:
     QDeclarativeView *m_view;

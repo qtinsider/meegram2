@@ -29,6 +29,7 @@ public:
         LastMessageContentRole,
         LastMessageDateRole,
         IsPinnedRole,
+        UnreadMentionCountRole,
         UnreadCountRole,
         IsMutedRole,
     };

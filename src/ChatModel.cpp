@@ -11,7 +11,7 @@ namespace detail {
 
 QString getChatType(qint64 chatId)
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     auto type = chat.value("type").toMap();
     auto chatType = type.value("@type").toByteArray();
@@ -117,7 +117,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TitleRole:
             return Utils::getChatTitle(chatId, true);
         case PhotoRole: {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
 
             if (auto chatPhoto = chat.value("photo").toMap();
                 chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
@@ -128,17 +128,17 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return {};
         }
         case LastMessageSenderRole: {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
 
             return Utils::getMessageSenderName(chat.value("last_message").toMap());
         }
         case LastMessageContentRole: {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
 
             return Utils::getContent(chat.value("last_message").toMap());
         }
         case LastMessageDateRole: {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
 
             return Utils::getMessageDate(chat.value("last_message").toMap());
         }
@@ -146,9 +146,14 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return Utils::isChatPinned(chatId, m_list);
         }
         case UnreadCountRole: {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
 
             return chat.value("unread_count").toInt();
+        }
+        case UnreadMentionCountRole: {
+            auto chat = TdApi::getInstance().getChat(chatId);
+
+            return chat.value("unread_mention_count").toInt();
         }
         case IsMutedRole: {
             return Utils::isChatMuted(chatId);
@@ -171,6 +176,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[LastMessageDateRole] = "lastMessageDate";
     roles[IsPinnedRole] = "isPinned";
     roles[UnreadCountRole] = "unreadCount";
+    roles[UnreadMentionCountRole] = "unreadMentionCount";
     roles[IsMutedRole] = "isMuted";
 
     return roles;
@@ -227,6 +233,7 @@ QVariant ChatModel::get(int index) const noexcept
     result.insert("lastMessageContent", data(modelIndex, LastMessageContentRole));
     result.insert("lastMessageDate", data(modelIndex, LastMessageDateRole));
     result.insert("isPinned", data(modelIndex, IsPinnedRole));
+    result.insert("unreadMentionCount", data(modelIndex, UnreadMentionCountRole));
     result.insert("unreadCount", data(modelIndex, UnreadCountRole));
     result.insert("isMuted", data(modelIndex, IsMutedRole));
 
@@ -246,7 +253,7 @@ void ChatModel::toggleChatIsPinned(qint64 chatId, bool isPinned)
 
 void ChatModel::toggleChatNotificationSettings(qint64 chatId, bool isMuted)
 {
-    auto chat = TdApi::getInstance().chatStore->get(chatId);
+    auto chat = TdApi::getInstance().getChat(chatId);
 
     auto isMutedPrev = Utils::isChatMuted(chatId);
     if (isMutedPrev == isMuted)
@@ -271,7 +278,7 @@ void ChatModel::populate()
 
     for (auto id : TdApi::getInstance().chatStore->getIds())
     {
-        for (auto chat = TdApi::getInstance().chatStore->get(id); const auto &position : chat.value("positions").toList())
+        for (auto chat = TdApi::getInstance().getChat(id); const auto &position : chat.value("positions").toList())
         {
             if (Utils::chatListEquals(position.toMap().value("list").toMap(), m_list))
                 m_chatIds.append(id);
@@ -357,7 +364,7 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
     if (file.value("local").toMap().value("is_downloading_completed").toBool())
     {
         auto it = std::ranges::find_if(m_chatIds, [file](qint64 chatId) {
-            auto chat = TdApi::getInstance().chatStore->get(chatId);
+            auto chat = TdApi::getInstance().getChat(chatId);
             return chat.value("photo").toMap().value("small").toMap().value("id").toInt() == file.value("id").toInt();
         });
 
@@ -366,7 +373,7 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
             QVariantMap chatPhoto;
             chatPhoto.insert("small", file);
 
-            auto chat = TdApi::getInstance().chatStore->get(*it);
+            auto chat = TdApi::getInstance().getChat(*it);
             chat.insert("photo", chatPhoto);
 
             TdApi::getInstance().chatStore->set(chat);
@@ -410,7 +417,6 @@ void ChatModel::loadChats()
     result.insert("@type", "loadChats");
     result.insert("chat_list", m_list);
     result.insert("limit", ChatSliceLimit);
-    result.insert("@extra", "loadChats_completed");
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(result, "loadChats_completed");
 }

@@ -13,6 +13,7 @@ class TdApi : public QObject
     Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
 
     std::vector<std::unique_ptr<Store>> m_stores;
+
 public:
     ~TdApi() = default;
 
@@ -27,8 +28,8 @@ public:
         ChatListFilter,
     };
 
-    Q_INVOKABLE void sendRequest(const QVariantMap &js);
-    Q_INVOKABLE void log(const QVariantMap &js) noexcept;
+    Q_INVOKABLE void sendRequest(const QVariantMap &object, const QString &extra = QString());
+    Q_INVOKABLE void log(const QVariantMap &object) noexcept;
 
     bool isAuthorized() const noexcept;
 
@@ -55,7 +56,6 @@ public:
     Q_INVOKABLE void downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous);
     Q_INVOKABLE void editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup,
                                      const QVariantMap &inputMessageContent);
-    Q_INVOKABLE void getChat(qint64 chatId);
     Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
     Q_INVOKABLE void getMe();
     Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
@@ -74,6 +74,16 @@ public:
     OptionStore *const optionStore{};
     SupergroupStore *const supergroupStore{};
     UserStore *const userStore{};
+
+    Q_INVOKABLE QVariantMap getBasicGroup(qint64 id) const;
+    Q_INVOKABLE QVariantMap getBasicGroupFullInfo(qint64 id) const;
+    Q_INVOKABLE QVariantMap getChat(qint64 id) const;
+    Q_INVOKABLE QVariantMap getFile(qint32 id) const;
+    Q_INVOKABLE QVariant getOption(const QString &name) const;
+    Q_INVOKABLE QVariantMap getSupergroup(qint64 id) const;
+    Q_INVOKABLE QVariantMap getSupergroupFullInfo(qint64 id) const;
+    Q_INVOKABLE QVariantMap getUser(qint64 id) const;
+    Q_INVOKABLE QVariantMap getUserFullInfo(qint64 id) const;
 
 public slots:
     void listen();

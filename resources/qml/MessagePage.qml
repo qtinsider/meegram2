@@ -6,7 +6,7 @@ import "components"
 Page {
     id: root
 
-    property variant chat: null
+    property string chatId: ""
     property int replyMessageId: 0
     property int editMessageId: 0
 
@@ -73,17 +73,35 @@ Page {
                     spacing: 12
                     layoutDirection: Qt.RightToLeft
 
-                    Image {
-                        id: photo
+                    MaskedItem {
+                        id: maskedItem
 
                         anchors.verticalCenter: parent.verticalCenter
                         height: 50
                         width: 50
 
-                        source: myMessageModel.chat.photo ? "image://chatPhoto/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
+                        mask: Image {
+                            sourceSize.width: maskedItem.width
+                            sourceSize.height: maskedItem.height
+                            width: maskedItem.width
+                            height: maskedItem.height
+                            source: "qrc:/images/avatar-image-mask.png"
+                        }
+
+                        Image {
+                            id: profilePhotoImage
+                            anchors.fill: parent
+                            cache:  false
+                            smooth: true
+                            fillMode: Image.PreserveAspectCrop
+                            clip: true
+                            source: myMessageModel.chat.photo ? "image://chatPhoto/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
+                        }
 
                         MouseArea {
                             anchors.fill: parent
+
+                            onClicked: pageStack.push(Qt.createComponent("UserPage.qml"))
                         }
                     }
 
@@ -365,6 +383,6 @@ Page {
         }
     }
 
-    Component.onCompleted: myMessageModel.openChat(chat.id)
+    Component.onCompleted: myMessageModel.openChat(chatId)
     Component.onDestruction: myMessageModel.closeChat()
 }

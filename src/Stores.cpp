@@ -7,11 +7,11 @@
 
 #include <algorithm>
 
-void BasicGroupStore::initialize(TdApi *controller)
+void BasicGroupStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateBasicGroup(const QVariantMap &)), SLOT(handleUpdateBasicGroup(const QVariantMap &)));
-    connect(controller, SIGNAL(updateBasicGroupFullInfo(qint64, const QVariantMap &)),
-            SLOT(handleUpdateBasicGroupFullInfo(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateBasicGroup(const QVariantMap &)), SLOT(handleBasicGroup(const QVariantMap &)));
+    connect(client, SIGNAL(updateBasicGroupFullInfo(qint64, const QVariantMap &)),
+            SLOT(handleBasicGroupFullInfo(qint64, const QVariantMap &)));
 }
 
 QVariantMap BasicGroupStore::get(qint64 groupId) const
@@ -34,49 +34,48 @@ QVariantMap BasicGroupStore::getFullInfo(qint64 groupId) const
     return {};
 }
 
-void BasicGroupStore::handleUpdateBasicGroup(const QVariantMap &basicGroup)
+void BasicGroupStore::handleBasicGroup(const QVariantMap &basicGroup)
 {
     QMutexLocker lock(&m_mutex);
 
     m_basicGroup.emplace(basicGroup.value("id").toLongLong(), basicGroup);
 }
 
-void BasicGroupStore::handleUpdateBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo)
+void BasicGroupStore::handleBasicGroupFullInfo(qint64 basicGroupId, const QVariantMap &basicGroupFullInfo)
 {
     QMutexLocker lock(&m_mutex);
 
     m_fullInfo.emplace(basicGroupId, basicGroupFullInfo);
 }
 
-void ChatStore::initialize(TdApi *controller)
+void ChatStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateNewChat(const QVariantMap &)), SLOT(handleNewChat(const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatTitle(qint64, const QString &)), SLOT(handleChatTitle(qint64, const QString &)));
-    connect(controller, SIGNAL(updateChatPhoto(qint64, const QVariantMap &)), SLOT(handleChatPhoto(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatPermissions(qint64, const QVariantMap &)),
-            SLOT(handleChatPermissions(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatLastMessage(qint64, const QVariantMap &, const QVariantList &)),
+    connect(client, SIGNAL(updateNewChat(const QVariantMap &)), SLOT(handleNewChat(const QVariantMap &)));
+    connect(client, SIGNAL(updateChatTitle(qint64, const QString &)), SLOT(handleChatTitle(qint64, const QString &)));
+    connect(client, SIGNAL(updateChatPhoto(qint64, const QVariantMap &)), SLOT(handleChatPhoto(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateChatPermissions(qint64, const QVariantMap &)), SLOT(handleChatPermissions(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateChatLastMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatLastMessage(qint64, const QVariantMap &, const QVariantList &)));
-    connect(controller, SIGNAL(updateChatPosition(qint64, const QVariantMap &)), SLOT(handleChatPosition(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatIsMarkedAsUnread(qint64, bool)), SLOT(handleChatIsMarkedAsUnread(qint64, bool)));
-    connect(controller, SIGNAL(updateChatIsBlocked(qint64, bool)), SLOT(handleChatIsBlocked(qint64, bool)));
-    connect(controller, SIGNAL(updateChatHasScheduledMessages(qint64, bool)), SLOT(handleChatHasScheduledMessages(qint64, bool)));
-    connect(controller, SIGNAL(updateChatDefaultDisableNotification(qint64, bool)),
-            SLOT(handleChatDefaultDisableNotification(qint64, bool)));
-    connect(controller, SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));
-    connect(controller, SIGNAL(updateChatReadOutbox(qint64, qint64)), SLOT(handleChatReadOutbox(qint64, qint64)));
-    connect(controller, SIGNAL(updateChatUnreadMentionCount(qint64, int)), SLOT(handleChatUnreadMentionCount(qint64, int)));
-    connect(controller, SIGNAL(updateChatNotificationSettings(qint64, const QVariantMap &)),
+    connect(client, SIGNAL(updateChatPosition(qint64, const QVariantMap &)), SLOT(handleChatPosition(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateChatIsMarkedAsUnread(qint64, bool)), SLOT(handleChatIsMarkedAsUnread(qint64, bool)));
+    connect(client, SIGNAL(updateChatIsBlocked(qint64, bool)), SLOT(handleChatIsBlocked(qint64, bool)));
+    connect(client, SIGNAL(updateChatHasScheduledMessages(qint64, bool)), SLOT(handleChatHasScheduledMessages(qint64, bool)));
+    connect(client, SIGNAL(updateChatDefaultDisableNotification(qint64, bool)), SLOT(handleChatDefaultDisableNotification(qint64, bool)));
+    connect(client, SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));
+    connect(client, SIGNAL(updateChatReadOutbox(qint64, qint64)), SLOT(handleChatReadOutbox(qint64, qint64)));
+    connect(client, SIGNAL(updateChatUnreadMentionCount(qint64, int)), SLOT(handleChatUnreadMentionCount(qint64, int)));
+    connect(client, SIGNAL(updateChatNotificationSettings(qint64, const QVariantMap &)),
             SLOT(handleChatNotificationSettings(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatActionBar(qint64, const QVariantMap &)), SLOT(handleChatActionBar(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateChatReplyMarkup(qint64, qint64)), SLOT(handleChatReplyMarkup(qint64, qint64)));
-    connect(controller, SIGNAL(updateChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)),
+    connect(client, SIGNAL(updateChatActionBar(qint64, const QVariantMap &)), SLOT(handleChatActionBar(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateChatReplyMarkup(qint64, qint64)), SLOT(handleChatReplyMarkup(qint64, qint64)));
+    connect(client, SIGNAL(updateChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)),
             SLOT(handleChatDraftMessage(qint64, const QVariantMap &, const QVariantList &)));
 }
 
 QVector<qint64> ChatStore::getIds() const noexcept
 {
     QVector<qint64> result;
+
     result.reserve(m_chats.size());
 
     std::ranges::transform(m_chats, std::back_inserter(result), [](const auto &value) { return value.first; });
@@ -326,9 +325,9 @@ void ChatStore::setChatPositions(qint64 chatId, const QVariantList &positions) n
     }
 }
 
-void FileStore::initialize(TdApi *controller)
+void FileStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateFile(const QVariantMap &)), SLOT(handleUpdateFile(const QVariantMap &)));
+    connect(client, SIGNAL(updateFile(const QVariantMap &)), SLOT(handleFile(const QVariantMap &)));
 }
 
 QVariantMap FileStore::get(int fileId) const
@@ -341,39 +340,38 @@ QVariantMap FileStore::get(int fileId) const
     return {};
 }
 
-void FileStore::handleUpdateFile(const QVariantMap &file)
+void FileStore::handleFile(const QVariantMap &file)
 {
     QMutexLocker lock(&m_mutex);
 
     m_files.emplace(file.value("id").toInt(), file);
 }
 
-void OptionStore::initialize(TdApi *controller)
+void OptionStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateOption(const QString &, const QVariantMap &)),
-            SLOT(handleUpdateOption(const QString &, const QVariantMap &)));
+    connect(client, SIGNAL(updateOption(const QString &, const QVariantMap &)), SLOT(handleOption(const QString &, const QVariantMap &)));
 }
 
 QVariant OptionStore::get(const QString &name) const
 {
-    if (m_options.contains(name))
-        return m_options.value(name);
+    if (auto it = m_options.find(name); it != m_options.end())
+        return it.value();
 
     return {};
 }
 
-void OptionStore::handleUpdateOption(const QString &name, const QVariantMap &value)
+void OptionStore::handleOption(const QString &name, const QVariantMap &value)
 {
     QMutexLocker lock(&m_mutex);
 
     m_options.insert(name, value.value("value"));
 }
 
-void SupergroupStore::initialize(TdApi *controller)
+void SupergroupStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateSupergroup(const QVariantMap &)), SLOT(handleUpdateSupergroup(const QVariantMap &)));
-    connect(controller, SIGNAL(updateSupergroupFullInfo(qint64, const QVariantMap &)),
-            SLOT(handleUpdateSupergroupFullInfo(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateSupergroup(const QVariantMap &)), SLOT(handleSupergroup(const QVariantMap &)));
+    connect(client, SIGNAL(updateSupergroupFullInfo(qint64, const QVariantMap &)),
+            SLOT(handleSupergroupFullInfo(qint64, const QVariantMap &)));
 }
 
 QVariantMap SupergroupStore::get(qint64 groupId) const
@@ -396,31 +394,30 @@ QVariantMap SupergroupStore::getFullInfo(qint64 groupId) const
     return {};
 }
 
-void SupergroupStore::handleUpdateSupergroup(const QVariantMap &supergroup)
+void SupergroupStore::handleSupergroup(const QVariantMap &supergroup)
 {
     QMutexLocker lock(&m_mutex);
 
     m_supergroup.emplace(supergroup.value("id").toLongLong(), supergroup);
 }
 
-void SupergroupStore::handleUpdateSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo)
+void SupergroupStore::handleSupergroupFullInfo(qint64 supergroupId, const QVariantMap &supergroupFullInfo)
 {
     QMutexLocker lock(&m_mutex);
 
     m_fullInfo.emplace(supergroupId, supergroupFullInfo);
 }
 
-void UserStore::initialize(TdApi *controller)
+void UserStore::initialize(TdApi *client)
 {
-    connect(controller, SIGNAL(updateUserStatus(qint64, const QVariantMap &)), SLOT(handleUpdateUserStatus(qint64, const QVariantMap &)));
-    connect(controller, SIGNAL(updateUser(const QVariantMap &)), SLOT(handleUpdateUser(const QVariantMap &)));
-    connect(controller, SIGNAL(updateUserFullInfo(qint64, const QVariantMap &)),
-            SLOT(handleUpdateUserFullInfo(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateUserStatus(qint64, const QVariantMap &)), SLOT(handleUserStatus(qint64, const QVariantMap &)));
+    connect(client, SIGNAL(updateUser(const QVariantMap &)), SLOT(handleUser(const QVariantMap &)));
+    connect(client, SIGNAL(updateUserFullInfo(qint64, const QVariantMap &)), SLOT(handleUserFullInfo(qint64, const QVariantMap &)));
 }
 
 qint64 UserStore::getMyId() const
 {
-    auto myId = TdApi::getInstance().optionStore->get("my_id");
+    auto myId = TdApi::getInstance().getOption("my_id");
     if (myId.isNull())
         return {};
 
@@ -447,7 +444,7 @@ QVariantMap UserStore::getFullInfo(qint64 userId) const
     return {};
 }
 
-void UserStore::handleUpdateUserStatus(qint64 userId, const QVariantMap &status)
+void UserStore::handleUserStatus(qint64 userId, const QVariantMap &status)
 {
     QMutexLocker lock(&m_mutex);
 
@@ -455,14 +452,14 @@ void UserStore::handleUpdateUserStatus(qint64 userId, const QVariantMap &status)
         it->second.insert("status", status);
 }
 
-void UserStore::handleUpdateUser(const QVariantMap &user)
+void UserStore::handleUser(const QVariantMap &user)
 {
     QMutexLocker lock(&m_mutex);
 
     m_users.emplace(user.value("id").toLongLong(), user);
 }
 
-void UserStore::handleUpdateUserFullInfo(qint64 userId, const QVariantMap &userFullInfo)
+void UserStore::handleUserFullInfo(qint64 userId, const QVariantMap &userFullInfo)
 {
     QMutexLocker lock(&m_mutex);
 

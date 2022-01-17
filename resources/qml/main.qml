@@ -31,5 +31,14 @@ PageStackWindow {
         z: 100
     }
 
+    function openChat(chatId) {
+        var component = Qt.createComponent("MessagePage.qml");
+
+        if (component.status === Component.Ready)
+            pageStack.push(component, { chatId: chatId });
+        else
+            console.debug("Error loading component:", component.errorString());
+    }
+
     Component.onCompleted: tdapi.listen()
 }

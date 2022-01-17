@@ -406,16 +406,16 @@ QString MessageModel::getChatSubtitle() const noexcept
     switch (fnv::hashRuntime(chatType.constData()))
     {
         case fnv::hash("chatTypeBasicGroup"): {
-            auto basicGroup = TdApi::getInstance().basicGroupStore->get(type.value("basic_group_id").toLongLong());
+            auto basicGroup = TdApi::getInstance().getBasicGroup(type.value("basic_group_id").toLongLong());
             return detail::getBasicGroupStatus(basicGroup, m_chat);
         }
         case fnv::hash("chatTypePrivate"):
         case fnv::hash("chatTypeSecret"): {
-            auto user = TdApi::getInstance().userStore->get(type.value("user_id").toLongLong());
+            auto user = TdApi::getInstance().getUser(type.value("user_id").toLongLong());
             return detail::getUserStatus(user);
         }
         case fnv::hash("chatTypeSupergroup"): {
-            auto supergroup = TdApi::getInstance().supergroupStore->get(type.value("supergroup_id").toLongLong());
+            auto supergroup = TdApi::getInstance().getSupergroup(type.value("supergroup_id").toLongLong());
             return supergroup.value("is_channel").toBool() ? detail::getChannelStatus(supergroup, m_chat)
                                                            : detail::getSupergroupStatus(supergroup, m_chat);
         }
@@ -444,7 +444,7 @@ void MessageModel::loadHistory() noexcept
 void MessageModel::openChat(qint64 chatId) noexcept
 {
     m_chatId = chatId;
-    m_chat = TdApi::getInstance().chatStore->get(m_chatId);
+    m_chat = TdApi::getInstance().getChat(m_chatId);
 
     QVariantMap result;
     result.insert("@type", "openChat");

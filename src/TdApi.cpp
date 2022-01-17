@@ -132,15 +132,20 @@ TdApi &TdApi::getInstance()
     return staticObject;
 }
 
-void TdApi::sendRequest(const QVariantMap &js)
+void TdApi::sendRequest(const QVariantMap &object, const QString &extra)
 {
-    nlohmann::json json(js);
+    QVariantMap result(object);
+
+    if (!extra.isEmpty())
+        result.insert("@extra", extra);
+
+    nlohmann::json json(result);
     td_send(clientId, json.dump().c_str());
 }
 
-void TdApi::log(const QVariantMap &js) noexcept
+void TdApi::log(const QVariantMap &object) noexcept
 {
-    nlohmann::json json(js);
+    nlohmann::json json(object);
     qDebug() << json.dump(2).c_str();
 }
 
@@ -328,15 +333,6 @@ void TdApi::editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &
     sendRequest(result);
 }
 
-void TdApi::getChat(qint64 chatId)
-{
-    QVariantMap result;
-    result.insert("@type", "getChat");
-    result.insert("chat_id", chatId);
-
-    sendRequest(result);
-}
-
 void TdApi::getChatFilter(qint32 chatFilterId)
 {
     QVariantMap result;
@@ -435,6 +431,51 @@ void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
     result.insert("is_marked_as_unread", isMarkedAsUnread);
 
     sendRequest(result);
+}
+
+QVariantMap TdApi::getBasicGroup(qint64 id) const
+{
+    return basicGroupStore->get(id);
+}
+
+QVariantMap TdApi::getBasicGroupFullInfo(qint64 id) const
+{
+    return basicGroupStore->getFullInfo(id);
+}
+
+QVariantMap TdApi::getChat(qint64 id) const
+{
+    return chatStore->get(id);
+}
+
+QVariantMap TdApi::getFile(qint32 id) const
+{
+    return fileStore->get(id);
+}
+
+QVariant TdApi::getOption(const QString &name) const
+{
+    return optionStore->get(name);
+}
+
+QVariantMap TdApi::getSupergroup(qint64 id) const
+{
+    return supergroupStore->get(id);
+}
+
+QVariantMap TdApi::getSupergroupFullInfo(qint64 id) const
+{
+    return supergroupStore->getFullInfo(id);
+}
+
+QVariantMap TdApi::getUser(qint64 id) const
+{
+    return userStore->get(id);
+}
+
+QVariantMap TdApi::getUserFullInfo(qint64 id) const
+{
+    return userStore->getFullInfo(id);
 }
 
 void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
