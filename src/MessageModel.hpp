@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QAbstractListModel>
-#include <QTimer>
 
 #include <unordered_set>
 
@@ -137,8 +136,6 @@ private:
 
     bool m_loading{true};
     bool m_loadingHistory{true};
-
-    QTimer *m_getHistoryTimer;
 
     std::unordered_set<int64_t> m_messageIds;
 };

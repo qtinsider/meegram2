@@ -11,8 +11,8 @@ NotificationManager::NotificationManager()
         this,
         SLOT(handleNotificationGroup(int, const QVariantMap &, qint64, qint64, bool, int, const QVariantList &, const QVariantList &)));
 
-    connect(&TdApi::getInstance(), SIGNAL(updateNotification(qint32, const QVariantMap &)), this,
-            SLOT(handleNotification(qint32, const QVariantMap &)));
+    connect(&TdApi::getInstance(), SIGNAL(updateNotification(int, const QVariantMap &)), this,
+            SLOT(handleNotification(int, const QVariantMap &)));
 }
 
 NotificationManager &NotificationManager::getInstance()
@@ -31,6 +31,6 @@ void NotificationManager::handleNotificationGroup(int notificationGroupId, const
 {
 }
 
-void NotificationManager::handleNotification(qint32 notificationGroupId, const QVariantMap &notification)
+void NotificationManager::handleNotification(int notificationGroupId, const QVariantMap &notification)
 {
 }

@@ -18,7 +18,7 @@ private slots:
                                  bool isSilent, int totalCount, const QVariantList &addedNotifications,
                                  const QVariantList &removedNotificationIds);
 
-    void handleNotification(qint32 notificationGroupId, const QVariantMap &notification);
+    void handleNotification(int notificationGroupId, const QVariantMap &notification);
 
 private:
     NotificationManager();

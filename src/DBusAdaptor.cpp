@@ -19,10 +19,10 @@ DBusAdaptor::~DBusAdaptor()
 
 void DBusAdaptor::openChat(const QStringList &ids)
 {
-    m_view->activateWindow();
-
     if (ids.count() == 1)
     {
+        m_view->activateWindow();
+
         QMetaObject::invokeMethod(m_view->rootObject(), "openChat", Q_ARG(QVariant, ids.at(0)));
     }
     else

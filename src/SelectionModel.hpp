@@ -6,8 +6,8 @@ class CountryModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(int count READ count CONSTANT)
-    Q_PROPERTY(int defaultIndex READ getDefaultIndex CONSTANT);
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged);
 
 public:
     CountryModel(QObject *parent = nullptr);
@@ -23,10 +23,18 @@ public:
 
     Q_INVOKABLE QVariantMap get(int index) const noexcept;
 
-     int count() const noexcept;
+    int count() const noexcept;
+
+signals:
+    void countChanged();
+
+private slots:
+    void handleCountries(const QVariantMap &countries);
 
 private:
-     int getDefaultIndex() const noexcept;
+    int getDefaultIndex() const noexcept;
+
+    QVariantList m_countries;
 };
 
 class ChatFilterModel : public QAbstractListModel
@@ -49,7 +57,7 @@ public:
 
     Q_INVOKABLE QVariantMap get(int index) const noexcept;
 
-     int count() const noexcept;
+    int count() const noexcept;
 
 signals:
     void countChanged();
@@ -60,5 +68,5 @@ private slots:
 private:
     Q_DISABLE_COPY(ChatFilterModel)
 
-    QVariantList m_items;
+    QVariantList m_chatFilters;
 };

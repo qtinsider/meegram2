@@ -1085,11 +1085,19 @@ QString Utils::getFormattedText(const QVariantMap &formattedText) noexcept
     return doc->toHtml();
 }
 
-void Utils::copyToClipboard(const QString &text) noexcept
+bool Utils::copyToClipboard(const QVariantMap &message) const noexcept
 {
+    auto content = message.value("content").toMap();
+
+    auto contentType = content.value("@type").toByteArray();
+    if (contentType != "messageText")
+        return false;
+
     auto clipboard = QApplication::clipboard();
 
-    clipboard->setText(text);
+    clipboard->setText(content.value("text").toMap().value("text").toString());
+
+    return true;
 }
 
 QImage Utils::getThumb(const QVariantMap &thumbnail) const noexcept

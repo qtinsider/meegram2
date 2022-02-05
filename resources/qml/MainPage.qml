@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: tdapi.isAuthorized ? chatFilterModel.get(chatFilterDialog.selectedIndex).name : "MeeGram"
+        text: tdapi.isAuthorized ? "Chats" : "MeeGram"
 
         Image {
             anchors {

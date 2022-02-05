@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QLocale>
 #include <QStringBuilder>
+#include <QTimer>
 
 #include <algorithm>
 
@@ -161,7 +162,6 @@ QString getUserStatus(const QVariantMap &user) noexcept
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_getHistoryTimer(new QTimer(this))
 {
     connect(&TdApi::getInstance(), SIGNAL(updateNewMessage(const QVariantMap &)), SLOT(handleNewMessage(const QVariantMap &)));
     connect(&TdApi::getInstance(), SIGNAL(updateMessageSendSucceeded(const QVariantMap &, qint64)),
@@ -186,11 +186,7 @@ MessageModel::MessageModel(QObject *parent)
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadOutbox(qint64, qint64)), SLOT(handleChatReadOutbox(qint64, qint64)));
 
-    connect(m_getHistoryTimer, SIGNAL(timeout()), this, SLOT(loadMessages()));
-
-    m_getHistoryTimer->setInterval(1000);
-    m_getHistoryTimer->setSingleShot(true);
-    m_getHistoryTimer->start();
+    QTimer::singleShot(1000, this, SLOT(loadMessages()));
 
     setRoleNames(roleNames());
 }

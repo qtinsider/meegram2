@@ -13,6 +13,7 @@
 #include "Common.hpp"
 #include "DBusAdaptor.hpp"
 #include "ImageProviders.hpp"
+#include "Lottie.hpp"
 #include "MessageModel.hpp"
 #include "NotificationManager.hpp"
 #include "SelectionModel.hpp"
@@ -51,6 +52,8 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<ChatFilterModel>("com.strawberry.meegram", 1, 0, "ChatFilterModel");
     qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
     qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
+
+    qmlRegisterType<Lottie>("com.strawberry.meegram", 1, 0, "LottieAnimation");
 
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
 

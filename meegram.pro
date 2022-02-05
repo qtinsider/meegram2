@@ -9,13 +9,13 @@ QML_IMPORT_PATH = /opt/QtSDK/Simulator/Qt/gcc/imports
 
 CONFIG += meegotouch link_pkgconfig
 
-PKGCONFIG += tdjson openssl zlib # libzstd rlottie tgvoip
+PKGCONFIG += tdjson openssl zlib rlottie # tgvoip
 
 # Speed up launching on MeeGo/Harmattan when using applauncherd daemon
 CONFIG += qdeclarative-boostable
 
 CONFIG += mobility
-MOBILITY += systeminfo
+MOBILITY += connectivity contacts feedback gallery location multimedia systeminfo
 
 INCLUDEPATH += src
 
@@ -28,6 +28,7 @@ SOURCES += \
     src/ChatModel.cpp \
     src/DBusAdaptor.cpp \
     src/ImageProviders.cpp \
+    src/Lottie.cpp \
     src/main.cpp \
     src/MessageModel.cpp \
     src/NotificationManager.cpp \
@@ -41,6 +42,7 @@ HEADERS += \
     src/DBusAdaptor.hpp \
     src/Common.hpp \
     src/ImageProviders.hpp \
+    src/Lottie.hpp \
     src/MessageModel.hpp \
     src/NotificationManager.hpp \
     src/SelectionModel.hpp \
@@ -65,7 +67,7 @@ contains(MEEGO_EDITION, harmattan) {
     icon.files = resources/meegram80.png
     icon.path = /usr/share/icons/hicolor/80x80/apps
 
-    libs.files = libssl.so.1.1 libcrypto.so.1.1 libtdjson.so.1.8.0 libz.so.1 libstdc++.so.6 libatomic.so.1
+    libs.files = libssl.so.1.1 libcrypto.so.1.1 libtdjson.so.1.8.0 librlottie.so.0 libz.so.1 libstdc++.so.6 libatomic.so.1
     libs.path = /opt/meegram/lib
 
     splash.files = resources/meegram-splash.png

@@ -101,7 +101,7 @@ Page {
                         MouseArea {
                             anchors.fill: parent
 
-                            onClicked: pageStack.push(Qt.createComponent("UserPage.qml"))
+                            onClicked: pageStack.push(Qt.createComponent("ChatInfoPage.qml"))
                         }
                     }
 
