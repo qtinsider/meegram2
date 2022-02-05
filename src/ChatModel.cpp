@@ -88,8 +88,7 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     if (parent.isValid())
         return;
 
-    const int remainder = m_chatIds.size() - m_count;
-    const auto itemsToFetch = qMin(ChatSliceLimit, remainder);
+    const auto itemsToFetch = qMin(ChatSliceLimit, m_chatIds.size() - m_count);
 
     if (itemsToFetch <= 0)
         return;

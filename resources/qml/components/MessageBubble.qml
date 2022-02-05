@@ -34,8 +34,13 @@ Item {
             id: mouseArea
             anchors.fill: parent
 
-            onClicked: root.clicked()
-            onPressAndHold: root.pressAndHold()
+            onClicked:  root.clicked()
+            onPressAndHold: {
+                if (Utils.copyToClipboard(model.content)) {
+                    banner.text = "Copy text to clipbord";
+                    banner.show()
+                }
+            }
         }
     }
 

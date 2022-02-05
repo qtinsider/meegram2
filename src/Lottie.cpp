@@ -54,6 +54,7 @@ Lottie::Lottie(QDeclarativeItem *parent)
 
 Lottie::~Lottie()
 {
+    delete m_frameTimer;
 }
 
 Lottie::Status Lottie::status() const
@@ -168,8 +169,8 @@ void Lottie::load()
 
 void Lottie::componentComplete()
 {
-    QDeclarativeItem::componentComplete();
-
     if (m_source.isValid())
         load();
+
+    QDeclarativeItem::componentComplete();
 }

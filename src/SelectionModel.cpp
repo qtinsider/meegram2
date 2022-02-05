@@ -145,18 +145,15 @@ int ChatFilterModel::count() const noexcept
 
 void ChatFilterModel::handleChatFilters(const QVariantList &chatFilters)
 {
-    beginResetModel();
-    m_chatFilters.clear();
-    endResetModel();
-
     QVariantMap chatFilter;
     chatFilter.insert("id", 0);
     chatFilter.insert("title", tr("FilterAllChats"));
 
-    beginInsertRows(QModelIndex(), rowCount(), chatFilters.count() + 1);
+    beginResetModel();
+    m_chatFilters.clear();
     m_chatFilters.append(chatFilter);
     std::ranges::copy(chatFilters, std::back_inserter(m_chatFilters));
-    endInsertRows();
+    endResetModel();
 
     emit countChanged();
 }

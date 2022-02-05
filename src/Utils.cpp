@@ -1085,10 +1085,8 @@ QString Utils::getFormattedText(const QVariantMap &formattedText) noexcept
     return doc->toHtml();
 }
 
-bool Utils::copyToClipboard(const QVariantMap &message) const noexcept
+bool Utils::copyToClipboard(const QVariantMap &content) const noexcept
 {
-    auto content = message.value("content").toMap();
-
     auto contentType = content.value("@type").toByteArray();
     if (contentType != "messageText")
         return false;

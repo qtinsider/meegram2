@@ -251,17 +251,8 @@ Page {
                         height: Math.max(0, item.height - listView.contentHeight)
                     }
 
-                    onCountChanged: {
-                        if (!myMessageModel.loading) {
-                            if (myMessageModel.chat.unread_count > 0)
-                                listView.positionViewAtIndex(myMessageModel.getLastMessageIndex(), ListView.Center)
-                            else
-                                listView.positionViewAtEnd();
-                        }
-                    }
-
                     onAtYBeginningChanged: {
-                        if (atYBeginning && !myMessageModel.loadingHistory)
+                        if (atYBeginning/* && !myMessageModel.loadingHistory*/)
                             myMessageModel.loadHistory()
                     }
 

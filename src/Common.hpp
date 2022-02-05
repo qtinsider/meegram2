@@ -3,7 +3,7 @@
 #include <initializer_list>
 
 static constexpr auto AppName = "MeeGram";
-static constexpr auto AppVersion = "0.1.3";
+static constexpr auto AppVersion = "0.1.4";
 
 static constexpr auto ApiId = 142713;
 static constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";

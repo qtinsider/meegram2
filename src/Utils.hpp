@@ -35,7 +35,7 @@ public:
 
     Q_INVOKABLE static QString getFileSize(const QVariantMap &file) noexcept;
 
-    Q_INVOKABLE bool copyToClipboard(const QVariantMap &message) const noexcept;
+    Q_INVOKABLE bool copyToClipboard(const QVariantMap &content) const noexcept;
     Q_INVOKABLE QImage getThumb(const QVariantMap &thumbnail) const noexcept;
     Q_INVOKABLE QString getViews(int views) const noexcept;
 
