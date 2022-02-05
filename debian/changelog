@@ -1,7 +1,8 @@
 meegram (0.1.4) unstable; urgency=low
 
   * Update TDLib version to 1.8.1.
-  * Bug fixes and performance improvements.
+  * Squircle masks for avatar.
+  * Show mention count in chat list.
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Wed, 02 Feb 2022 23:07:46 +0100
 

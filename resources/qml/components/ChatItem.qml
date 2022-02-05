@@ -111,13 +111,13 @@ Item {
             id: mentionLoader
 
             anchors {
-                leftMargin: model.unreadCount > 1 ?  8 : 0
-                right: model.unreadCount > 1 ?  bubbleLoader.left : parent.right
-                rightMargin: model.unreadCount > 1 ?  8 : 0
+                leftMargin: 8
+                right: bubbleLoader.left
+                rightMargin: 8
                 verticalCenter: parent.verticalCenter
             }
 
-            sourceComponent: model.unreadMentionCount > 0 && model.unreadCount > 0 ? mentionBubble : undefined
+            sourceComponent: model.unreadMentionCount > 0 ? mentionBubble : undefined
         }
 
         Component {
