@@ -25,7 +25,7 @@ public:
     Q_INVOKABLE static QString getUserShortName(qint64 userId) noexcept;
 
     Q_INVOKABLE static QString getContent(const QVariantMap &message) noexcept;
-    Q_INVOKABLE static QString getFormattedText(const QVariantMap &formattedText) noexcept;
+    Q_INVOKABLE static QString getFormattedText(const QVariantMap &formattedText, const QVariantMap &options = {}) noexcept;
     Q_INVOKABLE static QString getTitle(const QVariantMap &message) noexcept;
     Q_INVOKABLE static QString getMessageDate(const QVariantMap &message) noexcept;
     Q_INVOKABLE static QString getMessageSenderName(const QVariantMap &message) noexcept;
@@ -35,7 +35,7 @@ public:
 
     Q_INVOKABLE static QString getFileSize(const QVariantMap &file) noexcept;
 
-    Q_INVOKABLE bool copyToClipboard(const QVariantMap &content) const noexcept;
+    Q_INVOKABLE void copyToClipboard(const QVariantMap &content) noexcept;
     Q_INVOKABLE QImage getThumb(const QVariantMap &thumbnail) const noexcept;
     Q_INVOKABLE QString getViews(int views) const noexcept;
 

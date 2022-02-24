@@ -1,4 +1,4 @@
-#include "Lottie.hpp"
+#include "LottieAnimation.hpp"
 
 #include <zlib.h>
 
@@ -42,7 +42,7 @@ bool loadFileContent(const QString &path, std::string &out)
 
 }  // namespace
 
-Lottie::Lottie(QDeclarativeItem *parent)
+LottieAnimation::LottieAnimation(QDeclarativeItem *parent)
     : QDeclarativeItem(parent)
     , m_frameTimer(new QTimer(this))
 {
@@ -52,22 +52,22 @@ Lottie::Lottie(QDeclarativeItem *parent)
     connect(m_frameTimer, SIGNAL(timeout()), SLOT(renderNextFrame()));
 }
 
-Lottie::~Lottie()
+LottieAnimation::~LottieAnimation()
 {
     delete m_frameTimer;
 }
 
-Lottie::Status Lottie::status() const
+LottieAnimation::Status LottieAnimation::status() const
 {
     return m_status;
 }
 
-QUrl Lottie::source() const
+QUrl LottieAnimation::source() const
 {
     return m_source;
 }
 
-void Lottie::setSource(const QUrl &source)
+void LottieAnimation::setSource(const QUrl &source)
 {
     if (source == m_source)
         return;
@@ -79,18 +79,18 @@ void Lottie::setSource(const QUrl &source)
         load();
 }
 
-void Lottie::play()
+void LottieAnimation::play()
 {
     m_currentFrame = 0;
     m_frameTimer->start();
 }
 
-void Lottie::stop()
+void LottieAnimation::stop()
 {
     m_frameTimer->stop();
 }
 
-void Lottie::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
+void LottieAnimation::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
     if (m_animation == nullptr)
         return;
@@ -100,15 +100,15 @@ void Lottie::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget 
     auto surface = rlottie::Surface(reinterpret_cast<uint32_t *>(image.bits()), image.width(), image.height(), image.bytesPerLine());
     m_animation->renderSync(m_currentFrame, std::move(surface));
 
-    m_currentFrame += 1;
-
     painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
-    painter->drawImage(boundingRect(), image, QRect(0, 0, width(), height()));
+    painter->drawImage(QPoint(0, 0), image);
 }
 
-void Lottie::renderNextFrame()
+void LottieAnimation::renderNextFrame()
 {
+    m_currentFrame += 1;
+
     if (m_currentFrame >= 0 && m_currentFrame < m_frameCount)
     {
         update();
@@ -116,14 +116,12 @@ void Lottie::renderNextFrame()
     else if (m_currentFrame == m_frameCount)
     {
         m_frameTimer->stop();
-
-        m_currentFrame = 0;
-        update();
         emit finished();
     }
+
 }
 
-void Lottie::setStatus(Status status)
+void LottieAnimation::setStatus(Status status)
 {
     if (status == m_status)
         return;
@@ -132,7 +130,7 @@ void Lottie::setStatus(Status status)
     emit statusChanged();
 }
 
-void Lottie::load()
+void LottieAnimation::load()
 {
     std::string result;
 
@@ -167,7 +165,7 @@ void Lottie::load()
     setStatus(Ready);
 }
 
-void Lottie::componentComplete()
+void LottieAnimation::componentComplete()
 {
     if (m_source.isValid())
         load();

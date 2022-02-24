@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: tdapi.isAuthorized ? "Chats" : "MeeGram"
+        text: "Chats"
 
         Image {
             anchors {
@@ -20,12 +20,11 @@ Page {
                 verticalCenter: parent.verticalCenter
             }
             source: "image://theme/meegotouch-combobox-indicator-inverted"
-            visible: tdapi.isAuthorized
         }
 
         MouseArea {
             anchors.fill: parent
-            onClicked: tdapi.isAuthorized ? chatFilterDialog.open() : null
+            onClicked: chatFilterDialog.open()
         }
     }
 
@@ -73,7 +72,6 @@ Page {
 
         model: myChatModel
         snapMode: ListView.SnapToItem
-        visible: tdapi.isAuthorized
     }
 
     Label {
@@ -87,72 +85,8 @@ Page {
     BusyIndicator {
         anchors.centerIn: listView
         running: visible
-        visible: populateTimer.running || myChatModel.loading && tdapi.isAuthorized
+        visible: populateTimer.running || myChatModel.loading
         platformStyle: BusyIndicatorStyle { size: "large" }
-    }
-
-    Item {
-        id: signInInfo
-
-        anchors {
-            top: header.bottom
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
-        }
-
-        clip: true
-        visible: !tdapi.isAuthorized && !focusTimer.running
-
-        Column {
-            id: signInInfoColumn
-
-            anchors{
-                top: parent.top
-                topMargin: 30
-                left: parent.left
-                right: parent.right
-            }
-
-            spacing: 16
-
-            Text {
-                anchors{
-                    left: parent.left
-                    right: parent.right
-                    leftMargin: 24
-                    rightMargin: 24
-                }
-
-                text: "Different, Handy, Powerful"
-                wrapMode: Text.WordWrap
-
-                font.pixelSize: 30
-                color: "#777777"
-
-                horizontalAlignment: Text.AlignHCenter
-            }
-
-            Column {
-                anchors.horizontalCenter: parent.horizontalCenter
-
-                spacing: 16
-
-                Button {
-                    text: qsTr("StartMessaging")
-
-                    platformStyle: ButtonStyle { inverted: true }
-
-                    onClicked: {
-                        var component = Qt.createComponent("AuthenticationPage.qml")
-                        if (component.status === Component.Ready) {
-                            var dialog = component.createObject(root);
-                            dialog.open();
-                        }
-                    }
-                }
-            }
-        }
     }
 
     SelectionDialog {
@@ -205,13 +139,16 @@ Page {
         }
     }
 
-    Connections {
-        target: tdapi
-
-        onIsAuthorizedChanged: {
-            if (tdapi.isAuthorized)
-                myChatModel.refresh()
-        }
+    function onIsAuthorizedChanged() {
+        if (!tdapi.isAuthorized) {
+            var component = Qt.createComponent("IntroPage.qml")
+            if (component.status === Component.Ready) {
+                pageStack.replace(component)
+            } else {
+                console.debug("Error loading component:", component.errorString());
+            }
+        } else
+            myChatModel.refresh()
     }
 
     Timer {
@@ -220,13 +157,6 @@ Page {
         interval: 200
         repeat: false
         onTriggered: { myChatModel.populate() }
-    }
-
-    Timer {
-        id: focusTimer
-
-        interval: 200
-        repeat: false
     }
 
     ScrollDecorator {
@@ -238,29 +168,12 @@ Page {
     }
 
     tools: ToolBarLayout {
-        id: commonTools
-
         ToolIcon {
-            visible: !tdapi.isAuthorized
-            platformIconId: "toolbar-back"
-            onClicked: Qt.quit()
-        }
-
-        ToolIcon {
-            visible: !tdapi.isAuthorized
-            anchors.right: parent.right
-            iconSource: "qrc:/images/help-icon.png"
-
-            onClicked: aboutDialog.open()
-        }
-
-        ToolIcon {
-            visible: tdapi.isAuthorized
             platformIconId: "toolbar-view-menu"
             anchors.right: (parent === undefined) ? undefined : parent.right
             onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()
         }
     }
 
-    Component.onCompleted: focusTimer.start()
+    Component.onCompleted: tdapi.isAuthorizedChanged.connect(onIsAuthorizedChanged)
 }

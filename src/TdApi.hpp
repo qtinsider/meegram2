@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Stores.hpp"
+#include <QVariant>
 
 #include <functional>
 #include <thread>
@@ -11,8 +11,6 @@ class TdApi : public QObject
     Q_OBJECT
     Q_ENUMS(ChatList)
     Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
-
-    std::vector<std::unique_ptr<Store>> m_stores;
 
 public:
     ~TdApi() = default;
@@ -28,7 +26,8 @@ public:
         ChatListFilter,
     };
 
-    Q_INVOKABLE void sendRequest(const QVariantMap &object, const QString &extra = QString());
+    void sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback = {});
+
     Q_INVOKABLE void log(const QVariantMap &object) noexcept;
 
     bool isAuthorized() const noexcept;
@@ -57,7 +56,6 @@ public:
     Q_INVOKABLE void editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup,
                                      const QVariantMap &inputMessageContent);
     Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
-    Q_INVOKABLE void getMe();
     Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
     Q_INVOKABLE void getMessages(qint64 chatId, const QVariantList &messageIds);
     Q_INVOKABLE void joinChat(qint64 chatId);
@@ -67,23 +65,6 @@ public:
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
     Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
-
-    BasicGroupStore *const basicGroupStore{};
-    ChatStore *const chatStore{};
-    FileStore *const fileStore{};
-    OptionStore *const optionStore{};
-    SupergroupStore *const supergroupStore{};
-    UserStore *const userStore{};
-
-    Q_INVOKABLE QVariantMap getBasicGroup(qint64 id) const;
-    Q_INVOKABLE QVariantMap getBasicGroupFullInfo(qint64 id) const;
-    Q_INVOKABLE QVariantMap getChat(qint64 id) const;
-    Q_INVOKABLE QVariantMap getFile(qint32 id) const;
-    Q_INVOKABLE QVariant getOption(const QString &name) const;
-    Q_INVOKABLE QVariantMap getSupergroup(qint64 id) const;
-    Q_INVOKABLE QVariantMap getSupergroupFullInfo(qint64 id) const;
-    Q_INVOKABLE QVariantMap getUser(qint64 id) const;
-    Q_INVOKABLE QVariantMap getUserFullInfo(qint64 id) const;
 
 public slots:
     void listen();
@@ -207,7 +188,7 @@ signals:
     void addedReactions(const QVariantMap &data);
     void animations(const QVariantMap &data);
     void animatedEmoji(const QVariantMap &data);
-    void AuthorizationState(const QVariantMap &data);
+    void authorizationState(const QVariantMap &data);
     void autoDownloadSettingsPresets(const QVariantMap &data);
     void authenticationCodeInfo(const QVariantMap &data);
     void availableReactions(const QVariantMap &data);
@@ -219,7 +200,7 @@ signals:
     void botCommands(const QVariantMap &data);
     void callbackQueryAnswer(const QVariantMap &data);
     void callId(const QVariantMap &data);
-    void CanTransferOwnershipResult(const QVariantMap &data);
+    void canTransferOwnershipResult(const QVariantMap &data);
     void chat(const QVariantMap &data);
     void chatAdministrators(const QVariantMap &data);
     void chatFilter(const QVariantMap &data);
@@ -237,9 +218,9 @@ signals:
     void chatLists(const QVariantMap &data);
     void chatMember(const QVariantMap &data);
     void chats(const QVariantMap &data);
-    void ChatStatistics(const QVariantMap &data);
-    void CheckChatUsernameResult(const QVariantMap &data);
-    void CheckStickerSetNameResult(const QVariantMap &data);
+    void chatStatistics(const QVariantMap &data);
+    void checkChatUsernameResult(const QVariantMap &data);
+    void checkStickerSetNameResult(const QVariantMap &data);
     void count(const QVariantMap &data);
     void connectedWebsites(const QVariantMap &data);
     void countries(const QVariantMap &data);
@@ -260,18 +241,18 @@ signals:
     void httpUrl(const QVariantMap &data);
     void importedContacts(const QVariantMap &data);
     void inlineQueryResults(const QVariantMap &data);
-    void InternalLinkType(const QVariantMap &data);
-    void JsonValue(const QVariantMap &data);
+    void internalLinkType(const QVariantMap &data);
+    void jsonValue(const QVariantMap &data);
     void languagePackInfo(const QVariantMap &data);
-    void LanguagePackStringValue(const QVariantMap &data);
+    void languagePackStringValue(const QVariantMap &data);
     void languagePackStrings(const QVariantMap &data);
     void localizationTargetInfo(const QVariantMap &data);
-    void LogStream(const QVariantMap &data);
+    void logStream(const QVariantMap &data);
     void logVerbosityLevel(const QVariantMap &data);
     void logTags(const QVariantMap &data);
-    void LoginUrlInfo(const QVariantMap &data);
+    void loginUrlInfo(const QVariantMap &data);
     void message(const QVariantMap &data);
-    void MessageFileType(const QVariantMap &data);
+    void messageFileType(const QVariantMap &data);
     void messageCalendar(const QVariantMap &data);
     void messagePositions(const QVariantMap &data);
     void messageLink(const QVariantMap &data);
@@ -282,7 +263,7 @@ signals:
     void messageSenders(const QVariantMap &data);
     void networkStatistics(const QVariantMap &data);
     void ok(const QVariantMap &data);
-    void OptionValue(const QVariantMap &data);
+    void optionValue(const QVariantMap &data);
     void orderInfo(const QVariantMap &data);
     void passportElements(const QVariantMap &data);
     void paymentForm(const QVariantMap &data);
@@ -294,11 +275,11 @@ signals:
     void proxy(const QVariantMap &data);
     void passportAuthorizationForm(const QVariantMap &data);
     void passportElementsWithErrors(const QVariantMap &data);
-    void PassportElement(const QVariantMap &data);
+    void passportElement(const QVariantMap &data);
     void passwordState(const QVariantMap &data);
     void recommendedChatFilters(const QVariantMap &data);
     void recoveryEmailAddress(const QVariantMap &data);
-    void ResetPasswordResult(const QVariantMap &data);
+    void resetPasswordResult(const QVariantMap &data);
     void seconds(const QVariantMap &data);
     void scopeNotificationSettings(const QVariantMap &data);
     void secretChat(const QVariantMap &data);
@@ -311,7 +292,7 @@ signals:
     void storageStatistics(const QVariantMap &data);
     void storageStatisticsFast(const QVariantMap &data);
     void sponsoredMessage(const QVariantMap &data);
-    void StatisticalGraph(const QVariantMap &data);
+    void statisticalGraph(const QVariantMap &data);
     void supergroup(const QVariantMap &data);
     void supergroupFullInfo(const QVariantMap &data);
     void temporaryPasswordState(const QVariantMap &data);
@@ -324,7 +305,7 @@ signals:
     void testVectorStringObject(const QVariantMap &data);
     void testInt(const QVariantMap &data);
     void tMeUrls(const QVariantMap &data);
-    void Update(const QVariantMap &data);
+    void update(const QVariantMap &data);
     void updates(const QVariantMap &data);
     void user(const QVariantMap &data);
     void users(const QVariantMap &data);
@@ -342,14 +323,6 @@ private:
 
     void initEvents();
 
-    template <typename T>
-    requires std::is_base_of_v<Store, T> T &emplace()
-    {
-        auto t = new T;
-        m_stores.emplace_back(std::unique_ptr<T>(t));
-        return *t;
-    }
-
     int clientId{};
 
     std::jthread m_worker;
@@ -357,4 +330,5 @@ private:
     bool m_isAuthorized{false};
 
     std::unordered_map<std::string, std::function<void(const QVariantMap &)>> m_events;
+    std::unordered_map<std::uint64_t, std::function<void(const QVariantMap &)>> m_handlers;
 };

@@ -15,20 +15,15 @@ PageStackWindow {
 
     onOrientationChangeFinished: showStatusBar = isPortrait
 
-    Connections {
-        target: tdapi
-        onError: {
-            if (data.code !== "404") {
-                banner.text = data.message
-                banner.show()
-            }
-        }
-    }
-
     InfoBanner {
         id: banner
         y: 36
         z: 100
+    }
+
+    function showInfoBanner(message) {
+        banner.text = message
+        banner.show()
     }
 
     function openChat(chatId) {

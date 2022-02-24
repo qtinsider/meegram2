@@ -3,14 +3,65 @@
 #include "Common.hpp"
 #include "Serialize.hpp"
 
-#include <fnv-cpp/fnv.h>
-#include <td/telegram/td_json_client.h>
+#include "td/telegram/Client.h"
+#include "td/telegram/td_api.h"
+#include "td/telegram/td_api_json.h"
+
+#include "td/utils/JsonBuilder.h"
+#include "td/utils/Slice.h"
+#include "td/utils/SliceBuilder.h"
+#include "td/utils/StackAllocator.h"
+#include "td/utils/StringBuilder.h"
+#include "td/utils/common.h"
+#include "td/utils/port/thread_local.h"
 
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>
 #include <QStringBuilder>
 #include <QTimer>
+
+namespace {
+
+td::td_api::object_ptr<td::td_api::Function> toRequest(const std::string &request)
+{
+    auto request_str = request;
+    auto r_json_value = td::json_decode(request_str);
+    if (r_json_value.is_error())
+    {
+        return {};
+    }
+
+    auto json_value = r_json_value.move_as_ok();
+    if (json_value.type() != td::JsonValue::Type::Object)
+    {
+        return {};
+    }
+
+    td::td_api::object_ptr<td::td_api::Function> func;
+    auto status = from_json(func, std::move(json_value));
+    if (status.is_error())
+    {
+        return {};
+    }
+
+    return func;
+}
+
+nlohmann::json fromResponse(const td::td_api::Object &object, int client_id)
+{
+    auto value = td::json_encode<std::string>(td::ToJson(object));
+
+    auto result = nlohmann::json::parse(value);
+    if (client_id != 0)
+    {
+        result.emplace("@client_id", client_id);
+    }
+
+    return result;
+}
+
+}  // namespace
 
 namespace detail {
 
@@ -110,18 +161,9 @@ int getAuthenticationCodeLength(const QVariantMap &codeInfo)
 }  // namespace detail
 
 TdApi::TdApi()
-    : basicGroupStore(&emplace<BasicGroupStore>())
-    , chatStore(&emplace<ChatStore>())
-    , fileStore(&emplace<FileStore>())
-    , optionStore(&emplace<OptionStore>())
-    , supergroupStore(&emplace<SupergroupStore>())
-    , userStore(&emplace<UserStore>())
 {
     // disable TDLib logging
-    td_execute(R"({"@type":"setLogVerbosityLevel","new_verbosity_level":0})");
-
-    for (auto &store : m_stores)
-        store->initialize(this);
+    td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
 
     initEvents();
 }
@@ -132,15 +174,18 @@ TdApi &TdApi::getInstance()
     return staticObject;
 }
 
-void TdApi::sendRequest(const QVariantMap &object, const QString &extra)
+std::atomic<std::uint64_t> g_requestId;
+
+void TdApi::sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback)
 {
-    QVariantMap result(object);
+    auto requestId = g_requestId.fetch_add(1, std::memory_order_relaxed);
+    if (callback)
+    {
+        m_handlers.emplace(requestId, std::move(callback));
+    }
 
-    if (!extra.isEmpty())
-        result.insert("@extra", extra);
-
-    nlohmann::json json(result);
-    td_send(clientId, json.dump().c_str());
+    auto request = toRequest(nlohmann::json(object).dump());
+    td::ClientManager::get_manager_singleton()->send(clientId, requestId, std::move(request));
 }
 
 void TdApi::log(const QVariantMap &object) noexcept
@@ -174,7 +219,10 @@ void TdApi::checkPassword(const QString &password) noexcept
 
 void TdApi::logOut() noexcept
 {
-    td_send(clientId, R"({"@type":"logOut"})");
+    QVariantMap result;
+    result.insert("@type", "logOut");
+
+    sendRequest(result);
 }
 
 void TdApi::registerUser(const QString &firstName, const QString &lastName) noexcept
@@ -198,7 +246,10 @@ void TdApi::setPhoneNumber(const QString &phoneNumber) noexcept
 
 void TdApi::resendCode() noexcept
 {
-    td_send(clientId, R"({"@type":"resendAuthenticationCode"})");
+    QVariantMap result;
+    result.insert("@type", "resendAuthenticationCode");
+
+    sendRequest(result);
 }
 
 void TdApi::deleteAccount(const QString &reason) noexcept
@@ -212,7 +263,10 @@ void TdApi::deleteAccount(const QString &reason) noexcept
 
 void TdApi::close() noexcept
 {
-    td_send(clientId, R"({"@type":"close"})");
+    QVariantMap result;
+    result.insert("@type", "close");
+
+    sendRequest(result);
 
     // 1 sec delay
     QEventLoop loop;
@@ -433,51 +487,6 @@ void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
     sendRequest(result);
 }
 
-QVariantMap TdApi::getBasicGroup(qint64 id) const
-{
-    return basicGroupStore->get(id);
-}
-
-QVariantMap TdApi::getBasicGroupFullInfo(qint64 id) const
-{
-    return basicGroupStore->getFullInfo(id);
-}
-
-QVariantMap TdApi::getChat(qint64 id) const
-{
-    return chatStore->get(id);
-}
-
-QVariantMap TdApi::getFile(qint32 id) const
-{
-    return fileStore->get(id);
-}
-
-QVariant TdApi::getOption(const QString &name) const
-{
-    return optionStore->get(name);
-}
-
-QVariantMap TdApi::getSupergroup(qint64 id) const
-{
-    return supergroupStore->get(id);
-}
-
-QVariantMap TdApi::getSupergroupFullInfo(qint64 id) const
-{
-    return supergroupStore->getFullInfo(id);
-}
-
-QVariantMap TdApi::getUser(qint64 id) const
-{
-    return userStore->get(id);
-}
-
-QVariantMap TdApi::getUserFullInfo(qint64 id) const
-{
-    return userStore->getFullInfo(id);
-}
-
 void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
 {
     QVariantMap result;
@@ -489,11 +498,6 @@ void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 l
     result.insert("synchronous", synchronous);
 
     sendRequest(result);
-}
-
-void TdApi::getMe()
-{
-    td_send(clientId, R"({"@type":"getMe"})");
 }
 
 void TdApi::setLogVerbosityLevel(qint32 newVerbosityLevel)
@@ -511,15 +515,19 @@ void TdApi::listen()
     m_worker = std::jthread([this](const std::stop_token &token) {
         while (!token.stop_requested())
         {
-            const char *result = td_receive(WaitTimeout);
-            if (result != nullptr)
-            {
-                auto document = nlohmann::json::parse(result);
-                auto type = document["@type"].get<std::string>();
+            auto response = td::ClientManager::get_manager_singleton()->receive(30.0);
 
-                if (auto it = m_events.find(type); it != m_events.end())
+            if (response.object != nullptr)
+            {
+                if (auto result = fromResponse(*response.object, response.client_id); response.request_id == 0)
                 {
-                    it->second(document.get<QVariantMap>());
+                    if (auto it = m_events.find(result["@type"].template get<std::string>()); it != m_events.end())
+                        it->second(result);
+                }
+                else if (auto it = m_handlers.find(response.request_id); it != m_handlers.end())
+                {
+                    it->second(result);
+                    m_handlers.erase(it);
                 }
             }
         }
@@ -528,10 +536,10 @@ void TdApi::listen()
 
 void TdApi::initEvents()
 {
-    clientId = td_create_client_id();
+    clientId = td::ClientManager::get_manager_singleton()->create_client_id();
 
     // start the client by sending request to it
-    td_send(clientId, R"({"@type":"getOption", "name":"version"})");
+    setOption("version", {});
 
     m_events.emplace("updateAuthorizationState",
                      [this](const QVariantMap &data) { emit updateAuthorizationState(data.value("authorization_state").toMap()); });
@@ -1000,14 +1008,14 @@ void TdApi::initEvents()
     m_events.emplace("proxy", [this](const QVariantMap &data) { emit proxy(data); });
     m_events.emplace("stickers", [this](const QVariantMap &data) { emit stickers(data); });
     m_events.emplace("stickerSet", [this](const QVariantMap &data) { emit stickerSet(data); });
-    m_events.emplace("CanTransferOwnershipResult", [this](const QVariantMap &data) { emit CanTransferOwnershipResult(data); });
+    m_events.emplace("CanTransferOwnershipResult", [this](const QVariantMap &data) { emit canTransferOwnershipResult(data); });
     m_events.emplace("importedContacts", [this](const QVariantMap &data) { emit importedContacts(data); });
     m_events.emplace("authenticationCodeInfo", [this](const QVariantMap &data) { emit authenticationCodeInfo(data); });
     m_events.emplace("chatInviteLinkInfo", [this](const QVariantMap &data) { emit chatInviteLinkInfo(data); });
-    m_events.emplace("OptionValue", [this](const QVariantMap &data) { emit OptionValue(data); });
+    m_events.emplace("OptionValue", [this](const QVariantMap &data) { emit optionValue(data); });
     m_events.emplace("passportAuthorizationForm", [this](const QVariantMap &data) { emit passportAuthorizationForm(data); });
     m_events.emplace("passportElementsWithErrors", [this](const QVariantMap &data) { emit passportElementsWithErrors(data); });
-    m_events.emplace("PassportElement", [this](const QVariantMap &data) { emit PassportElement(data); });
+    m_events.emplace("PassportElement", [this](const QVariantMap &data) { emit passportElement(data); });
     m_events.emplace("testBytes", [this](const QVariantMap &data) { emit testBytes(data); });
     m_events.emplace("testString", [this](const QVariantMap &data) { emit testString(data); });
     m_events.emplace("testVectorInt", [this](const QVariantMap &data) { emit testVectorInt(data); });
@@ -1027,12 +1035,12 @@ void TdApi::initEvents()
     m_events.emplace("customRequestResult", [this](const QVariantMap &data) { emit customRequestResult(data); });
     m_events.emplace("emailAddressAuthenticationCodeInfo",
                      [this](const QVariantMap &data) { emit emailAddressAuthenticationCodeInfo(data); });
-    m_events.emplace("ResetPasswordResult", [this](const QVariantMap &data) { emit ResetPasswordResult(data); });
+    m_events.emplace("ResetPasswordResult", [this](const QVariantMap &data) { emit resetPasswordResult(data); });
     m_events.emplace("background", [this](const QVariantMap &data) { emit background(data); });
     m_events.emplace("networkStatistics", [this](const QVariantMap &data) { emit networkStatistics(data); });
-    m_events.emplace("CheckChatUsernameResult", [this](const QVariantMap &data) { emit CheckChatUsernameResult(data); });
+    m_events.emplace("CheckChatUsernameResult", [this](const QVariantMap &data) { emit checkChatUsernameResult(data); });
     m_events.emplace("passwordState", [this](const QVariantMap &data) { emit passwordState(data); });
-    m_events.emplace("CheckStickerSetNameResult", [this](const QVariantMap &data) { emit CheckStickerSetNameResult(data); });
+    m_events.emplace("CheckStickerSetNameResult", [this](const QVariantMap &data) { emit checkStickerSetNameResult(data); });
     m_events.emplace("text", [this](const QVariantMap &data) { emit text(data); });
     m_events.emplace("sticker", [this](const QVariantMap &data) { emit sticker(data); });
     m_events.emplace("session", [this](const QVariantMap &data) { emit session(data); });
@@ -1048,9 +1056,9 @@ void TdApi::initEvents()
     m_events.emplace("sessions", [this](const QVariantMap &data) { emit sessions(data); });
     m_events.emplace("passportElements", [this](const QVariantMap &data) { emit passportElements(data); });
     m_events.emplace("animatedEmoji", [this](const QVariantMap &data) { emit animatedEmoji(data); });
-    m_events.emplace("JsonValue", [this](const QVariantMap &data) { emit JsonValue(data); });
+    m_events.emplace("JsonValue", [this](const QVariantMap &data) { emit jsonValue(data); });
     m_events.emplace("httpUrl", [this](const QVariantMap &data) { emit httpUrl(data); });
-    m_events.emplace("AuthorizationState", [this](const QVariantMap &data) { emit AuthorizationState(data); });
+    m_events.emplace("AuthorizationState", [this](const QVariantMap &data) { emit authorizationState(data); });
     m_events.emplace("stickerSets", [this](const QVariantMap &data) { emit stickerSets(data); });
     m_events.emplace("autoDownloadSettingsPresets", [this](const QVariantMap &data) { emit autoDownloadSettingsPresets(data); });
     m_events.emplace("backgrounds", [this](const QVariantMap &data) { emit backgrounds(data); });
@@ -1067,7 +1075,7 @@ void TdApi::initEvents()
     m_events.emplace("chatJoinRequests", [this](const QVariantMap &data) { emit chatJoinRequests(data); });
     m_events.emplace("chatInviteLinks", [this](const QVariantMap &data) { emit chatInviteLinks(data); });
     m_events.emplace("chatLists", [this](const QVariantMap &data) { emit chatLists(data); });
-    m_events.emplace("Update", [this](const QVariantMap &data) { emit Update(data); });
+    m_events.emplace("Update", [this](const QVariantMap &data) { emit update(data); });
     m_events.emplace("validatedOrderInfo", [this](const QVariantMap &data) { emit validatedOrderInfo(data); });
     m_events.emplace("paymentForm", [this](const QVariantMap &data) { emit paymentForm(data); });
     m_events.emplace("paymentReceipt", [this](const QVariantMap &data) { emit paymentReceipt(data); });
@@ -1086,7 +1094,7 @@ void TdApi::initEvents()
     m_events.emplace("supergroup", [this](const QVariantMap &data) { emit supergroup(data); });
     m_events.emplace("supergroupFullInfo", [this](const QVariantMap &data) { emit supergroupFullInfo(data); });
     m_events.emplace("seconds", [this](const QVariantMap &data) { emit seconds(data); });
-    m_events.emplace("StatisticalGraph", [this](const QVariantMap &data) { emit StatisticalGraph(data); });
+    m_events.emplace("StatisticalGraph", [this](const QVariantMap &data) { emit statisticalGraph(data); });
     m_events.emplace("webPageInstantView", [this](const QVariantMap &data) { emit webPageInstantView(data); });
     m_events.emplace("webPage", [this](const QVariantMap &data) { emit webPage(data); });
     m_events.emplace("chatMember", [this](const QVariantMap &data) { emit chatMember(data); });
@@ -1095,7 +1103,7 @@ void TdApi::initEvents()
     m_events.emplace("chats", [this](const QVariantMap &data) { emit chats(data); });
     m_events.emplace("messagePositions", [this](const QVariantMap &data) { emit messagePositions(data); });
     m_events.emplace("sponsoredMessage", [this](const QVariantMap &data) { emit sponsoredMessage(data); });
-    m_events.emplace("ChatStatistics", [this](const QVariantMap &data) { emit ChatStatistics(data); });
+    m_events.emplace("ChatStatistics", [this](const QVariantMap &data) { emit chatStatistics(data); });
     m_events.emplace("botCommands", [this](const QVariantMap &data) { emit botCommands(data); });
     m_events.emplace("connectedWebsites", [this](const QVariantMap &data) { emit connectedWebsites(data); });
     m_events.emplace("users", [this](const QVariantMap &data) { emit users(data); });
@@ -1103,24 +1111,24 @@ void TdApi::initEvents()
     m_events.emplace("updates", [this](const QVariantMap &data) { emit updates(data); });
     m_events.emplace("databaseStatistics", [this](const QVariantMap &data) { emit databaseStatistics(data); });
     m_events.emplace("deepLinkInfo", [this](const QVariantMap &data) { emit deepLinkInfo(data); });
-    m_events.emplace("LoginUrlInfo", [this](const QVariantMap &data) { emit LoginUrlInfo(data); });
+    m_events.emplace("LoginUrlInfo", [this](const QVariantMap &data) { emit loginUrlInfo(data); });
     m_events.emplace("gameHighScores", [this](const QVariantMap &data) { emit gameHighScores(data); });
     m_events.emplace("groupCall", [this](const QVariantMap &data) { emit groupCall(data); });
     m_events.emplace("filePart", [this](const QVariantMap &data) { emit filePart(data); });
     m_events.emplace("inlineQueryResults", [this](const QVariantMap &data) { emit inlineQueryResults(data); });
-    m_events.emplace("InternalLinkType", [this](const QVariantMap &data) { emit InternalLinkType(data); });
+    m_events.emplace("InternalLinkType", [this](const QVariantMap &data) { emit internalLinkType(data); });
     m_events.emplace("languagePackInfo", [this](const QVariantMap &data) { emit languagePackInfo(data); });
-    m_events.emplace("LanguagePackStringValue", [this](const QVariantMap &data) { emit LanguagePackStringValue(data); });
+    m_events.emplace("LanguagePackStringValue", [this](const QVariantMap &data) { emit languagePackStringValue(data); });
     m_events.emplace("languagePackStrings", [this](const QVariantMap &data) { emit languagePackStrings(data); });
     m_events.emplace("localizationTargetInfo", [this](const QVariantMap &data) { emit localizationTargetInfo(data); });
-    m_events.emplace("LogStream", [this](const QVariantMap &data) { emit LogStream(data); });
+    m_events.emplace("LogStream", [this](const QVariantMap &data) { emit logStream(data); });
     m_events.emplace("logVerbosityLevel", [this](const QVariantMap &data) { emit logVerbosityLevel(data); });
     m_events.emplace("logTags", [this](const QVariantMap &data) { emit logTags(data); });
     m_events.emplace("formattedText", [this](const QVariantMap &data) { emit formattedText(data); });
     m_events.emplace("user", [this](const QVariantMap &data) { emit user(data); });
     m_events.emplace("addedReactions", [this](const QVariantMap &data) { emit addedReactions(data); });
     m_events.emplace("availableReactions", [this](const QVariantMap &data) { emit availableReactions(data); });
-    m_events.emplace("MessageFileType", [this](const QVariantMap &data) { emit MessageFileType(data); });
+    m_events.emplace("MessageFileType", [this](const QVariantMap &data) { emit messageFileType(data); });
     m_events.emplace("messageLink", [this](const QVariantMap &data) { emit messageLink(data); });
     m_events.emplace("messageLinkInfo", [this](const QVariantMap &data) { emit messageLinkInfo(data); });
     m_events.emplace("foundMessages", [this](const QVariantMap &data) { emit foundMessages(data); });
@@ -1145,7 +1153,7 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             parameters.insert("use_secret_chats", true);
             parameters.insert("api_id", ApiId);
             parameters.insert("api_hash", ApiHash);
-            parameters.insert("system_language_code", SystemLanguageCode);
+            parameters.insert("system_language_code", DefaultLanguageCode);
             parameters.insert("device_model", DeviceModel);
             parameters.insert("system_version", SystemVersion);
             parameters.insert("application_version", AppVersion);
@@ -1158,7 +1166,15 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             break;
         }
         case fnv::hash("authorizationStateWaitEncryptionKey"): {
-            td_send(clientId, R"({"@type":"checkDatabaseEncryptionKey","encryption_key":""})");
+            QVariantMap result;
+            result.insert("@type", "checkDatabaseEncryptionKey");
+            result.insert("encryption_key", "");
+
+            sendRequest(result);
+            break;
+        }
+        case fnv::hash("authorizationStateWaitPhoneNumber"): {
+            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateWaitCode"): {
@@ -1175,6 +1191,8 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             result.insert("timeout", codeInfo.value("timeout").toInt());
 
             emit codeRequested(result);
+
+            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateWaitPassword"): {
@@ -1186,6 +1204,8 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             result.insert("recoveryEmailAddressPattern", password.value("recovery_email_address_pattern").toString());
 
             emit passwordRequested(result);
+
+            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateWaitRegistration"): {
@@ -1197,6 +1217,8 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             result.insert("showPopup", termsOfService.value("show_popup").toBool());
 
             emit registrationRequested(result);
+
+            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateReady"): {
@@ -1208,6 +1230,12 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             TdApi::getInstance().sendRequest(result);
 
             m_isAuthorized = true;
+
+            emit isAuthorizedChanged();
+            break;
+        }
+        case fnv::hash("authorizationStateLoggingOut"): {
+            m_isAuthorized = false;
 
             emit isAuthorizedChanged();
             break;

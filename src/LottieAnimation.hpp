@@ -4,7 +4,7 @@
 
 #include <QDeclarativeItem>
 
-class Lottie : public QDeclarativeItem
+class LottieAnimation : public QDeclarativeItem
 {
     Q_OBJECT
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
@@ -12,8 +12,8 @@ class Lottie : public QDeclarativeItem
 
     Q_ENUMS(Status)
 public:
-    explicit Lottie(QDeclarativeItem *parent = nullptr);
-    ~Lottie() override;
+    explicit LottieAnimation(QDeclarativeItem *parent = nullptr);
+    ~LottieAnimation() override;
 
     enum Status { Null, Loading, Ready, Error };
 

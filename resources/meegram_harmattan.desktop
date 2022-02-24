@@ -4,7 +4,7 @@ Version=1.0
 Type=Application
 Terminal=false
 Name=MeeGram
-Exec=/usr/bin/invoker --splash=/opt/meegram/share/meegram-splash.png --type=e -s /opt/meegram/bin/meegram
+Exec=/usr/bin/invoker --splash=/opt/meegram/share/meegram-splash.png --type=d -s /opt/meegram/bin/meegram
 Icon=/usr/share/icons/hicolor/80x80/apps/meegram80.png
 X-Window-Icon=
 X-HildonDesk-ShowInToolbar=true

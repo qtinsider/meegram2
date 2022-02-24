@@ -3,7 +3,6 @@
         <file>fonts/Icons.ttf</file>
         <file>fonts/NotoEmoji-Regular.ttf</file>
         <file>fonts/NotoSansSymbols-Regular.ttf</file>
-        <file>i18n/meegram_en.qm</file>
         <file>images/avatar-image-mask.png</file>
         <file>images/help-icon.png</file>
         <file>images/incoming-normal.png</file>
@@ -19,11 +18,15 @@
         <file>qml/components/MessageBubble.qml</file>
         <file>qml/components/TopBar.qml</file>
         <file>qml/ArchivedChatPage.qml</file>
-        <file>qml/AuthenticationPage.qml</file>
-        <file>qml/ChatInfoPage.qml</file>
+        <file>qml/CodeEnterPage.qml</file>
+        <file>qml/ContactInfoPage.qml</file>
+        <file>qml/IntroPage.qml</file>
         <file>qml/main.qml</file>
         <file>qml/MainPage.qml</file>
         <file>qml/MessagePage.qml</file>
+        <file>qml/PasswordPage.qml</file>
         <file>qml/SettingsPage.qml</file>
+        <file>qml/SignInPage.qml</file>
+        <file>qml/SignUpPage.qml</file>
     </qresource>
 </RCC>

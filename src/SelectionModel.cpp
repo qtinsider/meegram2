@@ -78,7 +78,7 @@ void CountryModel::handleCountries(const QVariantMap &countries)
 
 int CountryModel::getDefaultIndex() const noexcept
 {
-    // TODO(strawberry):
+    // TODO(strawberry): refactor
     auto it = std::ranges::find_if(m_countries, [](const auto &value) {
         return value.toMap().value("country_code").toString().compare("NG", Qt::CaseInsensitive) == 0;
     });

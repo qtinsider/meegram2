@@ -1,10 +1,9 @@
 #include "MessageModel.hpp"
 
 #include "Common.hpp"
+#include "StorageManager.hpp"
 #include "TdApi.hpp"
 #include "Utils.hpp"
-
-#include <fnv-cpp/fnv.h>
 
 #include <QDateTime>
 #include <QLocale>
@@ -45,7 +44,7 @@ QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat)
 
     if (count == 0)
     {
-        auto fullInfo = TdApi::getInstance().supergroupStore->getFullInfo(supergroup.value("id").toLongLong());
+        auto fullInfo = StorageManager::getInstance().getSupergroupFullInfo(supergroup.value("id").toLongLong());
         count = fullInfo.value("member_count").toInt();
     }
 
@@ -78,7 +77,7 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
 
     if (count == 0)
     {
-        auto fullInfo = TdApi::getInstance().supergroupStore->getFullInfo(supergroup.value("id").toLongLong());
+        auto fullInfo = StorageManager::getInstance().getSupergroupFullInfo(supergroup.value("id").toLongLong());
         count = fullInfo.value("member_count").toInt();
     }
 
@@ -402,16 +401,16 @@ QString MessageModel::getChatSubtitle() const noexcept
     switch (fnv::hashRuntime(chatType.constData()))
     {
         case fnv::hash("chatTypeBasicGroup"): {
-            auto basicGroup = TdApi::getInstance().getBasicGroup(type.value("basic_group_id").toLongLong());
+            auto basicGroup = StorageManager::getInstance().getBasicGroup(type.value("basic_group_id").toLongLong());
             return detail::getBasicGroupStatus(basicGroup, m_chat);
         }
         case fnv::hash("chatTypePrivate"):
         case fnv::hash("chatTypeSecret"): {
-            auto user = TdApi::getInstance().getUser(type.value("user_id").toLongLong());
+            auto user = StorageManager::getInstance().getUser(type.value("user_id").toLongLong());
             return detail::getUserStatus(user);
         }
         case fnv::hash("chatTypeSupergroup"): {
-            auto supergroup = TdApi::getInstance().getSupergroup(type.value("supergroup_id").toLongLong());
+            auto supergroup = StorageManager::getInstance().getSupergroup(type.value("supergroup_id").toLongLong());
             return supergroup.value("is_channel").toBool() ? detail::getChannelStatus(supergroup, m_chat)
                                                            : detail::getSupergroupStatus(supergroup, m_chat);
         }
@@ -440,7 +439,7 @@ void MessageModel::loadHistory() noexcept
 void MessageModel::openChat(qint64 chatId) noexcept
 {
     m_chatId = chatId;
-    m_chat = TdApi::getInstance().getChat(m_chatId);
+    m_chat = StorageManager::getInstance().getChat(m_chatId);
 
     QVariantMap result;
     result.insert("@type", "openChat");

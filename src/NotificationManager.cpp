@@ -13,6 +13,8 @@ NotificationManager::NotificationManager()
 
     connect(&TdApi::getInstance(), SIGNAL(updateNotification(int, const QVariantMap &)), this,
             SLOT(handleNotification(int, const QVariantMap &)));
+
+    TdApi::getInstance().setOption("notification_group_count_max", 5);
 }
 
 NotificationManager &NotificationManager::getInstance()
