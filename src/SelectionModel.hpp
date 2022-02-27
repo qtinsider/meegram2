@@ -28,9 +28,6 @@ public:
 signals:
     void countChanged();
 
-private slots:
-    void handleCountries(const QVariantMap &countries);
-
 private:
     int getDefaultIndex() const noexcept;
 

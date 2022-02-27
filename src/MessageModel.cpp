@@ -177,9 +177,6 @@ MessageModel::MessageModel(QObject *parent)
     connect(&TdApi::getInstance(), SIGNAL(updateDeleteMessages(qint64, const QVariantList &, bool, bool)),
             SLOT(handleDeleteMessages(qint64, const QVariantList &, bool, bool)));
 
-    connect(&TdApi::getInstance(), SIGNAL(message(const QVariantMap &)), SLOT(handleMessage(const QVariantMap &)));
-    connect(&TdApi::getInstance(), SIGNAL(messages(const QVariantMap &)), SLOT(handleMessages(const QVariantMap &)));
-
     connect(&TdApi::getInstance(), SIGNAL(updateChatOnlineMemberCount(qint64, int)), SLOT(handleChatOnlineMemberCount(qint64, int)));
 
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));

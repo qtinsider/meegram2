@@ -18,9 +18,20 @@ CountryModel::CountryModel(QObject *parent)
     QVariantMap result;
     result.insert("@type", "getCountries");
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(result ,[this](const auto &value) {
+        if (value.value("@type").toByteArray() == "countries")
+        {
+            beginResetModel();
+            m_countries.clear();
+            endResetModel();
 
-    connect(&TdApi::getInstance(), SIGNAL(countries(const QVariantMap &)), SLOT(handleCountries(const QVariantMap &)));
+            beginInsertRows(QModelIndex(), rowCount(), value.count() - 1);
+            std::ranges::copy(value.value("countries").toList(), std::back_inserter(m_countries));
+            endInsertRows();
+
+            emit countChanged();
+        }
+    });
 }
 
 int CountryModel::rowCount(const QModelIndex &) const
@@ -61,19 +72,6 @@ QVariantMap CountryModel::get(int index) const noexcept
 int CountryModel::count() const noexcept
 {
     return m_countries.count();
-}
-
-void CountryModel::handleCountries(const QVariantMap &countries)
-{
-    beginResetModel();
-    m_countries.clear();
-    endResetModel();
-
-    beginInsertRows(QModelIndex(), rowCount(), countries.count() - 1);
-    std::ranges::copy(countries.value("countries").toList(), std::back_inserter(m_countries));
-    endInsertRows();
-
-    emit countChanged();
 }
 
 int CountryModel::getDefaultIndex() const noexcept

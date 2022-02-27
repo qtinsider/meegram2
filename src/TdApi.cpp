@@ -8,12 +8,6 @@
 #include "td/telegram/td_api_json.h"
 
 #include "td/utils/JsonBuilder.h"
-#include "td/utils/Slice.h"
-#include "td/utils/SliceBuilder.h"
-#include "td/utils/StackAllocator.h"
-#include "td/utils/StringBuilder.h"
-#include "td/utils/common.h"
-#include "td/utils/port/thread_local.h"
 
 #include <QDebug>
 #include <QDir>
@@ -23,44 +17,36 @@
 
 namespace {
 
+
 td::td_api::object_ptr<td::td_api::Function> toRequest(const std::string &request)
 {
-    auto request_str = request;
-    auto r_json_value = td::json_decode(request_str);
-    if (r_json_value.is_error())
+    auto requestStr = request;
+
+    if (auto result = td::json_decode(requestStr); result.is_ok())
     {
-        return {};
+        td::td_api::object_ptr<td::td_api::Function> func;
+
+        if (auto status = from_json(func, result.move_as_ok()); status.is_ok())
+        {
+            return func;
+        }
     }
 
-    auto json_value = r_json_value.move_as_ok();
-    if (json_value.type() != td::JsonValue::Type::Object)
-    {
-        return {};
-    }
-
-    td::td_api::object_ptr<td::td_api::Function> func;
-    auto status = from_json(func, std::move(json_value));
-    if (status.is_error())
-    {
-        return {};
-    }
-
-    return func;
+    return {};
 }
 
-nlohmann::json fromResponse(const td::td_api::Object &object, int client_id)
+nlohmann::json fromResponse(const td::td_api::Object &object, int clientId)
 {
     auto value = td::json_encode<std::string>(td::ToJson(object));
 
     auto result = nlohmann::json::parse(value);
-    if (client_id != 0)
+    if (clientId != 0)
     {
-        result.emplace("@client_id", client_id);
+        result.emplace("@client_id", clientId);
     }
 
     return result;
 }
-
 }  // namespace
 
 namespace detail {
@@ -1001,139 +987,6 @@ void TdApi::initEvents()
         auto inviteLink = data.value("invite_link").toMap();
         emit updateNewChatJoinRequest(chatId, request, inviteLink);
     });
-
-    // Returns ...
-    m_events.emplace("message", [this](const QVariantMap &data) { emit message(data); });
-    m_events.emplace("ok", [this](const QVariantMap &data) { emit ok(data); });
-    m_events.emplace("proxy", [this](const QVariantMap &data) { emit proxy(data); });
-    m_events.emplace("stickers", [this](const QVariantMap &data) { emit stickers(data); });
-    m_events.emplace("stickerSet", [this](const QVariantMap &data) { emit stickerSet(data); });
-    m_events.emplace("CanTransferOwnershipResult", [this](const QVariantMap &data) { emit canTransferOwnershipResult(data); });
-    m_events.emplace("importedContacts", [this](const QVariantMap &data) { emit importedContacts(data); });
-    m_events.emplace("authenticationCodeInfo", [this](const QVariantMap &data) { emit authenticationCodeInfo(data); });
-    m_events.emplace("chatInviteLinkInfo", [this](const QVariantMap &data) { emit chatInviteLinkInfo(data); });
-    m_events.emplace("OptionValue", [this](const QVariantMap &data) { emit optionValue(data); });
-    m_events.emplace("passportAuthorizationForm", [this](const QVariantMap &data) { emit passportAuthorizationForm(data); });
-    m_events.emplace("passportElementsWithErrors", [this](const QVariantMap &data) { emit passportElementsWithErrors(data); });
-    m_events.emplace("PassportElement", [this](const QVariantMap &data) { emit passportElement(data); });
-    m_events.emplace("testBytes", [this](const QVariantMap &data) { emit testBytes(data); });
-    m_events.emplace("testString", [this](const QVariantMap &data) { emit testString(data); });
-    m_events.emplace("testVectorInt", [this](const QVariantMap &data) { emit testVectorInt(data); });
-    m_events.emplace("testVectorString", [this](const QVariantMap &data) { emit testVectorString(data); });
-    m_events.emplace("testVectorStringObject", [this](const QVariantMap &data) { emit testVectorStringObject(data); });
-    m_events.emplace("error", [this](const QVariantMap &data) { emit error(data); });
-    m_events.emplace("testInt", [this](const QVariantMap &data) { emit testInt(data); });
-    m_events.emplace("tMeUrls", [this](const QVariantMap &data) { emit tMeUrls(data); });
-    m_events.emplace("textEntities", [this](const QVariantMap &data) { emit textEntities(data); });
-    m_events.emplace("userFullInfo", [this](const QVariantMap &data) { emit userFullInfo(data); });
-    m_events.emplace("userPrivacySettingRules", [this](const QVariantMap &data) { emit userPrivacySettingRules(data); });
-    m_events.emplace("chatPhotos", [this](const QVariantMap &data) { emit chatPhotos(data); });
-    m_events.emplace("chatMembers", [this](const QVariantMap &data) { emit chatMembers(data); });
-    m_events.emplace("chatsNearby", [this](const QVariantMap &data) { emit chatsNearby(data); });
-    m_events.emplace("emojis", [this](const QVariantMap &data) { emit emojis(data); });
-    m_events.emplace("hashtags", [this](const QVariantMap &data) { emit hashtags(data); });
-    m_events.emplace("customRequestResult", [this](const QVariantMap &data) { emit customRequestResult(data); });
-    m_events.emplace("emailAddressAuthenticationCodeInfo",
-                     [this](const QVariantMap &data) { emit emailAddressAuthenticationCodeInfo(data); });
-    m_events.emplace("ResetPasswordResult", [this](const QVariantMap &data) { emit resetPasswordResult(data); });
-    m_events.emplace("background", [this](const QVariantMap &data) { emit background(data); });
-    m_events.emplace("networkStatistics", [this](const QVariantMap &data) { emit networkStatistics(data); });
-    m_events.emplace("CheckChatUsernameResult", [this](const QVariantMap &data) { emit checkChatUsernameResult(data); });
-    m_events.emplace("passwordState", [this](const QVariantMap &data) { emit passwordState(data); });
-    m_events.emplace("CheckStickerSetNameResult", [this](const QVariantMap &data) { emit checkStickerSetNameResult(data); });
-    m_events.emplace("text", [this](const QVariantMap &data) { emit text(data); });
-    m_events.emplace("sticker", [this](const QVariantMap &data) { emit sticker(data); });
-    m_events.emplace("session", [this](const QVariantMap &data) { emit session(data); });
-    m_events.emplace("chat", [this](const QVariantMap &data) { emit chat(data); });
-    m_events.emplace("callId", [this](const QVariantMap &data) { emit callId(data); });
-    m_events.emplace("chatFilterInfo", [this](const QVariantMap &data) { emit chatFilterInfo(data); });
-    m_events.emplace("chatInviteLink", [this](const QVariantMap &data) { emit chatInviteLink(data); });
-    m_events.emplace("temporaryPasswordState", [this](const QVariantMap &data) { emit temporaryPasswordState(data); });
-    m_events.emplace("groupCallId", [this](const QVariantMap &data) { emit groupCallId(data); });
-    m_events.emplace("file", [this](const QVariantMap &data) { emit file(data); });
-    m_events.emplace("messages", [this](const QVariantMap &data) { emit messages(data); });
-    m_events.emplace("accountTtl", [this](const QVariantMap &data) { emit accountTtl(data); });
-    m_events.emplace("sessions", [this](const QVariantMap &data) { emit sessions(data); });
-    m_events.emplace("passportElements", [this](const QVariantMap &data) { emit passportElements(data); });
-    m_events.emplace("animatedEmoji", [this](const QVariantMap &data) { emit animatedEmoji(data); });
-    m_events.emplace("JsonValue", [this](const QVariantMap &data) { emit jsonValue(data); });
-    m_events.emplace("httpUrl", [this](const QVariantMap &data) { emit httpUrl(data); });
-    m_events.emplace("AuthorizationState", [this](const QVariantMap &data) { emit authorizationState(data); });
-    m_events.emplace("stickerSets", [this](const QVariantMap &data) { emit stickerSets(data); });
-    m_events.emplace("autoDownloadSettingsPresets", [this](const QVariantMap &data) { emit autoDownloadSettingsPresets(data); });
-    m_events.emplace("backgrounds", [this](const QVariantMap &data) { emit backgrounds(data); });
-    m_events.emplace("bankCardInfo", [this](const QVariantMap &data) { emit bankCardInfo(data); });
-    m_events.emplace("basicGroup", [this](const QVariantMap &data) { emit basicGroup(data); });
-    m_events.emplace("basicGroupFullInfo", [this](const QVariantMap &data) { emit basicGroupFullInfo(data); });
-    m_events.emplace("messageSenders", [this](const QVariantMap &data) { emit messageSenders(data); });
-    m_events.emplace("callbackQueryAnswer", [this](const QVariantMap &data) { emit callbackQueryAnswer(data); });
-    m_events.emplace("chatAdministrators", [this](const QVariantMap &data) { emit chatAdministrators(data); });
-    m_events.emplace("chatEvents", [this](const QVariantMap &data) { emit chatEvents(data); });
-    m_events.emplace("chatFilter", [this](const QVariantMap &data) { emit chatFilter(data); });
-    m_events.emplace("chatInviteLinkCounts", [this](const QVariantMap &data) { emit chatInviteLinkCounts(data); });
-    m_events.emplace("chatInviteLinkMembers", [this](const QVariantMap &data) { emit chatInviteLinkMembers(data); });
-    m_events.emplace("chatJoinRequests", [this](const QVariantMap &data) { emit chatJoinRequests(data); });
-    m_events.emplace("chatInviteLinks", [this](const QVariantMap &data) { emit chatInviteLinks(data); });
-    m_events.emplace("chatLists", [this](const QVariantMap &data) { emit chatLists(data); });
-    m_events.emplace("Update", [this](const QVariantMap &data) { emit update(data); });
-    m_events.emplace("validatedOrderInfo", [this](const QVariantMap &data) { emit validatedOrderInfo(data); });
-    m_events.emplace("paymentForm", [this](const QVariantMap &data) { emit paymentForm(data); });
-    m_events.emplace("paymentReceipt", [this](const QVariantMap &data) { emit paymentReceipt(data); });
-    m_events.emplace("phoneNumberInfo", [this](const QVariantMap &data) { emit phoneNumberInfo(data); });
-    m_events.emplace("proxies", [this](const QVariantMap &data) { emit proxies(data); });
-    m_events.emplace("pushReceiverId", [this](const QVariantMap &data) { emit pushReceiverId(data); });
-    m_events.emplace("paymentResult", [this](const QVariantMap &data) { emit paymentResult(data); });
-    m_events.emplace("recommendedChatFilters", [this](const QVariantMap &data) { emit recommendedChatFilters(data); });
-    m_events.emplace("recoveryEmailAddress", [this](const QVariantMap &data) { emit recoveryEmailAddress(data); });
-    m_events.emplace("animations", [this](const QVariantMap &data) { emit animations(data); });
-    m_events.emplace("orderInfo", [this](const QVariantMap &data) { emit orderInfo(data); });
-    m_events.emplace("scopeNotificationSettings", [this](const QVariantMap &data) { emit scopeNotificationSettings(data); });
-    m_events.emplace("secretChat", [this](const QVariantMap &data) { emit secretChat(data); });
-    m_events.emplace("storageStatistics", [this](const QVariantMap &data) { emit storageStatistics(data); });
-    m_events.emplace("storageStatisticsFast", [this](const QVariantMap &data) { emit storageStatisticsFast(data); });
-    m_events.emplace("supergroup", [this](const QVariantMap &data) { emit supergroup(data); });
-    m_events.emplace("supergroupFullInfo", [this](const QVariantMap &data) { emit supergroupFullInfo(data); });
-    m_events.emplace("seconds", [this](const QVariantMap &data) { emit seconds(data); });
-    m_events.emplace("StatisticalGraph", [this](const QVariantMap &data) { emit statisticalGraph(data); });
-    m_events.emplace("webPageInstantView", [this](const QVariantMap &data) { emit webPageInstantView(data); });
-    m_events.emplace("webPage", [this](const QVariantMap &data) { emit webPage(data); });
-    m_events.emplace("chatMember", [this](const QVariantMap &data) { emit chatMember(data); });
-    m_events.emplace("messageCalendar", [this](const QVariantMap &data) { emit messageCalendar(data); });
-    m_events.emplace("count", [this](const QVariantMap &data) { emit count(data); });
-    m_events.emplace("chats", [this](const QVariantMap &data) { emit chats(data); });
-    m_events.emplace("messagePositions", [this](const QVariantMap &data) { emit messagePositions(data); });
-    m_events.emplace("sponsoredMessage", [this](const QVariantMap &data) { emit sponsoredMessage(data); });
-    m_events.emplace("ChatStatistics", [this](const QVariantMap &data) { emit chatStatistics(data); });
-    m_events.emplace("botCommands", [this](const QVariantMap &data) { emit botCommands(data); });
-    m_events.emplace("connectedWebsites", [this](const QVariantMap &data) { emit connectedWebsites(data); });
-    m_events.emplace("users", [this](const QVariantMap &data) { emit users(data); });
-    m_events.emplace("countries", [this](const QVariantMap &data) { emit countries(data); });
-    m_events.emplace("updates", [this](const QVariantMap &data) { emit updates(data); });
-    m_events.emplace("databaseStatistics", [this](const QVariantMap &data) { emit databaseStatistics(data); });
-    m_events.emplace("deepLinkInfo", [this](const QVariantMap &data) { emit deepLinkInfo(data); });
-    m_events.emplace("LoginUrlInfo", [this](const QVariantMap &data) { emit loginUrlInfo(data); });
-    m_events.emplace("gameHighScores", [this](const QVariantMap &data) { emit gameHighScores(data); });
-    m_events.emplace("groupCall", [this](const QVariantMap &data) { emit groupCall(data); });
-    m_events.emplace("filePart", [this](const QVariantMap &data) { emit filePart(data); });
-    m_events.emplace("inlineQueryResults", [this](const QVariantMap &data) { emit inlineQueryResults(data); });
-    m_events.emplace("InternalLinkType", [this](const QVariantMap &data) { emit internalLinkType(data); });
-    m_events.emplace("languagePackInfo", [this](const QVariantMap &data) { emit languagePackInfo(data); });
-    m_events.emplace("LanguagePackStringValue", [this](const QVariantMap &data) { emit languagePackStringValue(data); });
-    m_events.emplace("languagePackStrings", [this](const QVariantMap &data) { emit languagePackStrings(data); });
-    m_events.emplace("localizationTargetInfo", [this](const QVariantMap &data) { emit localizationTargetInfo(data); });
-    m_events.emplace("LogStream", [this](const QVariantMap &data) { emit logStream(data); });
-    m_events.emplace("logVerbosityLevel", [this](const QVariantMap &data) { emit logVerbosityLevel(data); });
-    m_events.emplace("logTags", [this](const QVariantMap &data) { emit logTags(data); });
-    m_events.emplace("formattedText", [this](const QVariantMap &data) { emit formattedText(data); });
-    m_events.emplace("user", [this](const QVariantMap &data) { emit user(data); });
-    m_events.emplace("addedReactions", [this](const QVariantMap &data) { emit addedReactions(data); });
-    m_events.emplace("availableReactions", [this](const QVariantMap &data) { emit availableReactions(data); });
-    m_events.emplace("MessageFileType", [this](const QVariantMap &data) { emit messageFileType(data); });
-    m_events.emplace("messageLink", [this](const QVariantMap &data) { emit messageLink(data); });
-    m_events.emplace("messageLinkInfo", [this](const QVariantMap &data) { emit messageLinkInfo(data); });
-    m_events.emplace("foundMessages", [this](const QVariantMap &data) { emit foundMessages(data); });
-    m_events.emplace("messageStatistics", [this](const QVariantMap &data) { emit messageStatistics(data); });
-    m_events.emplace("messageThreadInfo", [this](const QVariantMap &data) { emit messageThreadInfo(data); });
 
     connect(this, SIGNAL(updateAuthorizationState(const QVariantMap &)), SLOT(handleAuthorizationState(const QVariantMap &)));
 }
