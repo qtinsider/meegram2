@@ -11,10 +11,10 @@
 #include "Common.hpp"
 #include "DBusAdaptor.hpp"
 #include "ImageProviders.hpp"
+#include "Localization.hpp"
 #include "LottieAnimation.hpp"
 #include "MessageModel.hpp"
 #include "NotificationManager.hpp"
-#include "Localization.hpp"
 #include "SelectionModel.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
@@ -39,8 +39,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 
-    Localization locale;
-
     qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
     qmlRegisterType<ChatFilterModel>("com.strawberry.meegram", 1, 0, "ChatFilterModel");
     qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
@@ -53,14 +51,14 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
     QScopedPointer<Utils> utils(new Utils);
-
     new DBusAdaptor(app.data(), viewer.data());
 
     viewer->rootContext()->setContextProperty("AppVersion", AppVersion);
 
+    viewer->rootContext()->setContextProperty("Api", &TdApi::getInstance());
+    viewer->rootContext()->setContextProperty("Localization", &Localization::getInstance());
     viewer->rootContext()->setContextProperty("Notification", &NotificationManager::getInstance());
     viewer->rootContext()->setContextProperty("Store", &StorageManager::getInstance());
-    viewer->rootContext()->setContextProperty("tdapi", &TdApi::getInstance());
     viewer->rootContext()->setContextProperty("Utils", utils.data());
 
     viewer->engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);

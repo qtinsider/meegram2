@@ -9,7 +9,7 @@ Page {
 
     TopBar {
         id: header
-        text: "Settings"
+        text: Localization.getString("SETTINGS") + Localization.emptyString
 
         MouseArea {
             anchors.fill: parent

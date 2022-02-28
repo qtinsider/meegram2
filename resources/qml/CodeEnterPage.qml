@@ -31,7 +31,7 @@ Page {
 
             Label {
                 id: title
-                text: qsTr("YourCode")
+                text: Localization.getString("YourCode")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -59,11 +59,11 @@ Page {
                         id: code
                         width: parent.width
                         inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("Code")
+                        placeholderText: Localization.getString("Code")
 
                         onTextChanged: {
                             if(text.length >= length) {
-                                tdapi.checkCode(code.text)
+                                Api.checkCode(code.text)
                             }
                         }
                     }
@@ -83,13 +83,13 @@ Page {
                         font.underline: true
 
                         color: "#0088cc"
-                        text: qsTr("DidNotGetTheCodeSms")
+                        text: Localization.getString("DidNotGetTheCodeSms")
 
                         visible: false
 
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: tdapi.resendCode()
+                            onClicked: Api.resendCode()
                         }
                     }
 
@@ -121,7 +121,7 @@ Page {
                             if (timeout === 0) {
                                 codeExpireTimer.stop()
                                 codeTextRow.visible = false;
-                                tdapi.resendCode()
+                                Api.resendCode()
                             }
                         }
                     }
@@ -133,11 +133,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: qsTr("Next")
-                onClicked: tdapi.checkCode(code.text)
+                text: Localization.getString("Next")
+                onClicked: Api.checkCode(code.text)
             }
             ToolButton {
-                text: qsTrId("Cancel")
+                text: Localization.getString("Cancel")
                 onClicked: {
                     pageStack.pop()
                 }
@@ -178,16 +178,16 @@ Page {
     }
 
     Component.onCompleted: {
-        tdapi.codeRequested.connect(onCodeRequested)
-        tdapi.passwordRequested.connect(onPasswordRequested)
-        tdapi.registrationRequested.connect(onRegistrationRequested)
-        tdapi.error.connect(function(error) { showInfoBanner(error.message) })
+        Api.codeRequested.connect(onCodeRequested)
+        Api.passwordRequested.connect(onPasswordRequested)
+        Api.registrationRequested.connect(onRegistrationRequested)
+        Api.error.connect(function(error) { showInfoBanner(error.message) })
     }
 
     Component.onDestruction: {
-        tdapi.codeRequested.disconnect(onCodeRequested)
-        tdapi.passwordRequested.disconnect(onPasswordRequested)
-        tdapi.registrationRequested.disconnect(onRegistrationRequested)
-        tdapi.error.disconnect(function(error) { showInfoBanner(error.message) })
+        Api.codeRequested.disconnect(onCodeRequested)
+        Api.passwordRequested.disconnect(onPasswordRequested)
+        Api.registrationRequested.disconnect(onRegistrationRequested)
+        Api.error.disconnect(function(error) { showInfoBanner(error.message) })
     }
 }

@@ -1,6 +1,7 @@
 #include "TdApi.hpp"
 
 #include "Common.hpp"
+#include "Localization.hpp"
 #include "Serialize.hpp"
 
 #include "td/telegram/Client.h"
@@ -16,7 +17,6 @@
 #include <QTimer>
 
 namespace {
-
 
 td::td_api::object_ptr<td::td_api::Function> toRequest(const std::string &request)
 {
@@ -47,6 +47,7 @@ nlohmann::json fromResponse(const td::td_api::Object &object, int clientId)
 
     return result;
 }
+
 }  // namespace
 
 namespace detail {
@@ -59,11 +60,11 @@ QString getAuthenticationCodeTitle(const QVariantMap &codeInfo)
     switch (fnv::hashRuntime(codeInfoType.constData()))
     {
         case fnv::hash("authenticationCodeTypeTelegramMessage"): {
-            return QObject::tr("SentAppCodeTitle");
+            return Localization::getInstance().getString("SentAppCodeTitle");
         }
         case fnv::hash("authenticationCodeTypeCall"):
         case fnv::hash("authenticationCodeTypeSms"): {
-            return QObject::tr("SentSmsCodeTitle");
+            return Localization::getInstance().getString("SentSmsCodeTitle");
         }
     }
 
@@ -79,16 +80,16 @@ QString getAuthenticationCodeSubtitle(const QVariantMap &codeInfo)
     switch (fnv::hashRuntime(codeInfoType.constData()))
     {
         case fnv::hash("authenticationCodeTypeCall"): {
-            return QObject::tr("SentCallCode").arg(phoneNumber);
+            return Localization::getInstance().getString("SentCallCode").arg(phoneNumber);
         }
         case fnv::hash("authenticationCodeTypeFlashCall"): {
-            return QObject::tr("SentCallOnly").arg(phoneNumber);
+            return Localization::getInstance().getString("SentCallOnly").arg(phoneNumber);
         }
         case fnv::hash("authenticationCodeTypeSms"): {
-            return QObject::tr("SentSmsCode").arg(phoneNumber);
+            return Localization::getInstance().getString("SentSmsCode").arg(phoneNumber);
         }
         case fnv::hash("authenticationCodeTypeTelegramMessage"): {
-            return QObject::tr("SentAppCode");
+            return Localization::getInstance().getString("SentAppCode");
         }
     }
 
@@ -103,10 +104,10 @@ QString getAuthenticationCodeNextTypeString(const QVariantMap &codeInfo)
     switch (fnv::hashRuntime(codeInfoType.constData()))
     {
         case fnv::hash("authenticationCodeTypeCall"): {
-            return QObject::tr("CallText");
+            return Localization::getInstance().getString("CallText");
         }
         case fnv::hash("authenticationCodeTypeSms"): {
-            return QObject::tr("SmsText");
+            return Localization::getInstance().getString("SmsText");
         }
     }
 
@@ -152,6 +153,7 @@ TdApi::TdApi()
     td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
 
     initEvents();
+    QTimer::singleShot(1000, this, SLOT(listen()));
 }
 
 TdApi &TdApi::getInstance()
@@ -160,11 +162,9 @@ TdApi &TdApi::getInstance()
     return staticObject;
 }
 
-std::atomic<std::uint64_t> g_requestId;
-
 void TdApi::sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback)
 {
-    auto requestId = g_requestId.fetch_add(1, std::memory_order_relaxed);
+    auto requestId = m_requestId.fetch_add(1, std::memory_order_relaxed);
     if (callback)
     {
         m_handlers.emplace(requestId, std::move(callback));
@@ -174,10 +174,9 @@ void TdApi::sendRequest(const QVariantMap &object, std::function<void(const QVar
     td::ClientManager::get_manager_singleton()->send(clientId, requestId, std::move(request));
 }
 
-void TdApi::log(const QVariantMap &object) noexcept
+QVariantMap TdApi::execute(const QVariantMap &request) const
 {
-    nlohmann::json json(object);
-    qDebug() << json.dump(2).c_str();
+    return fromResponse(*td::ClientManager::execute(toRequest(nlohmann::json(request).dump())), 0);
 }
 
 bool TdApi::isAuthorized() const noexcept
@@ -796,7 +795,7 @@ void TdApi::initEvents()
     });
     m_events.emplace("updateServiceNotification", [this](const QVariantMap &data) {
         auto type = data.value("type").toString();
-        auto content = data.value("message_id").toMap();
+        auto content = data.value("content").toMap();
         emit updateServiceNotification(type, content);
     });
     m_events.emplace("updateFile", [this](const QVariantMap &data) { emit updateFile(data.value("file").toMap()); });
@@ -991,33 +990,34 @@ void TdApi::initEvents()
     connect(this, SIGNAL(updateAuthorizationState(const QVariantMap &)), SLOT(handleAuthorizationState(const QVariantMap &)));
 }
 
+void TdApi::initialParameters()
+{
+    QVariantMap parameters;
+    parameters.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
+    parameters.insert("use_file_database", true);
+    parameters.insert("use_chat_info_database", true);
+    parameters.insert("use_message_database", true);
+    parameters.insert("use_secret_chats", true);
+    parameters.insert("api_id", ApiId);
+    parameters.insert("api_hash", ApiHash);
+    parameters.insert("system_language_code", QLocale::system().name().left(2));
+    parameters.insert("device_model", DeviceModel);
+    parameters.insert("system_version", SystemVersion);
+    parameters.insert("application_version", AppVersion);
+
+    QVariantMap result;
+    result.insert("@type", "setTdlibParameters");
+    result.insert("parameters", parameters);
+
+    sendRequest(result);
+}
+
 void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
 {
     auto authorizationStateType = authorizationState.value("@type").toByteArray();
 
     switch (fnv::hashRuntime(authorizationStateType.constData()))
     {
-        case fnv::hash("authorizationStateWaitTdlibParameters"): {
-            QVariantMap parameters;
-            parameters.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
-            parameters.insert("use_file_database", true);
-            parameters.insert("use_chat_info_database", true);
-            parameters.insert("use_message_database", true);
-            parameters.insert("use_secret_chats", true);
-            parameters.insert("api_id", ApiId);
-            parameters.insert("api_hash", ApiHash);
-            parameters.insert("system_language_code", DefaultLanguageCode);
-            parameters.insert("device_model", DeviceModel);
-            parameters.insert("system_version", SystemVersion);
-            parameters.insert("application_version", AppVersion);
-
-            QVariantMap result;
-            result.insert("@type", "setTdlibParameters");
-            result.insert("parameters", parameters);
-
-            sendRequest(result);
-            break;
-        }
         case fnv::hash("authorizationStateWaitEncryptionKey"): {
             QVariantMap result;
             result.insert("@type", "checkDatabaseEncryptionKey");

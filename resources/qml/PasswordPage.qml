@@ -25,7 +25,7 @@ Page {
 
             Label {
                 id: title
-                text: qsTr("TwoStepVerification")
+                text: Localization.getString("TwoStepVerification")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -43,7 +43,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: qsTr("LoginPasswordText")
+                    text: Localization.getString("LoginPasswordText")
                 }
 
                 Item {
@@ -51,14 +51,14 @@ Page {
                 }
 
                 Label {
-                    text: qsTr("YourPassword")
+                    text: Localization.getString("YourPassword")
                 }
 
                 TextField {
                     id: password
                     width: parent.width
                     echoMode: TextInput.Password
-                    placeholderText: qsTr("Password")
+                    placeholderText: Localization.getString("Password")
                 }
 
                 Label {
@@ -75,11 +75,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: qsTr("Next")
-                onClicked: tdapi.checkPassword(password.text)
+                text: Localization.getString("Next")
+                onClicked: Api.checkPassword(password.text)
             }
             ToolButton {
-                text: qsTrId("Cancel")
+                text: Localization.getString("Cancel")
                 onClicked: {
                     pageStack.pop()
                 }
@@ -87,6 +87,6 @@ Page {
         }
     }
 
-    Component.onCompleted: tdapi.error.connect(function(error) { showInfoBanner(error.message) })
-    Component.onDestruction: tdapi.error.disconnect(function(error) { showInfoBanner(error.message) })
+    Component.onCompleted: Api.error.connect(function(error) { showInfoBanner(error.message) })
+    Component.onDestruction: Api.error.disconnect(function(error) { showInfoBanner(error.message) })
 }

@@ -11,8 +11,6 @@ class StorageManager : public QObject
 {
     Q_OBJECT
 public:
-    ~StorageManager() = default;
-
     StorageManager(const StorageManager &) = delete;
     StorageManager &operator=(const StorageManager &) = delete;
 

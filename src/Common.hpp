@@ -11,11 +11,10 @@ static constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
 
 static constexpr auto DatabaseDirectory = "/.meegram/tdlib";
 
-static constexpr auto DefaultLanguageCode = "en";
 static constexpr auto DeviceModel = "Nokia N9";
 static constexpr auto SystemVersion = "MeeGo 1.2 Harmattan";
 
-static constexpr auto WaitTimeout = 300.0;  // 30 sec
+static constexpr auto WaitTimeout = 30.0;  // 30 sec
 
 [[maybe_unused]] static constexpr auto ServiceNotificationsUserIds = {42777, 333000, 777000};
 static constexpr auto ChatSliceLimit = 25;

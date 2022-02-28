@@ -32,13 +32,13 @@ Page {
         id: myMenu
         MenuLayout {
             MenuItem {
-                text: "Archived Chats"
+                text: Localization.getString("ArchivedChats") + Localization.emptyString
                 onClicked: {
                     pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
                 }
             }
             MenuItem {
-                text: "Settings"
+                text: Localization.getString("SETTINGS") + Localization.emptyString
                 onClicked: {
                     pageStack.push(Qt.createComponent("SettingsPage.qml"))
                 }
@@ -78,7 +78,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: qsTr("NoChats")
+        text: Localization.getString("NoChats") + Localization.emptyString
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -91,7 +91,7 @@ Page {
 
     SelectionDialog {
         id: chatFilterDialog
-        titleText: qsTr("Filters")
+        titleText: Localization.getString("Filters") + Localization.emptyString
         selectedIndex: 0
         model: ChatFilterModel { id: chatFilterModel }
 
@@ -122,7 +122,7 @@ Page {
         MenuLayout {
 
             MenuItem {
-                text: myChatModel.get(listView.currentIndex).isPinned ? qsTr("UnpinFromTop") : qsTr("PinFromTop")
+                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") : Localization.getString("PinFromTop")
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
                     populateTimer.restart()
@@ -130,7 +130,7 @@ Page {
             }
 
             MenuItem {
-                text: myChatModel.get(listView.currentIndex).isMuted ? qsTr("ChatsUnmute") : qsTr("ChatsMute")
+                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isMuted ? Localization.getString("ChatsUnmute") : Localization.getString("ChatsMute")
                 onClicked: {
                     myChatModel.toggleChatNotificationSettings(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isMuted);
                     populateTimer.restart()
@@ -140,7 +140,7 @@ Page {
     }
 
     function onIsAuthorizedChanged() {
-        if (!tdapi.isAuthorized) {
+        if (!Api.isAuthorized) {
             var component = Qt.createComponent("IntroPage.qml")
             if (component.status === Component.Ready) {
                 pageStack.replace(component)
@@ -156,7 +156,16 @@ Page {
 
         interval: 200
         repeat: false
-        onTriggered: { myChatModel.populate() }
+        onTriggered: myChatModel.populate()
+    }
+
+    Timer {
+        id: populateLocale
+
+        interval: 1000
+        repeat: false
+        running: true
+        onTriggered: Localization.languageChanged()
     }
 
     ScrollDecorator {
@@ -175,5 +184,5 @@ Page {
         }
     }
 
-    Component.onCompleted: tdapi.isAuthorizedChanged.connect(onIsAuthorizedChanged)
+    Component.onCompleted: Api.isAuthorizedChanged.connect(onIsAuthorizedChanged)
 }

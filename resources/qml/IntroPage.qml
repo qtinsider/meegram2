@@ -63,7 +63,7 @@ Page {
                 spacing: 16
 
                 Button {
-                    text: qsTr("StartMessaging")
+                    text: Localization.getString("StartMessaging")
 
                     platformStyle: ButtonStyle { inverted: true }
 
@@ -79,7 +79,7 @@ Page {
     }
 
     function onIsAuthorizedChanged() {
-        if (tdapi.isAuthorized) {}
+        if (Api.isAuthorized) {}
         console.log("Introoooooooooooooooooooooooooooooooooooo")
     }
 
@@ -101,5 +101,5 @@ Page {
         }
     }
 
-    Component.onCompleted: tdapi.isAuthorizedChanged.connect(onIsAuthorizedChanged)
+    Component.onCompleted: Api.isAuthorizedChanged.connect(onIsAuthorizedChanged)
 }

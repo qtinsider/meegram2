@@ -23,7 +23,7 @@ Page {
 
             Label {
                 id: title
-                text: qsTr("YourPhone")
+                text: Localization.getString("YourPhone")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -75,7 +75,7 @@ Page {
                 Label {
                     font.pixelSize: 24
                     width: parent.width
-                    text: qsTr("StartText")
+                    text: Localization.getString("StartText")
                 }
 
                 Row {
@@ -90,17 +90,17 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: qsTr("Next")
+                text: Localization.getString("Next")
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
-                        tdapi.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
+                        Api.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
                     } else {
-                        tdapi.setPhoneNumber("")
+                        Api.setPhoneNumber("")
                     }
                 }
             }
             ToolButton {
-                text: qsTrId("Cancel")
+                text: Localization.getString("Cancel")
                 onClicked: {
                     pageStack.pop()
                 }
@@ -126,18 +126,18 @@ Page {
 
     SelectionDialog {
         id: selectionDialog
-        titleText: qsTr("ChooseCountry")
+        titleText: Localization.getString("ChooseCountry")
         selectedIndex: myCountryModel.defaultIndex
         model: CountryModel { id: myCountryModel }
     }
 
     Component.onCompleted: {
-        tdapi.codeRequested.connect(onCodeRequested)
-        tdapi.error.connect(function(error) { showInfoBanner(error.message) })
+        Api.codeRequested.connect(onCodeRequested)
+        Api.error.connect(function(error) { showInfoBanner(error.message) })
     }
 
     Component.onDestruction: {
-        tdapi.codeRequested.disconnect(onCodeRequested);
-        tdapi.error.disconnect(function(error) { showInfoBanner(error.message) });
+        Api.codeRequested.disconnect(onCodeRequested);
+        Api.error.disconnect(function(error) { showInfoBanner(error.message) });
     }
 }

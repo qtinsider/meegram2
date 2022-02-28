@@ -1,6 +1,7 @@
 #include "MessageModel.hpp"
 
 #include "Common.hpp"
+#include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
 #include "Utils.hpp"
@@ -19,18 +20,19 @@ QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &ch
     auto count = basicGroup.value("member_count").toInt();
 
     if (status.value("@type").toByteArray() == "chatMemberStatusBanned")
-        return QObject::tr("YouWereKicked");
+        return Localization::getInstance().getString("YouWereKicked");
 
     if (count <= 1)
-        return QObject::tr("Members", "", count);
+        return Localization::getInstance().formatPluralString("Members", count);
 
     auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
-        return QObject::tr("Members", "", count) % ", " % QObject::tr("OnlineCount", "", onlineCount);
+        return Localization::getInstance().formatPluralString("Members", count) % ", " %
+               Localization::getInstance().formatPluralString("OnlineCount", onlineCount);
     }
 
-    return QObject::tr("Members", "", count);
+    return Localization::getInstance().formatPluralString("Members", count);
 }
 
 QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) noexcept
@@ -50,19 +52,21 @@ QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat)
 
     if (count <= 0)
     {
-        return !username.isEmpty() ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
+        return !username.isEmpty() ? Localization::getInstance().getString("ChannelPublic")
+                                   : Localization::getInstance().getString("ChannelPrivate");
     }
 
     if (count <= 1)
-        return QObject::tr("Subscribers", "", 1);
+        return Localization::getInstance().formatPluralString("Subscribers", 1);
 
     auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
-        return QObject::tr("Subscribers", "", count) % ", " % QObject::tr("OnlineCount", "", onlineCount);
+        return Localization::getInstance().formatPluralString("Subscribers", count) % ", " %
+               Localization::getInstance().formatPluralString("OnlineCount", onlineCount);
     }
 
-    return QObject::tr("Subscribers", "", count);
+    return Localization::getInstance().formatPluralString("Subscribers", count);
 }
 
 QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) noexcept
@@ -73,7 +77,7 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
     auto hasLocation = supergroup.value("has_location").toBool();
 
     if (status.value("@type").toByteArray() == "chatMemberStatusBanned")
-        return QObject::tr("YouWereKicked");
+        return Localization::getInstance().getString("YouWereKicked");
 
     if (count == 0)
     {
@@ -84,37 +88,39 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
     if (count <= 0)
     {
         if (hasLocation)
-            return QObject::tr("MegaLocation");
+            return Localization::getInstance().getString("MegaLocation");
 
-        return !username.isEmpty() ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
+        return !username.isEmpty() ? Localization::getInstance().getString("MegaPublic")
+                                   : Localization::getInstance().getString("MegaPrivate");
     }
 
     if (count <= 1)
-        return QObject::tr("Members", "", count);
+        return Localization::getInstance().formatPluralString("Members", count);
 
     auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
-        return QObject::tr("Members", "", count) % ", " % QObject::tr("OnlineCount", "", onlineCount);
+        return Localization::getInstance().formatPluralString("Members", count) % ", " %
+               Localization::getInstance().formatPluralString("OnlineCount", onlineCount);
     }
 
-    return QObject::tr("Members", "", count);
+    return Localization::getInstance().formatPluralString("Members", count);
 }
 
 QString getUserStatus(const QVariantMap &user) noexcept
 {
     if (std::ranges::any_of(ServiceNotificationsUserIds, [user](qint64 userId) { return userId == user.value("id").toLongLong(); }))
     {
-        return QObject::tr("ServiceNotifications");
+        return Localization::getInstance().getString("ServiceNotifications");
     }
 
     if (user.value("is_support").toBool())
-        return QObject::tr("SupportStatus");
+        return Localization::getInstance().getString("SupportStatus");
 
     auto type = user.value("type").toMap();
 
     if (type.value("@type").toByteArray() == "userTypeBot")
-        return QObject::tr("Bot");
+        return Localization::getInstance().getString("Bot");
 
     auto status = user.value("status").toMap();
 
@@ -122,36 +128,41 @@ QString getUserStatus(const QVariantMap &user) noexcept
     switch (fnv::hashRuntime(statusType.constData()))
     {
         case fnv::hash("userStatusEmpty"):
-            return QObject::tr("ALongTimeAgo");
+            return Localization::getInstance().getString("ALongTimeAgo");
         case fnv::hash("userStatusLastMonth"):
-            return QObject::tr("WithinAMonth");
+            return Localization::getInstance().getString("WithinAMonth");
         case fnv::hash("userStatusLastWeek"):
-            return QObject::tr("WithinAWeek");
+            return Localization::getInstance().getString("WithinAWeek");
         case fnv::hash("userStatusOffline"): {
             auto was_online = status.value("was_online").toLongLong();
             if (was_online == 0)
-                return QObject::tr("Invisible");
+                return Localization::getInstance().getString("Invisible");
 
             auto wasOnline = QDateTime::fromMSecsSinceEpoch(was_online * 1000);
 
             if (QDate::currentDate() == wasOnline.date())  // TODAY
-                return QObject::tr("LastSeenFormatted")
-                    .append(QObject::tr("TodayAtFormatted"))
-                    .append(QLocale::system().toString(wasOnline.time(), QLocale::ShortFormat));
+                return Localization::getInstance()
+                    .getString("LastSeenFormatted")
+                    .arg(Localization::getInstance().getString("TodayAtFormatted"))
+                    .arg(wasOnline.toString(Localization::getInstance().getString("formatterDay12H")));
 
             else if (wasOnline.date().daysTo(QDate::currentDate()) < 2)
-                return QObject::tr("LastSeenFormatted")
-                    .append(QObject::tr("YesterdayAtFormatted"))
-                    .append(QLocale::system().toString(wasOnline.time(), QLocale::ShortFormat));
+                return Localization::getInstance()
+                    .getString("LastSeenFormatted")
+                    .arg(Localization::getInstance().getString("YesterdayAtFormatted"))
+                    .arg(wasOnline.toString(Localization::getInstance().getString("formatterDay12H")));
 
-            return QObject::tr("formatDateAtTime")
-                .arg(QObject::tr("LastSeenDateFormatted"))
-                .arg(QLocale::system().toString(wasOnline.date(), QLocale::ShortFormat));
+            return Localization::getInstance()
+                .getString("LastSeenDateFormatted")
+                .arg(Localization::getInstance()
+                         .getString("formatDateAtTime")
+                         .arg(wasOnline.toString(Localization::getInstance().getString("formatterYear")))
+                         .arg(wasOnline.toString(Localization::getInstance().getString("formatterDay12H"))));
         }
         case fnv::hash("userStatusOnline"):
-            return QObject::tr("Online");
+            return Localization::getInstance().getString("Online");
         case fnv::hash("userStatusRecently"):
-            return QObject::tr("Lately");
+            return Localization::getInstance().getString("Lately");
     }
 
     return QString();

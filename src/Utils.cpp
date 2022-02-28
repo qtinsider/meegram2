@@ -1,6 +1,7 @@
 #include "Utils.hpp"
 
 #include "Common.hpp"
+#include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
 
@@ -80,52 +81,6 @@ bool isSupergroup(const QVariantMap &chat) noexcept
     return type.value("@type").toByteArray() == "chatTypeSupergroup";
 }
 
-QString formatCallDuration(int duration) noexcept
-{
-    if (duration > 3600)
-    {
-        auto result = QObject::tr("CallDurationHours", "", std::floor(duration / 3600));
-        auto minutes = std::floor(duration % 3600 / 3600);
-        if (minutes > 0)
-        {
-            result += ", " % QObject::tr("CallDurationMinutes", "", minutes);
-        }
-
-        return result;
-    }
-
-    if (duration > 60)
-    {
-        return QObject::tr("CallDurationMinutes", "", std::floor(duration / 60));
-    }
-
-    return QObject::tr("CallDurationSeconds", "", std::floor(duration));
-}
-
-QString getTTLString(int ttl) noexcept
-{
-    if (ttl < 60)
-    {
-        return QObject::tr("TTLStringSeconds", "", std::floor(ttl));
-    }
-    if (ttl < 60 * 60)
-    {
-        return QObject::tr("TTLStringMinutes", "", std::floor(ttl / 60));
-    }
-    if (ttl < 24 * 60 * 60)
-    {
-        return QObject::tr("TTLStringHours", "", std::floor(ttl / 60 / 60));
-    }
-
-    auto days = ttl / 60 / 60 / 24;
-    if (ttl % 7 == 0)
-    {
-        return QObject::tr("TTLStringWeeks", "", std::floor(days / 7));
-    }
-
-    return QObject::tr("TTLStringWeeks", "", std::floor(days / 7)) % QObject::tr("TTLStringDays", "", std::floor(days % 7));
-}
-
 QString getMessageAuthor(const QVariantMap &message, bool openUser) noexcept
 {
     auto sender = message.value("sender_id").toMap();
@@ -161,7 +116,7 @@ QString getUserFullName(qint64 userId) noexcept
         }
         case fnv::hash("userTypeDeleted"):
         case fnv::hash("userTypeUnknown"): {
-            return QObject::tr("HiddenName");
+            return Localization::getInstance().getString("HiddenName");
         }
     }
 
@@ -181,45 +136,45 @@ QString getCallContent(const QVariantMap &sender, const QVariantMap &content) no
         {
             if (isVideo)
             {
-                return QObject::tr("CallMessageVideoOutgoingMissed");
+                return Localization::getInstance().getString("CallMessageVideoOutgoingMissed");
             }
 
-            return QObject::tr("CallMessageOutgoingMissed");
+            return Localization::getInstance().getString("CallMessageOutgoingMissed");
         }
 
         if (isVideo)
         {
-            return QObject::tr("CallMessageVideoOutgoing");
+            return Localization::getInstance().getString("CallMessageVideoOutgoing");
         }
 
-        return QObject::tr("CallMessageOutgoing");
+        return Localization::getInstance().getString("CallMessageOutgoing");
     }
 
     if (isMissed)
     {
         if (isVideo)
         {
-            return QObject::tr("CallMessageVideoIncomingMissed");
+            return Localization::getInstance().getString("CallMessageVideoIncomingMissed");
         }
 
-        return QObject::tr("CallMessageIncomingMissed");
+        return Localization::getInstance().getString("CallMessageIncomingMissed");
     }
     else if (isBusy)
     {
         if (isVideo)
         {
-            return QObject::tr("CallMessageVideoIncomingDeclined");
+            return Localization::getInstance().getString("CallMessageVideoIncomingDeclined");
         }
 
-        return QObject::tr("CallMessageIncomingDeclined");
+        return Localization::getInstance().getString("CallMessageIncomingDeclined");
     }
 
     if (isVideo)
     {
-        return QObject::tr("CallMessageVideoIncoming");
+        return Localization::getInstance().getString("CallMessageVideoIncoming");
     }
 
-    return QObject::tr("CallMessageIncoming");
+    return Localization::getInstance().getString("CallMessageIncoming");
 }
 
 QString getAudioTitle(const QVariantMap &audio) noexcept
@@ -285,6 +240,8 @@ QVariantMap Utils::getChatPosition(qint64 chatId, const QVariantMap &chatList)
                                                });
                 it != positions.end())
                 return it->toMap();
+
+            break;
         }
         case fnv::hash("chatListArchive"): {
             if (auto it = std::ranges::find_if(positions,
@@ -294,6 +251,8 @@ QVariantMap Utils::getChatPosition(qint64 chatId, const QVariantMap &chatList)
                                                });
                 it != positions.end())
                 return it->toMap();
+
+            break;
         }
         case fnv::hash("chatListFilter"): {
             if (auto it = std::ranges::find_if(positions,
@@ -304,6 +263,8 @@ QVariantMap Utils::getChatPosition(qint64 chatId, const QVariantMap &chatList)
                                                });
                 it != positions.end())
                 return it->toMap();
+
+            break;
         }
     }
 
@@ -350,11 +311,11 @@ QString Utils::getChatTitle(qint64 chatId, bool showSavedMessages)
     auto chat = StorageManager::getInstance().getChat(chatId);
 
     if (detail::isMeChat(chat) && showSavedMessages)
-        return QObject::tr("SavedMessages");
+        return Localization::getInstance().getString("SavedMessages");
 
     auto title = chat.value("title").toString();
 
-    return title.isEmpty() ? QObject::tr("HiddenName") : title;
+    return title.isEmpty() ? Localization::getInstance().getString("HiddenName") : title;
 }
 
 bool Utils::isChatMuted(qint64 chatId)
@@ -398,18 +359,18 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
             case fnv::hash("messagePhoto"): {
                 if (isOutgoing)
                 {
-                    return QObject::tr("ActionYouSendTTLPhoto");
+                    return Localization::getInstance().getString("ActionYouSendTTLPhoto");
                 }
 
-                return QObject::tr("ActionSendTTLPhoto").arg(author);
+                return Localization::getInstance().getString("ActionSendTTLPhoto").arg(author);
             }
             case fnv::hash("messageVideo"): {
                 if (isOutgoing)
                 {
-                    return QObject::tr("ActionYouSendTTLVideo");
+                    return Localization::getInstance().getString("ActionYouSendTTLVideo");
                 }
 
-                return QObject::tr("ActionSendTTLVideo").arg(author);
+                return Localization::getInstance().getString("ActionSendTTLVideo").arg(author);
             }
         }
     }
@@ -417,67 +378,67 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
     switch (fnv::hashRuntime(contentType.constData()))
     {
         case fnv::hash("messageExpiredPhoto"): {
-            return QObject::tr("AttachPhotoExpired");
+            return Localization::getInstance().getString("AttachPhotoExpired");
         }
         case fnv::hash("messageExpiredVideo"): {
-            return QObject::tr("AttachVideoExpired");
+            return Localization::getInstance().getString("AttachVideoExpired");
         }
         case fnv::hash("messageBasicGroupChatCreate"): {
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouCreateGroup");
+                return Localization::getInstance().getString("ActionYouCreateGroup");
             }
 
-            return QObject::tr("ActionCreateGroup").arg(author);
+            return Localization::getInstance().getString("ActionCreateGroup").arg(author);
         }
         case fnv::hash("messageSupergroupChatCreate"): {
             if (isChannel)
             {
-                return QObject::tr("ActionCreateChannel");
+                return Localization::getInstance().getString("ActionCreateChannel");
             }
 
-            return QObject::tr("ActionCreateMega");
+            return Localization::getInstance().getString("ActionCreateMega");
         }
         case fnv::hash("messageChatChangeTitle"): {
             auto title = content.value("title").toString();
 
             if (isChannel)
             {
-                return QObject::tr("ActionChannelChangedTitle").arg(title);
+                return Localization::getInstance().getString("ActionChannelChangedTitle").arg(title);
             }
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouChangedTitle").arg(title);
+                return Localization::getInstance().getString("ActionYouChangedTitle").arg(title);
             }
 
-            return QObject::tr("ActionChangedTitle").arg(author).arg(title);
+            return Localization::getInstance().getString("ActionChangedTitle").arg(author).arg(title);
         }
         case fnv::hash("messageChatChangePhoto"): {
             if (isChannel)
             {
-                return QObject::tr("ActionChannelChangedPhoto");
+                return Localization::getInstance().getString("ActionChannelChangedPhoto");
             }
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouChangedPhoto");
+                return Localization::getInstance().getString("ActionYouChangedPhoto");
             }
 
-            return QObject::tr("ActionChangedPhoto").arg(author);
+            return Localization::getInstance().getString("ActionChangedPhoto").arg(author);
         }
         case fnv::hash("messageChatDeletePhoto"): {
             if (isChannel)
             {
-                return QObject::tr("ActionChannelRemovedPhoto");
+                return Localization::getInstance().getString("ActionChannelRemovedPhoto");
             }
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouRemovedPhoto");
+                return Localization::getInstance().getString("ActionYouRemovedPhoto");
             }
 
-            return QObject::tr("ActionRemovedPhoto").arg(author);
+            return Localization::getInstance().getString("ActionRemovedPhoto").arg(author);
         }
         case fnv::hash("messageChatAddMembers"): {
             auto singleMember = content.value("member_user_ids").toList().length() == 1;
@@ -489,30 +450,30 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 {
                     if (detail::isSupergroup(chat) && isChannel)
                     {
-                        return QObject::tr("ChannelJoined");
+                        return Localization::getInstance().getString("ChannelJoined");
                     }
 
                     if (detail::isSupergroup(chat) && !isChannel)
                     {
                         if (detail::isMeUser(memberUserId))
                         {
-                            return QObject::tr("ChannelMegaJoined");
+                            return Localization::getInstance().getString("ChannelMegaJoined");
                         }
 
-                        return QObject::tr("ActionAddUserSelfMega").arg(author);
+                        return Localization::getInstance().getString("ActionAddUserSelfMega").arg(author);
                     }
 
                     if (isOutgoing)
                     {
-                        return QObject::tr("ActionAddUserSelfYou");
+                        return Localization::getInstance().getString("ActionAddUserSelfYou");
                     }
 
-                    return QObject::tr("ActionAddUserSelf").arg(author);
+                    return Localization::getInstance().getString("ActionAddUserSelf").arg(author);
                 }
 
                 if (isOutgoing)
                 {
-                    return QObject::tr("ActionYouAddUser").arg(getUserName(memberUserId));
+                    return Localization::getInstance().getString("ActionYouAddUser").arg(getUserName(memberUserId));
                 }
 
                 if (detail::isMeUser(memberUserId))
@@ -521,16 +482,16 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     {
                         if (!isChannel)
                         {
-                            return QObject::tr("MegaAddedBy").arg(author);
+                            return Localization::getInstance().getString("MegaAddedBy").arg(author);
                         }
 
-                        return QObject::tr("ChannelAddedBy").arg(author);
+                        return Localization::getInstance().getString("ChannelAddedBy").arg(author);
                     }
 
-                    return QObject::tr("ActionAddUserYou").arg(author);
+                    return Localization::getInstance().getString("ActionAddUserYou").arg(author);
                 }
 
-                return QObject::tr("ActionAddUser").arg(author).arg(getUserName(memberUserId));
+                return Localization::getInstance().getString("ActionAddUser").arg(author).arg(getUserName(memberUserId));
             }
 
             QStringList result;
@@ -543,89 +504,99 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouAddUser").arg(users);
+                return Localization::getInstance().getString("ActionYouAddUser").arg(users);
             }
 
-            return QObject::tr("ActionAddUser").arg(author).arg(users);
+            return Localization::getInstance().getString("ActionAddUser").arg(author).arg(users);
         }
         case fnv::hash("messageChatJoinByLink"): {
             if (isOutgoing)
             {
-                return QObject::tr("ActionInviteYou");
+                return Localization::getInstance().getString("ActionInviteYou");
             }
 
-            return QObject::tr("ActionInviteUser").arg(author);
+            return Localization::getInstance().getString("ActionInviteUser").arg(author);
         }
         case fnv::hash("messageChatDeleteMember"): {
             if (content.value("user_id").toLongLong() == sender.value("user_id").toLongLong())
             {
                 if (isOutgoing)
                 {
-                    return QObject::tr("ActionYouLeftUser");
+                    return Localization::getInstance().getString("ActionYouLeftUser");
                 }
 
-                return QObject::tr("ActionLeftUser").arg(author);
+                return Localization::getInstance().getString("ActionLeftUser").arg(author);
             }
 
             if (isOutgoing)
             {
-                return QObject::tr("ActionYouKickUser").arg(getUserName(content.value("user_id").toLongLong()));
+                return Localization::getInstance().getString("ActionYouKickUser").arg(getUserName(content.value("user_id").toLongLong()));
             }
             else if (detail::isMeUser(content.value("user_id").toLongLong()))
             {
-                return QObject::tr("ActionKickUserYou").arg(author);
+                return Localization::getInstance().getString("ActionKickUserYou").arg(author);
             }
 
-            return QObject::tr("ActionKickUser").arg(author).arg(getUserName(content.value("user_id").toLongLong()));
+            return Localization::getInstance()
+                .getString("ActionKickUser")
+                .arg(author)
+                .arg(getUserName(content.value("user_id").toLongLong()));
         }
         case fnv::hash("messageChatUpgradeTo"): {
-            return QObject::tr("ActionMigrateFromGroup");
+            return Localization::getInstance().getString("ActionMigrateFromGroup");
         }
         case fnv::hash("messageChatUpgradeFrom"): {
-            return QObject::tr("ActionMigrateFromGroup");
+            return Localization::getInstance().getString("ActionMigrateFromGroup");
         }
         case fnv::hash("messagePinMessage"): {
-            return QObject::tr("ActionPinned").arg(author);
+            return Localization::getInstance().getString("ActionPinned").arg(author);
         }
         case fnv::hash("messageScreenshotTaken"): {
             if (isOutgoing)
             {
-                return QObject::tr("ActionTakeScreenshootYou");
+                return Localization::getInstance().getString("ActionTakeScreenshootYou");
             }
 
-            return QObject::tr("ActionTakeScreenshoot").arg(author);
+            return Localization::getInstance().getString("ActionTakeScreenshoot").arg(author);
         }
         case fnv::hash("messageChatSetTtl"): {
-            auto ttlString = detail::getTTLString(content.value("ttl").toInt());
+            auto ttlString = Localization::getInstance().formatTtl(content.value("ttl").toInt());
 
             if (content.value("ttl").toInt() <= 0)
             {
                 if (isOutgoing)
-                    return QObject::tr("MessageLifetimeYouRemoved");
+                    return Localization::getInstance().getString("MessageLifetimeYouRemoved");
 
-                return QObject::tr("MessageLifetimeRemoved").arg(getUserName(sender.value("user_id").toLongLong()));
+                return Localization::getInstance()
+                    .getString("MessageLifetimeRemoved")
+                    .arg(getUserName(sender.value("user_id").toLongLong()));
             }
 
             if (isOutgoing)
-                return QObject::tr("MessageLifetimeChangedOutgoing").arg(ttlString);
+                return Localization::getInstance().getString("MessageLifetimeChangedOutgoing").arg(ttlString);
 
-            return QObject::tr("MessageLifetimeChanged").arg(getUserName(sender.value("user_id").toLongLong())).arg(ttlString);
+            return Localization::getInstance()
+                .getString("MessageLifetimeChanged")
+                .arg(getUserName(sender.value("user_id").toLongLong()))
+                .arg(ttlString);
         }
         case fnv::hash("messageCustomServiceAction"): {
             return content.value("text").toString();
         }
         case fnv::hash("messageContactRegistered"): {
-            return QObject::tr("NotificationContactJoined").arg(getUserName(sender.value("user_id").toLongLong()));
+            return Localization::getInstance()
+                .getString("NotificationContactJoined")
+                .arg(getUserName(sender.value("user_id").toLongLong()));
         }
         case fnv::hash("messageWebsiteConnected"): {
-            return QObject::tr("ActionBotAllowed");
+            return Localization::getInstance().getString("ActionBotAllowed");
         }
         case fnv::hash("messageUnsupported"): {
-            return QObject::tr("UnsupportedMedia");
+            return Localization::getInstance().getString("UnsupportedMedia");
         }
     }
 
-    return QObject::tr("UnsupportedMedia");
+    return Localization::getInstance().getString("UnsupportedMedia");
 }
 
 bool Utils::isServiceMessage(const QVariantMap &message)
@@ -702,7 +673,7 @@ QString Utils::getUserShortName(qint64 userId) noexcept
             return lastName;
     }
     if (userType == "userTypeDeleted" || userType == "userTypeUnknown")
-        return QObject::tr("HiddenName");
+        return Localization::getInstance().getString("HiddenName");
 
     return QString();
 }
@@ -730,13 +701,11 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
     auto days = date.daysTo(QDateTime::currentDateTime());
 
     if (days == 0)
-        return QLocale::system().toString(date.time(), QLocale::ShortFormat);
-    else if (days < 2)
-        return QObject::tr("Yesterday");
+        return date.toString(Localization::getInstance().getString("formatterDay12H"));
     else if (days < 7)
-        return date.toString("dddd");
+        return date.toString("ddd");
 
-    return QLocale::system().toString(date.date(), QLocale::ShortFormat);
+    return date.toString(Localization::getInstance().getString("formatterYear"));
 }
 
 QString Utils::getContent(const QVariantMap &message) noexcept
@@ -764,11 +733,12 @@ QString Utils::getContent(const QVariantMap &message) noexcept
     switch (fnv::hashRuntime(contentType.constData()))
     {
         case fnv::hash("messageAnimation"): {
-            return QObject::tr("AttachGif") % caption;
+            return Localization::getInstance().getString("AttachGif") % caption;
         }
         case fnv::hash("messageAudio"): {
             auto audio = content.value("audio").toMap();
-            auto title = detail::getAudioTitle(audio).isEmpty() ? QObject::tr("AttachMusic") : detail::getAudioTitle(audio);
+            auto title = detail::getAudioTitle(audio).isEmpty() ? Localization::getInstance().getString("AttachMusic")
+                                                                : detail::getAudioTitle(audio);
 
             return title % caption;
         }
@@ -781,7 +751,10 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             auto duration = content.value("duration").toInt();
             if (duration > 0)
             {
-                return QObject::tr("CallMessageWithDuration").arg(text).arg(detail::formatCallDuration(duration));
+                return Localization::getInstance()
+                    .getString("CallMessageWithDuration")
+                    .arg(text)
+                    .arg(Localization::getInstance().formatCallDuration(duration));
             }
 
             return text;
@@ -814,7 +787,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageContact"): {
-            return QObject::tr("AttachContact") % caption;
+            return Localization::getInstance().getString("AttachContact") % caption;
         }
         case fnv::hash("messageContactRegistered"): {
             return Utils::getServiceMessageContent(message);
@@ -830,16 +803,16 @@ QString Utils::getContent(const QVariantMap &message) noexcept
                 return fileName % caption;
             }
 
-            return QObject::tr("AttachDocument") % caption;
+            return Localization::getInstance().getString("AttachDocument") % caption;
         }
         case fnv::hash("messageExpiredPhoto"): {
-            return QObject::tr("AttachPhoto") % caption;
+            return Localization::getInstance().getString("AttachPhoto") % caption;
         }
         case fnv::hash("messageExpiredVideo"): {
-            return QObject::tr("AttachVideo") % caption;
+            return Localization::getInstance().getString("AttachVideo") % caption;
         }
         case fnv::hash("messageGame"): {
-            return QObject::tr("AttachGame") % caption;
+            return Localization::getInstance().getString("AttachGame") % caption;
         }
         case fnv::hash("messageGameScore"): {
             return Utils::getServiceMessageContent(message);
@@ -849,7 +822,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return title % caption;
         }
         case fnv::hash("messageLocation"): {
-            return QObject::tr("AttachLocation").arg(caption);
+            return Localization::getInstance().getString("AttachLocation").arg(caption);
         }
         case fnv::hash("messagePassportDataReceived"): {
             return Utils::getServiceMessageContent(message);
@@ -864,7 +837,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePhoto"): {
-            return QObject::tr("AttachPhoto") % caption;
+            return Localization::getInstance().getString("AttachPhoto") % caption;
         }
         case fnv::hash("messagePoll"): {
             auto poll = content.value("poll").toMap();
@@ -882,7 +855,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             auto sticker = content.value("sticker").toMap();
             auto emoji = sticker.value("emoji").toString();
 
-            return QObject::tr("AttachSticker") % ": " % emoji;
+            return Localization::getInstance().getString("AttachSticker") % ": " % emoji;
         }
         case fnv::hash("messageSupergroupChatCreate"): {
             return Utils::getServiceMessageContent(message);
@@ -894,23 +867,23 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageVenue"): {
-            return QObject::tr("AttachLocation") % caption;
+            return Localization::getInstance().getString("AttachLocation") % caption;
         }
         case fnv::hash("messageVideo"): {
-            return QObject::tr("AttachVideo") % caption;
+            return Localization::getInstance().getString("AttachVideo") % caption;
         }
         case fnv::hash("messageVideoNote"): {
-            return QObject::tr("AttachRound") % caption;
+            return Localization::getInstance().getString("AttachRound") % caption;
         }
         case fnv::hash("messageVoiceNote"): {
-            return QObject::tr("AttachAudio") % caption;
+            return Localization::getInstance().getString("AttachAudio") % caption;
         }
         case fnv::hash("messageWebsiteConnected"): {
             return Utils::getServiceMessageContent(message);
         }
     }
 
-    return QObject::tr("UnsupportedAttachment");
+    return Localization::getInstance().getString("UnsupportedAttachment");
 }
 
 bool Utils::isChatUnread(qint64 chatId) noexcept
@@ -951,7 +924,7 @@ QString Utils::getMessageSenderName(const QVariantMap &message) noexcept
             {
                 case fnv::hash("messageSenderUser"): {
                     if (detail::isMeUser(sender.value("user_id").toLongLong()))
-                        return QObject::tr("FromYou");
+                        return Localization::getInstance().getString("FromYou");
 
                     return getUserShortName(sender.value("user_id").toLongLong());
                 }

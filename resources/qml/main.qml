@@ -35,5 +35,5 @@ PageStackWindow {
             console.debug("Error loading component:", component.errorString());
     }
 
-    Component.onCompleted: tdapi.listen()
+    Component.onCompleted: Api.initialParameters()
 }

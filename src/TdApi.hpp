@@ -13,8 +13,6 @@ class TdApi : public QObject
     Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
 
 public:
-    ~TdApi() = default;
-
     TdApi(const TdApi &) = delete;
     TdApi &operator=(const TdApi &) = delete;
 
@@ -28,7 +26,7 @@ public:
 
     void sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback = {});
 
-    Q_INVOKABLE void log(const QVariantMap &object) noexcept;
+    QVariantMap execute(const QVariantMap &request) const;
 
     bool isAuthorized() const noexcept;
 
@@ -68,6 +66,7 @@ public:
 
 public slots:
     void listen();
+    void initialParameters();
 
 signals:
     void codeRequested(const QVariant &codeInfo);
@@ -194,6 +193,8 @@ private:
     int clientId{};
 
     std::jthread m_worker;
+
+    std::atomic_uint64_t m_requestId;
 
     bool m_isAuthorized{false};
 

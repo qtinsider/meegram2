@@ -1,6 +1,7 @@
 #include "SelectionModel.hpp"
 
 #include "Serialize.hpp"
+#include "Localization.hpp"
 #include "TdApi.hpp"
 
 #include <algorithm>
@@ -145,7 +146,7 @@ void ChatFilterModel::handleChatFilters(const QVariantList &chatFilters)
 {
     QVariantMap chatFilter;
     chatFilter.insert("id", 0);
-    chatFilter.insert("title", tr("FilterAllChats"));
+    chatFilter.insert("title", Localization::getInstance().getString("FilterAllChats"));
 
     beginResetModel();
     m_chatFilters.clear();

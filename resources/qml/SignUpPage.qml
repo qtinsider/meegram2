@@ -25,7 +25,7 @@ Page {
 
             Label {
                 id: title
-                text: qsTr("YourName")
+                text: Localization.getString("YourName")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -42,7 +42,7 @@ Page {
                 spacing: 10
 
                 Label {
-                    text: qsTr("RegisterText2")
+                    text: Localization.getString("RegisterText2")
                 }
 
                 Column {
@@ -53,13 +53,13 @@ Page {
                         id: firstName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("FirstName")
+                        placeholderText: Localization.getString("FirstName")
                     }
                     TextField {
                         id: lastName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("LastName")
+                        placeholderText: Localization.getString("LastName")
                     }
                 }
 
@@ -77,11 +77,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: qsTr("Next")
-                onClicked: tdapi.registerUser(firstName.text, lastName.text)
+                text: Localization.getString("Next")
+                onClicked: Api.registerUser(firstName.text, lastName.text)
             }
             ToolButton {
-                text: qsTrId("Cancel")
+                text: Localization.getString("Cancel")
                 onClicked: {
                     pageStack.pop()
                 }
@@ -109,5 +109,5 @@ Page {
         }
     }
 
-    Component.onCompleted: tdapi.error.connect(function(error) { showInfoBanner(error.message) })
+    Component.onCompleted: Api.error.connect(function(error) { showInfoBanner(error.message) })
 }
