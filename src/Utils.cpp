@@ -491,7 +491,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     return Localization::getInstance().getString("ActionAddUserYou").replace("un1", author);
                 }
 
-                return Localization::getInstance().getString("ActionAddUser").replace("un1", author).replace("un2, getUserName(memberUserId));
+                return Localization::getInstance().getString("ActionAddUser").replace("un1", author).replace("un2", getUserName(memberUserId));
             }
 
             QStringList result;
