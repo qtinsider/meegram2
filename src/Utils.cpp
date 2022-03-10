@@ -362,7 +362,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     return Localization::getInstance().getString("ActionYouSendTTLPhoto");
                 }
 
-                return Localization::getInstance().getString("ActionSendTTLPhoto").arg(author);
+                return Localization::getInstance().getString("ActionSendTTLPhoto").replace("un1", author);
             }
             case fnv::hash("messageVideo"): {
                 if (isOutgoing)
@@ -370,7 +370,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     return Localization::getInstance().getString("ActionYouSendTTLVideo");
                 }
 
-                return Localization::getInstance().getString("ActionSendTTLVideo").arg(author);
+                return Localization::getInstance().getString("ActionSendTTLVideo").replace("un1", author);
             }
         }
     }
@@ -389,7 +389,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionYouCreateGroup");
             }
 
-            return Localization::getInstance().getString("ActionCreateGroup").arg(author);
+            return Localization::getInstance().getString("ActionCreateGroup").replace("un1", author);
         }
         case fnv::hash("messageSupergroupChatCreate"): {
             if (isChannel)
@@ -404,15 +404,15 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
 
             if (isChannel)
             {
-                return Localization::getInstance().getString("ActionChannelChangedTitle").arg(title);
+                return Localization::getInstance().getString("ActionChannelChangedTitle").replace("un2", title);
             }
 
             if (isOutgoing)
             {
-                return Localization::getInstance().getString("ActionYouChangedTitle").arg(title);
+                return Localization::getInstance().getString("ActionYouChangedTitle").replace("un2", title);
             }
 
-            return Localization::getInstance().getString("ActionChangedTitle").arg(author).arg(title);
+            return Localization::getInstance().getString("ActionChangedTitle").replace("un1", author).replace("un2", title);
         }
         case fnv::hash("messageChatChangePhoto"): {
             if (isChannel)
@@ -425,7 +425,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionYouChangedPhoto");
             }
 
-            return Localization::getInstance().getString("ActionChangedPhoto").arg(author);
+            return Localization::getInstance().getString("ActionChangedPhoto").replace("un1", author);
         }
         case fnv::hash("messageChatDeletePhoto"): {
             if (isChannel)
@@ -438,7 +438,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionYouRemovedPhoto");
             }
 
-            return Localization::getInstance().getString("ActionRemovedPhoto").arg(author);
+            return Localization::getInstance().getString("ActionRemovedPhoto").replace("un1", author);
         }
         case fnv::hash("messageChatAddMembers"): {
             auto singleMember = content.value("member_user_ids").toList().length() == 1;
@@ -460,7 +460,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                             return Localization::getInstance().getString("ChannelMegaJoined");
                         }
 
-                        return Localization::getInstance().getString("ActionAddUserSelfMega").arg(author);
+                        return Localization::getInstance().getString("ActionAddUserSelfMega").replace("un1", author);
                     }
 
                     if (isOutgoing)
@@ -468,12 +468,12 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                         return Localization::getInstance().getString("ActionAddUserSelfYou");
                     }
 
-                    return Localization::getInstance().getString("ActionAddUserSelf").arg(author);
+                    return Localization::getInstance().getString("ActionAddUserSelf").replace("un1", author);
                 }
 
                 if (isOutgoing)
                 {
-                    return Localization::getInstance().getString("ActionYouAddUser").arg(getUserName(memberUserId));
+                    return Localization::getInstance().getString("ActionYouAddUser").replace("un2", getUserName(memberUserId));
                 }
 
                 if (detail::isMeUser(memberUserId))
@@ -482,16 +482,16 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     {
                         if (!isChannel)
                         {
-                            return Localization::getInstance().getString("MegaAddedBy").arg(author);
+                            return Localization::getInstance().getString("MegaAddedBy").replace("un1", author);
                         }
 
-                        return Localization::getInstance().getString("ChannelAddedBy").arg(author);
+                        return Localization::getInstance().getString("ChannelAddedBy").replace("un1", author);
                     }
 
-                    return Localization::getInstance().getString("ActionAddUserYou").arg(author);
+                    return Localization::getInstance().getString("ActionAddUserYou").replace("un1", author);
                 }
 
-                return Localization::getInstance().getString("ActionAddUser").arg(author).arg(getUserName(memberUserId));
+                return Localization::getInstance().getString("ActionAddUser").replace("un1", author).replace("un2, getUserName(memberUserId));
             }
 
             QStringList result;
@@ -507,7 +507,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionYouAddUser").arg(users);
             }
 
-            return Localization::getInstance().getString("ActionAddUser").arg(author).arg(users);
+            return Localization::getInstance().getString("ActionAddUser").replace("un1", author).replace("un2", users);
         }
         case fnv::hash("messageChatJoinByLink"): {
             if (isOutgoing)
@@ -515,7 +515,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionInviteYou");
             }
 
-            return Localization::getInstance().getString("ActionInviteUser").arg(author);
+            return Localization::getInstance().getString("ActionInviteUser").replace("un1", author);
         }
         case fnv::hash("messageChatDeleteMember"): {
             if (content.value("user_id").toLongLong() == sender.value("user_id").toLongLong())
@@ -525,22 +525,24 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                     return Localization::getInstance().getString("ActionYouLeftUser");
                 }
 
-                return Localization::getInstance().getString("ActionLeftUser").arg(author);
+                return Localization::getInstance().getString("ActionLeftUser").replace("un1", author);
             }
 
             if (isOutgoing)
             {
-                return Localization::getInstance().getString("ActionYouKickUser").arg(getUserName(content.value("user_id").toLongLong()));
+                return Localization::getInstance()
+                    .getString("ActionYouKickUser")
+                    .replace("un2", getUserName(content.value("user_id").toLongLong()));
             }
             else if (detail::isMeUser(content.value("user_id").toLongLong()))
             {
-                return Localization::getInstance().getString("ActionKickUserYou").arg(author);
+                return Localization::getInstance().getString("ActionKickUserYou").replace("un1", author);
             }
 
             return Localization::getInstance()
                 .getString("ActionKickUser")
-                .arg(author)
-                .arg(getUserName(content.value("user_id").toLongLong()));
+                .replace("un1", author)
+                .replace("un2", getUserName(content.value("user_id").toLongLong()));
         }
         case fnv::hash("messageChatUpgradeTo"): {
             return Localization::getInstance().getString("ActionMigrateFromGroup");
@@ -549,7 +551,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
             return Localization::getInstance().getString("ActionMigrateFromGroup");
         }
         case fnv::hash("messagePinMessage"): {
-            return Localization::getInstance().getString("ActionPinned").arg(author);
+            return Localization::getInstance().getString("ActionPinned").replace("un1", author);
         }
         case fnv::hash("messageScreenshotTaken"): {
             if (isOutgoing)
@@ -557,7 +559,7 @@ QString Utils::getServiceMessageContent(const QVariantMap &message, bool openUse
                 return Localization::getInstance().getString("ActionTakeScreenshootYou");
             }
 
-            return Localization::getInstance().getString("ActionTakeScreenshoot").arg(author);
+            return Localization::getInstance().getString("ActionTakeScreenshoot").replace("un1", author);
         }
         case fnv::hash("messageChatSetTtl"): {
             auto ttlString = Localization::getInstance().formatTtl(content.value("ttl").toInt());
@@ -713,18 +715,11 @@ QString Utils::getContent(const QVariantMap &message) noexcept
     auto content = message.value("content").toMap();
     auto sender = message.value("sender_id").toMap();
 
-    auto textOneLine = [](const QString &text) {
-        auto result = text;
-        result.replace("\n", " ");
-        result.replace("\r", " ");
-        return result;
-    };
+    auto textOneLine = [](QString text) { return text.replace("\n", " ").replace("\r", " "); };
 
     QString caption;
     if (!content.value("caption").toMap().value("text").toString().isEmpty())
-    {
-        caption += ": " % textOneLine(content.value("caption").toMap().value("text").toString());
-    }
+        caption.append(": ").append(textOneLine(content.value("caption").toMap().value("text").toString()));
 
     if (message.value("ttl").toInt() > 0)
         return Utils::getServiceMessageContent(message);
@@ -733,14 +728,14 @@ QString Utils::getContent(const QVariantMap &message) noexcept
     switch (fnv::hashRuntime(contentType.constData()))
     {
         case fnv::hash("messageAnimation"): {
-            return Localization::getInstance().getString("AttachGif") % caption;
+            return Localization::getInstance().getString("AttachGif").append(caption);
         }
         case fnv::hash("messageAudio"): {
             auto audio = content.value("audio").toMap();
             auto title = detail::getAudioTitle(audio).isEmpty() ? Localization::getInstance().getString("AttachMusic")
                                                                 : detail::getAudioTitle(audio);
 
-            return title % caption;
+            return title.append(caption);
         }
         case fnv::hash("messageBasicGroupChatCreate"): {
             return Utils::getServiceMessageContent(message);
@@ -787,7 +782,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageContact"): {
-            return Localization::getInstance().getString("AttachContact") % caption;
+            return Localization::getInstance().getString("AttachContact").append(caption);
         }
         case fnv::hash("messageContactRegistered"): {
             return Utils::getServiceMessageContent(message);
@@ -800,26 +795,26 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             auto fileName = document.value("file_name").toString();
             if (!fileName.isEmpty())
             {
-                return fileName % caption;
+                return fileName.append(caption);
             }
 
-            return Localization::getInstance().getString("AttachDocument") % caption;
+            return Localization::getInstance().getString("AttachDocument").append(caption);
         }
         case fnv::hash("messageExpiredPhoto"): {
-            return Localization::getInstance().getString("AttachPhoto") % caption;
+            return Localization::getInstance().getString("AttachPhoto").append(caption);
         }
         case fnv::hash("messageExpiredVideo"): {
-            return Localization::getInstance().getString("AttachVideo") % caption;
+            return Localization::getInstance().getString("AttachVideo").append(caption);
         }
         case fnv::hash("messageGame"): {
-            return Localization::getInstance().getString("AttachGame") % caption;
+            return Localization::getInstance().getString("AttachGame").append(caption);
         }
         case fnv::hash("messageGameScore"): {
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageInvoice"): {
             auto title = content.value("title").toString();
-            return title % caption;
+            return title.append(caption);
         }
         case fnv::hash("messageLocation"): {
             return Localization::getInstance().getString("AttachLocation").arg(caption);
@@ -837,13 +832,13 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messagePhoto"): {
-            return Localization::getInstance().getString("AttachPhoto") % caption;
+            return Localization::getInstance().getString("AttachPhoto").append(caption);
         }
         case fnv::hash("messagePoll"): {
             auto poll = content.value("poll").toMap();
             auto question = poll.value("question").toString();
 
-            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20") % question;
+            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20").append(question);
         }
         case fnv::hash("messagePinMessage"): {
             return Utils::getServiceMessageContent(message);
@@ -855,7 +850,7 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             auto sticker = content.value("sticker").toMap();
             auto emoji = sticker.value("emoji").toString();
 
-            return Localization::getInstance().getString("AttachSticker") % ": " % emoji;
+            return Localization::getInstance().getString("AttachSticker").append(": ").append(emoji);
         }
         case fnv::hash("messageSupergroupChatCreate"): {
             return Utils::getServiceMessageContent(message);
@@ -867,16 +862,16 @@ QString Utils::getContent(const QVariantMap &message) noexcept
             return Utils::getServiceMessageContent(message);
         }
         case fnv::hash("messageVenue"): {
-            return Localization::getInstance().getString("AttachLocation") % caption;
+            return Localization::getInstance().getString("AttachLocation").append(caption);
         }
         case fnv::hash("messageVideo"): {
-            return Localization::getInstance().getString("AttachVideo") % caption;
+            return Localization::getInstance().getString("AttachVideo").append(caption);
         }
         case fnv::hash("messageVideoNote"): {
-            return Localization::getInstance().getString("AttachRound") % caption;
+            return Localization::getInstance().getString("AttachRound").append(caption);
         }
         case fnv::hash("messageVoiceNote"): {
-            return Localization::getInstance().getString("AttachAudio") % caption;
+            return Localization::getInstance().getString("AttachAudio").append(caption);
         }
         case fnv::hash("messageWebsiteConnected"): {
             return Utils::getServiceMessageContent(message);

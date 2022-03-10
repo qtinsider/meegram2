@@ -153,7 +153,7 @@ TdApi::TdApi()
     td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
 
     initEvents();
-    QTimer::singleShot(1000, this, SLOT(listen()));
+    QTimer::singleShot(30, this, SLOT(listen()));
 }
 
 TdApi &TdApi::getInstance()
@@ -259,173 +259,26 @@ void TdApi::close() noexcept
     loop.exec();
 }
 
-void TdApi::closeSecretChat(qint32 secretChatId)
+
+
+void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
 {
     QVariantMap result;
-    result.insert("@type", "closeSecretChat");
-    result.insert("secret_chat_id", secretChatId);
+    result.insert("@type", "downloadFile");
+    result.insert("file_id", fileId);
+    result.insert("priority", priority);
+    result.insert("offset", offset);
+    result.insert("limit", limit);
+    result.insert("synchronous", synchronous);
 
     sendRequest(result);
 }
 
-void TdApi::createBasicGroupChat(qint32 basicGroupId, bool force)
+void TdApi::setLogVerbosityLevel(qint32 newVerbosityLevel)
 {
     QVariantMap result;
-    result.insert("@type", "createBasicGroupChat");
-    result.insert("basic_group_id", basicGroupId);
-    result.insert("force", force);
-
-    sendRequest(result);
-}
-
-void TdApi::createNewBasicGroupChat(const QVariantList &userIds, const QString &title)
-{
-    QVariantMap result;
-    result.insert("@type", "createNewBasicGroupChat");
-    result.insert("user_ids", userIds);
-    result.insert("title", title);
-
-    sendRequest(result);
-}
-
-void TdApi::createNewSecretChat(qint32 userId)
-{
-    QVariantMap result;
-    result.insert("@type", "createNewSecretChat");
-    result.insert("user_id", userId);
-
-    sendRequest(result);
-}
-
-void TdApi::createNewSupergroupChat(const QString &title, bool isChannel, const QString &description, const QVariantMap &location)
-{
-    QVariantMap result;
-    result.insert("@type", "createNewSupergroupChat");
-    result.insert("title", title);
-    result.insert("is_channel", isChannel);
-    result.insert("description", description);
-    result.insert("location", location);
-
-    sendRequest(result);
-}
-
-void TdApi::createPrivateChat(qint32 userId, bool force)
-{
-    QVariantMap result;
-    result.insert("@type", "createPrivateChat");
-    result.insert("user_id", userId);
-    result.insert("force", force);
-
-    sendRequest(result);
-}
-
-void TdApi::createSecretChat(qint32 secretChatId)
-{
-    QVariantMap result;
-    result.insert("@type", "createSecretChat");
-    result.insert("secret_chat_id", secretChatId);
-
-    sendRequest(result);
-}
-
-void TdApi::createSupergroupChat(qint32 supergroupId, bool force)
-{
-    QVariantMap result;
-    result.insert("@type", "createSupergroupChat");
-    result.insert("supergroup_id", supergroupId);
-    result.insert("force", force);
-
-    sendRequest(result);
-}
-
-void TdApi::deleteChatHistory(qint64 chatId, bool removeFromChatList, bool revoke)
-{
-    QVariantMap result;
-    result.insert("@type", "deleteChatHistory");
-    result.insert("chat_id", chatId);
-    result.insert("remove_from_chat_list", removeFromChatList);
-    result.insert("revoke", revoke);
-
-    sendRequest(result);
-}
-
-void TdApi::deleteMessages(qint64 chatId, const QVariantList &messageIds, bool revoke)
-{
-    QVariantMap result;
-    result.insert("@type", "deleteMessages");
-    result.insert("chat_id", chatId);
-    result.insert("message_ids", messageIds);
-    result.insert("revoke", revoke);
-
-    sendRequest(result);
-}
-
-void TdApi::editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup, const QVariantMap &inputMessageContent)
-{
-    QVariantMap result;
-    result.insert("@type", "editMessageText");
-    result.insert("chat_id", chatId);
-    result.insert("message_id", messageId);
-    result.insert("reply_markup", replyMarkup);
-    result.insert("input_message_content", inputMessageContent);
-
-    sendRequest(result);
-}
-
-void TdApi::getChatFilter(qint32 chatFilterId)
-{
-    QVariantMap result;
-    result.insert("@type", "getChatFilter");
-    result.insert("chat_filter_id", chatFilterId);
-
-    sendRequest(result);
-}
-
-void TdApi::getMessage(qint64 chatId, qint64 messageId)
-{
-    QVariantMap result;
-    result.insert("@type", "getMessage");
-    result.insert("chat_id", chatId);
-    result.insert("message_id", messageId);
-
-    sendRequest(result);
-}
-
-void TdApi::getMessages(qint64 chatId, const QVariantList &messageIds)
-{
-    QVariantMap result;
-    result.insert("@type", "getMessages");
-    result.insert("chat_id", chatId);
-    result.insert("message_ids", messageIds);
-
-    sendRequest(result);
-}
-
-void TdApi::joinChat(qint64 chatId)
-{
-    QVariantMap result;
-    result.insert("@type", "joinChat");
-    result.insert("chat_id", chatId);
-
-    sendRequest(result);
-}
-
-void TdApi::leaveChat(qint64 chatId)
-{
-    QVariantMap result;
-    result.insert("@type", "leaveChat");
-    result.insert("chat_id", chatId);
-
-    sendRequest(result);
-}
-
-void TdApi::sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action)
-{
-    QVariantMap result;
-    result.insert("@type", "sendChatAction");
-    result.insert("chat_id", chatId);
-    result.insert("message_thread_id", messageThreadId);
-    result.insert("action", action);
+    result.insert("@type", "setLogVerbosityLevel");
+    result.insert("new_verbosity_level", newVerbosityLevel);
 
     sendRequest(result);
 }
@@ -458,38 +311,6 @@ void TdApi::setOption(const QString &name, const QVariant &value)
     result.insert("@type", "setOption");
     result.insert("name", name);
     result.insert("value", optionValue);
-
-    sendRequest(result);
-}
-
-void TdApi::toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread)
-{
-    QVariantMap result;
-    result.insert("@type", "toggleChatIsMarkedAsUnread");
-    result.insert("chat_id", chatId);
-    result.insert("is_marked_as_unread", isMarkedAsUnread);
-
-    sendRequest(result);
-}
-
-void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
-{
-    QVariantMap result;
-    result.insert("@type", "downloadFile");
-    result.insert("file_id", fileId);
-    result.insert("priority", priority);
-    result.insert("offset", offset);
-    result.insert("limit", limit);
-    result.insert("synchronous", synchronous);
-
-    sendRequest(result);
-}
-
-void TdApi::setLogVerbosityLevel(qint32 newVerbosityLevel)
-{
-    QVariantMap result;
-    result.insert("@type", "setLogVerbosityLevel");
-    result.insert("new_verbosity_level", newVerbosityLevel);
 
     sendRequest(result);
 }

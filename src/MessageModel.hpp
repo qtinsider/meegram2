@@ -86,7 +86,7 @@ public:
 
     Q_INVOKABLE void viewMessages(const QVariantList &messageIds);
 
-    Q_INVOKABLE void deleteMessage(qint64 messageId) noexcept;
+    Q_INVOKABLE void deleteMessage(qint64 messageId, bool revoke = false) noexcept;
 
     Q_INVOKABLE QVariantMap get(qint64 messageId) const noexcept;
 

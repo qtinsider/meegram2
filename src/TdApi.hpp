@@ -40,29 +40,10 @@ public:
 
     Q_INVOKABLE void close() noexcept;
 
-    Q_INVOKABLE void closeSecretChat(qint32 secretChatId);
-    Q_INVOKABLE void createBasicGroupChat(qint32 basicGroupId, bool force);
-    Q_INVOKABLE void createNewBasicGroupChat(const QVariantList &userIds, const QString &title);
-    Q_INVOKABLE void createNewSecretChat(qint32 userId);
-    Q_INVOKABLE void createNewSupergroupChat(const QString &title, bool isChannel, const QString &description, const QVariantMap &location);
-    Q_INVOKABLE void createPrivateChat(qint32 userId, bool force);
-    Q_INVOKABLE void createSecretChat(qint32 secretChatId);
-    Q_INVOKABLE void createSupergroupChat(qint32 supergroupId, bool force);
-    Q_INVOKABLE void deleteChatHistory(qint64 chatId, bool removeFromChatList, bool revoke);
-    Q_INVOKABLE void deleteMessages(qint64 chatId, const QVariantList &messageIds, bool revoke);
     Q_INVOKABLE void downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous);
-    Q_INVOKABLE void editMessageText(qint64 chatId, qint64 messageId, const QVariantMap &replyMarkup,
-                                     const QVariantMap &inputMessageContent);
-    Q_INVOKABLE void getChatFilter(qint32 chatFilterId);
-    Q_INVOKABLE void getMessage(qint64 chatId, qint64 messageId);
-    Q_INVOKABLE void getMessages(qint64 chatId, const QVariantList &messageIds);
-    Q_INVOKABLE void joinChat(qint64 chatId);
-    Q_INVOKABLE void leaveChat(qint64 chatId);
 
-    Q_INVOKABLE void sendChatAction(qint64 chatId, qint64 messageThreadId, const QVariantMap &action);
     Q_INVOKABLE void setLogVerbosityLevel(qint32 newVerbosityLevel);
     Q_INVOKABLE void setOption(const QString &name, const QVariant &value);
-    Q_INVOKABLE void toggleChatIsMarkedAsUnread(qint64 chatId, bool isMarkedAsUnread);
 
 public slots:
     void listen();

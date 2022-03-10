@@ -517,9 +517,15 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
     TdApi::getInstance().sendRequest(result);
 }
 
-void MessageModel::deleteMessage(qint64 messageId) noexcept
+void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
-    TdApi::getInstance().deleteMessages(m_chatId, QVariantList() << messageId, false);
+    QVariantMap result;
+    result.insert("@type", "deleteMessages");
+    result.insert("chat_id", m_chatId);
+    result.insert("message_ids", QVariantList() << messageId);
+    result.insert("revoke", revoke);
+
+    TdApi::getInstance().sendRequest(result);
 }
 
 QVariantMap MessageModel::get(qint64 messageId) const noexcept
