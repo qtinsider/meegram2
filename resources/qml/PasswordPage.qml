@@ -25,7 +25,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("TwoStepVerification")
+                text: Localization.getString("TwoStepVerification") + Localization.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -43,7 +43,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: Localization.getString("LoginPasswordText")
+                    text: Localization.getString("LoginPasswordText") + Localization.emptyString
                 }
 
                 Item {
@@ -51,14 +51,14 @@ Page {
                 }
 
                 Label {
-                    text: Localization.getString("YourPassword")
+                    text: Localization.getString("YourPassword") + Localization.emptyString
                 }
 
                 TextField {
                     id: password
                     width: parent.width
                     echoMode: TextInput.Password
-                    placeholderText: Localization.getString("Password")
+                    placeholderText: Localization.getString("Password") + Localization.emptyString
                 }
 
                 Label {
@@ -75,11 +75,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next")
+                text: Localization.getString("Next") + Localization.emptyString
                 onClicked: Api.checkPassword(password.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel")
+                text: Localization.getString("Cancel") + Localization.emptyString
                 onClicked: {
                     pageStack.pop()
                 }

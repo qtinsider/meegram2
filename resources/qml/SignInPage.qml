@@ -23,7 +23,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourPhone")
+                text: Localization.getString("YourPhone") + Localization.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -75,7 +75,7 @@ Page {
                 Label {
                     font.pixelSize: 24
                     width: parent.width
-                    text: Localization.getString("StartText")
+                    text: Localization.getString("StartText") + Localization.emptyString
                 }
 
                 Row {
@@ -90,7 +90,7 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next")
+                text: Localization.getString("Next") + Localization.emptyString
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
                         Api.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
@@ -100,7 +100,7 @@ Page {
                 }
             }
             ToolButton {
-                text: Localization.getString("Cancel")
+                text: Localization.getString("Cancel") + Localization.emptyString
                 onClicked: {
                     pageStack.pop()
                 }
@@ -126,7 +126,7 @@ Page {
 
     SelectionDialog {
         id: selectionDialog
-        titleText: Localization.getString("ChooseCountry")
+        titleText: Localization.getString("ChooseCountry") + Localization.emptyString
         selectedIndex: myCountryModel.defaultIndex
         model: CountryModel { id: myCountryModel }
     }

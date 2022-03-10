@@ -25,7 +25,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourName")
+                text: Localization.getString("YourName") + Localization.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -42,7 +42,7 @@ Page {
                 spacing: 10
 
                 Label {
-                    text: Localization.getString("RegisterText2")
+                    text: Localization.getString("RegisterText2") + Localization.emptyString
                 }
 
                 Column {
@@ -53,13 +53,13 @@ Page {
                         id: firstName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("FirstName")
+                        placeholderText: Localization.getString("FirstName") + Localization.emptyString
                     }
                     TextField {
                         id: lastName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("LastName")
+                        placeholderText: Localization.getString("LastName") + Localization.emptyString
                     }
                 }
 
@@ -77,11 +77,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next")
+                text: Localization.getString("Next") + Localization.emptyString
                 onClicked: Api.registerUser(firstName.text, lastName.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel")
+                text: Localization.getString("Cancel") + Localization.emptyString
                 onClicked: {
                     pageStack.pop()
                 }
@@ -105,7 +105,7 @@ Page {
 
             titleText: "Terms of Service"
             message: termsOfService
-            rejectButtonText: "Close"
+            rejectButtonText: Localization.getString("Close") + Localization.emptyString
         }
     }
 

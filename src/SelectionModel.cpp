@@ -1,7 +1,7 @@
 #include "SelectionModel.hpp"
 
-#include "Serialize.hpp"
 #include "Localization.hpp"
+#include "Serialize.hpp"
 #include "TdApi.hpp"
 
 #include <algorithm>
@@ -19,13 +19,9 @@ CountryModel::CountryModel(QObject *parent)
     QVariantMap result;
     result.insert("@type", "getCountries");
 
-    TdApi::getInstance().sendRequest(result ,[this](const auto &value) {
+    TdApi::getInstance().sendRequest(result, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "countries")
         {
-            beginResetModel();
-            m_countries.clear();
-            endResetModel();
-
             beginInsertRows(QModelIndex(), rowCount(), value.count() - 1);
             std::ranges::copy(value.value("countries").toList(), std::back_inserter(m_countries));
             endInsertRows();

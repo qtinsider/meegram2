@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: Localization.getString("ArchivedChats")
+        text: Localization.getString("ArchivedChats") + Localization.emptyString
         isArchived: true
 
         MouseArea { anchors.fill: parent }
@@ -44,7 +44,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: Localization.getString("NoChats")
+        text: Localization.getString("NoChats") + Localization.emptyString
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -70,7 +70,7 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") : Localization.getString("PinFromTop")
+                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") : Localization.getString("PinFromTop")
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
                     populateTimer.restart()
@@ -95,6 +95,6 @@ Page {
 
         interval: 200
         repeat: false
-        onTriggered: { myChatModel.populate() }
+        onTriggered: myChatModel.populate()
     }
 }

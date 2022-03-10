@@ -9,7 +9,6 @@ Page {
     property int length
     property int timeout
 
-    // private api
     property alias __title: codeTitle.text
     property alias __subtitle: codeType.text
     property alias __isNextTypeSms: isNextTypeSms.visible
@@ -31,7 +30,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourCode")
+                text: Localization.getString("YourCode") + Localization.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -59,7 +58,7 @@ Page {
                         id: code
                         width: parent.width
                         inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("Code")
+                        placeholderText: Localization.getString("Code") + Localization.emptyString
 
                         onTextChanged: {
                             if(text.length >= length) {
@@ -83,7 +82,7 @@ Page {
                         font.underline: true
 
                         color: "#0088cc"
-                        text: Localization.getString("DidNotGetTheCodeSms")
+                        text: Localization.getString("DidNotGetTheCodeSms") + Localization.emptyString
 
                         visible: false
 
@@ -133,11 +132,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next")
+                text: Localization.getString("Next") + Localization.emptyString
                 onClicked: Api.checkCode(code.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel")
+                text: Localization.getString("Cancel") + Localization.emptyString
                 onClicked: {
                     pageStack.pop()
                 }
