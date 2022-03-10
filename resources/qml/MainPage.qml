@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: "Chats"
+        text: Localization.getString("FilterChats") + Localization.emptyString
 
         Image {
             anchors {
