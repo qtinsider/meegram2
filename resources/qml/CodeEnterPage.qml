@@ -6,13 +6,12 @@ import com.strawberry.meegram 1.0
 Page {
     id: root
 
-    property int length
-    property int timeout
+    property string phoneNumber: ""
+    property variant type
+    property variant nextType: null
+    property int timeout: 0
 
-    property alias __title: codeTitle.text
-    property alias __subtitle: codeType.text
-    property alias __isNextTypeSms: isNextTypeSms.visible
-    property alias __nextTypeString: nextTypeLabel.text
+    signal cancelClicked
 
     Flickable {
         id: flickable
@@ -48,6 +47,7 @@ Page {
 
                 Label {
                     id: codeTitle
+                    text: getCodeTitle()
                 }
 
                 Column {
@@ -61,7 +61,7 @@ Page {
                         placeholderText: Localization.getString("Code") + Localization.emptyString
 
                         onTextChanged: {
-                            if(text.length >= length) {
+                            if(text.length >= getCodeLength()) {
                                 Api.checkCode(code.text)
                             }
                         }
@@ -71,6 +71,7 @@ Page {
                         id: codeType
                         font.pixelSize: 24
                         width: parent.width
+                        text: getCodeSubtitle()
                     }
 
                     Label {
@@ -84,7 +85,7 @@ Page {
                         color: "#0088cc"
                         text: Localization.getString("DidNotGetTheCodeSms") + Localization.emptyString
 
-                        visible: false
+                        visible: nextType.type === "authenticationCodeTypeSms"
 
                         MouseArea {
                             anchors.fill: parent
@@ -100,6 +101,7 @@ Page {
                             id: nextTypeLabel
                             horizontalAlignment: Text.AlignHCenter
                             font.pointSize: 24
+                            text: getCodeNextTypeString()
                         }
                         Label {
                             id: codeTimeText
@@ -137,56 +139,66 @@ Page {
             }
             ToolButton {
                 text: Localization.getString("Cancel") + Localization.emptyString
-                onClicked: {
-                    pageStack.pop()
-                }
+                onClicked: root.cancelClicked()
             }
         }
     }
 
-    function onCodeRequested(codeInfo) {
-        root.length = codeInfo.length
-        root.timeout = codeInfo.timeout * 1000
-        root.__title = codeInfo.title
-        root.__subtitle = codeInfo.subtitle
-        root.__nextTypeString = codeInfo.nextTypeString
-        root.__isNextTypeSms = codeInfo.isNextTypeSms
+    function getCodeTitle() {
+        if (type.type === "authenticationCodeTypeTelegramMessage") {
+            return Localization.getString("SentAppCodeTitle");
+        }
+        if (type.type === "authenticationCodeTypeCall" || type.type === "authenticationCodeTypeSms") {
+            return Localization.getString("SentSmsCodeTitle");
+        }
+
+        return Localization.getString("Title");
     }
 
-    function onPasswordRequested(passwordInfo) {
-        var component = Qt.createComponent("PasswordPage.qml")
-        if (component.status === Component.Ready) {
-            pageStack.replace(component, { passwordHint: passwordInfo.passwordHint })
-        } else {
-            console.debug("Error loading component:", component.errorString());
+    function getCodeSubtitle() {
+        if (type.type === "authenticationCodeTypeCall") {
+            return Localization.getString("SentCallCode").arg(phoneNumber);
         }
+        if (type.type === "authenticationCodeTypeFlashCall") {
+            return Localization.getString("SentCallOnly").arg(phoneNumber);
+        }
+        if (type.type === "authenticationCodeTypeSms") {
+            return Localization.getString("SentSmsCode").arg(phoneNumber);
+        }
+        if (type.type === "authenticationCodeTypeTelegramMessage") {
+            return Localization.getString("SentAppCode");
+        }
+
+        return "";
     }
 
-    function onRegistrationRequested(termsOfService) {
-        var component = Qt.createComponent("SignUpPage.qml")
-        if (component.status === Component.Ready) {
-            pageStack.replace(component, { termsOfServiceString: termsOfService.text })
-        } else {
-            console.debug("Error loading component:", component.errorString());
+    function getCodeNextTypeString() {
+        if (nextType.type === "authenticationCodeTypeCall") {
+            return Localization.getString("CallText");
         }
+        if (nextType.type === "authenticationCodeTypeSms") {
+            return Localization.getString("SmsText");
+        }
+
+        return "";
+    }
+
+    function getCodeLength() {
+        if (type.type === "authenticationCodeTypeCall") {
+            return type.length;
+        }
+        if (type.type === "authenticationCodeTypeSms") {
+            return type.length;
+        }
+        if (type.type === "authenticationCodeTypeTelegramMessage") {
+            return type.length;
+        }
+
+        return 0;
     }
 
     onTimeoutChanged: {
         codeExpireTimer.start()
         codeTimeText.text = Utils.formatTime(timeout / 1000)
-    }
-
-    Component.onCompleted: {
-        Api.codeRequested.connect(onCodeRequested)
-        Api.passwordRequested.connect(onPasswordRequested)
-        Api.registrationRequested.connect(onRegistrationRequested)
-        Api.error.connect(function(error) { showInfoBanner(error.message) })
-    }
-
-    Component.onDestruction: {
-        Api.codeRequested.disconnect(onCodeRequested)
-        Api.passwordRequested.disconnect(onPasswordRequested)
-        Api.registrationRequested.disconnect(onRegistrationRequested)
-        Api.error.disconnect(function(error) { showInfoBanner(error.message) })
     }
 }

@@ -11,7 +11,7 @@ PageStackWindow {
 
     property bool isPortrait: (screen.currentOrientation === Screen.Landscape) ? false : true
 
-    initialPage: MainPage {}
+    initialPage: introPage
 
     onOrientationChangeFinished: showStatusBar = isPortrait
 
@@ -19,6 +19,19 @@ PageStackWindow {
         id: banner
         y: 36
         z: 100
+    }
+
+    Component {
+        id: mainPage
+        MainPage {
+            id: mainPageItem
+            onToolsChanged: appWindow.pageStack.toolBar.setTools(mainPageItem.tools, "replace")
+        }
+    }
+
+    Component {
+        id: introPage
+        IntroPage { }
     }
 
     function showInfoBanner(message) {
@@ -33,6 +46,11 @@ PageStackWindow {
             pageStack.push(component, { chatId: chatId });
         else
             console.debug("Error loading component:", component.errorString());
+    }
+
+    Connections{
+        target: Api
+        onReady: pageStack.replace(mainPage)
     }
 
     Component.onCompleted: Api.initialParameters()

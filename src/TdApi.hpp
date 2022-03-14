@@ -9,14 +9,28 @@
 class TdApi : public QObject
 {
     Q_OBJECT
-    Q_ENUMS(ChatList)
-    Q_PROPERTY(bool isAuthorized READ isAuthorized NOTIFY isAuthorizedChanged)
+    Q_ENUMS(AuthorizationState ChatList)
+    Q_PROPERTY(TdApi::AuthorizationState authorizationState READ getAuthorizationState NOTIFY authorizationStateChanged)
 
 public:
     TdApi(const TdApi &) = delete;
     TdApi &operator=(const TdApi &) = delete;
 
     static TdApi &getInstance();
+
+    enum AuthorizationState {
+        AuthorizationStateWaitTdlibParameters,
+        AuthorizationStateWaitEncryptionKey,
+        AuthorizationStateWaitPhoneNumber,
+        AuthorizationStateWaitCode,
+        AuthorizationStateWaitOtherDeviceConfirmation,
+        AuthorizationStateWaitRegistration,
+        AuthorizationStateWaitPassword,
+        AuthorizationStateReady,
+        AuthorizationStateLoggingOut,
+        AuthorizationStateClosing,
+        AuthorizationStateClosed,
+    };
 
     enum ChatList {
         ChatListMain,
@@ -28,7 +42,7 @@ public:
 
     QVariantMap execute(const QVariantMap &request) const;
 
-    bool isAuthorized() const noexcept;
+    AuthorizationState getAuthorizationState() const noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
@@ -50,11 +64,15 @@ public slots:
     void initialParameters();
 
 signals:
-    void codeRequested(const QVariant &codeInfo);
-    void passwordRequested(const QVariant &passwordInfo);
-    void registrationRequested(const QVariant &termsOfService);
+    void codeRequested(const QString &phoneNumber, const QVariantMap &type, const QVariantMap &nextType, int timeout);
+    void passwordRequested(const QString &passwordHint, bool hasRecoveryEmailAddress, const QString &recoveryEmailAddressPattern);
+    void registrationRequested(const QString &text, int minUserAge, bool showPopup);
+    void ready();
+    void loggingOut();
 
-    void isAuthorizedChanged();
+    void error(const QString &errorString);
+
+    void authorizationStateChanged(AuthorizationState state);
 
     void updateAuthorizationState(const QVariantMap &authorizationState);
     void updateNewMessage(const QVariantMap &message);
@@ -177,7 +195,7 @@ private:
 
     std::atomic_uint64_t m_requestId;
 
-    bool m_isAuthorized{false};
+    AuthorizationState m_state{AuthorizationStateClosed};
 
     std::unordered_map<std::string, std::function<void(const QVariantMap &)>> m_events;
     std::unordered_map<std::uint64_t, std::function<void(const QVariantMap &)>> m_handlers;

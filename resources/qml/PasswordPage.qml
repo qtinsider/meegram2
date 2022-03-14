@@ -7,6 +7,10 @@ Page {
     id: root
 
     property string passwordHint
+    property bool hasRecoveryEmailAddress
+    property string recoveryEmailAddressPattern
+
+    signal cancelClicked
 
     Flickable {
         id: flickable
@@ -80,13 +84,8 @@ Page {
             }
             ToolButton {
                 text: Localization.getString("Cancel") + Localization.emptyString
-                onClicked: {
-                    pageStack.pop()
-                }
+                onClicked: root.cancelClicked()
             }
         }
     }
-
-    Component.onCompleted: Api.error.connect(function(error) { showInfoBanner(error.message) })
-    Component.onDestruction: Api.error.disconnect(function(error) { showInfoBanner(error.message) })
 }

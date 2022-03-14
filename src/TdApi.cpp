@@ -50,110 +50,13 @@ nlohmann::json fromResponse(const td::td_api::Object &object, int clientId)
 
 }  // namespace
 
-namespace detail {
-
-QString getAuthenticationCodeTitle(const QVariantMap &codeInfo)
-{
-    auto type = codeInfo.value("type").toMap();
-
-    auto codeInfoType = type.value("@type").toByteArray();
-    switch (fnv::hashRuntime(codeInfoType.constData()))
-    {
-        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
-            return Localization::getInstance().getString("SentAppCodeTitle");
-        }
-        case fnv::hash("authenticationCodeTypeCall"):
-        case fnv::hash("authenticationCodeTypeSms"): {
-            return Localization::getInstance().getString("SentSmsCodeTitle");
-        }
-    }
-
-    return "Title";
-}
-
-QString getAuthenticationCodeSubtitle(const QVariantMap &codeInfo)
-{
-    auto phoneNumber = codeInfo.value("phone_number").toString();
-    auto type = codeInfo.value("type").toMap();
-
-    auto codeInfoType = type.value("@type").toByteArray();
-    switch (fnv::hashRuntime(codeInfoType.constData()))
-    {
-        case fnv::hash("authenticationCodeTypeCall"): {
-            return Localization::getInstance().getString("SentCallCode").arg(phoneNumber);
-        }
-        case fnv::hash("authenticationCodeTypeFlashCall"): {
-            return Localization::getInstance().getString("SentCallOnly").arg(phoneNumber);
-        }
-        case fnv::hash("authenticationCodeTypeSms"): {
-            return Localization::getInstance().getString("SentSmsCode").arg(phoneNumber);
-        }
-        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
-            return Localization::getInstance().getString("SentAppCode");
-        }
-    }
-
-    return {};
-}
-
-QString getAuthenticationCodeNextTypeString(const QVariantMap &codeInfo)
-{
-    auto nextType = codeInfo.value("next_type").toMap();
-
-    auto codeInfoType = nextType.value("@type").toByteArray();
-    switch (fnv::hashRuntime(codeInfoType.constData()))
-    {
-        case fnv::hash("authenticationCodeTypeCall"): {
-            return Localization::getInstance().getString("CallText");
-        }
-        case fnv::hash("authenticationCodeTypeSms"): {
-            return Localization::getInstance().getString("SmsText");
-        }
-    }
-
-    return {};
-}
-
-bool getAuthenticationCodeIsNextTypeSms(const QVariantMap &codeInfo)
-{
-    auto codeInfoType = codeInfo.value("next_type").toMap().value("@type").toByteArray();
-
-    return codeInfoType == "authenticationCodeTypeSms";
-}
-
-int getAuthenticationCodeLength(const QVariantMap &codeInfo)
-{
-    auto type = codeInfo.value("type").toMap();
-
-    auto codeInfoType = type.value("@type").toByteArray();
-    switch (fnv::hashRuntime(codeInfoType.constData()))
-    {
-        case fnv::hash("authenticationCodeTypeCall"): {
-            return type.value("length").toInt();
-        }
-        case fnv::hash("authenticationCodeTypeFlashCall"): {
-            return {};
-        }
-        case fnv::hash("authenticationCodeTypeSms"): {
-            return type.value("length").toInt();
-        }
-        case fnv::hash("authenticationCodeTypeTelegramMessage"): {
-            return type.value("length").toInt();
-        }
-    }
-
-    return {};
-}
-
-}  // namespace detail
-
 TdApi::TdApi()
 {
     // disable TDLib logging
     td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
 
     initEvents();
-    QTimer::singleShot(30, this, SLOT(listen()));
+    QTimer::singleShot(0, this, SLOT(listen()));
 }
 
 TdApi &TdApi::getInstance()
@@ -179,9 +82,9 @@ QVariantMap TdApi::execute(const QVariantMap &request) const
     return fromResponse(*td::ClientManager::execute(toRequest(nlohmann::json(request).dump())), 0);
 }
 
-bool TdApi::isAuthorized() const noexcept
+TdApi::AuthorizationState TdApi::getAuthorizationState() const noexcept
 {
-    return m_isAuthorized;
+    return m_state;
 }
 
 void TdApi::checkCode(const QString &code) noexcept
@@ -258,8 +161,6 @@ void TdApi::close() noexcept
     QTimer::singleShot(1000, &loop, SLOT(quit()));
     loop.exec();
 }
-
-
 
 void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
 {
@@ -835,11 +736,13 @@ void TdApi::initialParameters()
 
 void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
 {
-    auto authorizationStateType = authorizationState.value("@type").toByteArray();
+    const auto authorizationStateType = authorizationState.value("@type").toByteArray();
 
     switch (fnv::hashRuntime(authorizationStateType.constData()))
     {
         case fnv::hash("authorizationStateWaitEncryptionKey"): {
+            m_state = AuthorizationStateWaitEncryptionKey;
+
             QVariantMap result;
             result.insert("@type", "checkDatabaseEncryptionKey");
             result.insert("encryption_key", "");
@@ -848,54 +751,66 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
             break;
         }
         case fnv::hash("authorizationStateWaitPhoneNumber"): {
-            emit isAuthorizedChanged();
+            m_state = AuthorizationStateWaitPhoneNumber;
+
             break;
         }
         case fnv::hash("authorizationStateWaitCode"): {
+            m_state = AuthorizationStateWaitCode;
+
             const auto codeInfo = authorizationState.value("code_info").toMap();
 
-            QVariantMap result;
-            result.insert("subtitle", detail::getAuthenticationCodeSubtitle(codeInfo));
-            result.insert("title", detail::getAuthenticationCodeTitle(codeInfo));
-            result.insert("length", detail::getAuthenticationCodeLength(codeInfo));
+            const auto phoneNumber = codeInfo.value("phone_number").toString();
+            const auto timeout = codeInfo.value("timeout").toInt();
 
-            result.insert("isNextTypeSms", detail::getAuthenticationCodeIsNextTypeSms(codeInfo));
-            result.insert("nextTypeString", detail::getAuthenticationCodeNextTypeString(codeInfo));
+            QVariantMap type;
+            QVariantMap nextType;
 
-            result.insert("timeout", codeInfo.value("timeout").toInt());
+            type.insert("type", codeInfo.value("type").toMap().value("@type").toString());
+            type.insert("length", codeInfo.value("type").toMap().value("length").toString());
 
-            emit codeRequested(result);
+            if (!codeInfo.value("next_type").isNull())
+            {
+                nextType.insert("type", codeInfo.value("next_type").toMap().value("@type").toString());
+                nextType.insert("length", codeInfo.value("next_type").toMap().value("length").toString());
+            }
+            emit codeRequested(phoneNumber, type, nextType, timeout);
 
-            emit isAuthorizedChanged();
+            nlohmann::json json(type);
+
+            qDebug() << json.dump(2).c_str();
+
             break;
         }
         case fnv::hash("authorizationStateWaitPassword"): {
+            m_state = AuthorizationStateWaitPassword;
+
             const auto password = authorizationState.value("password").toMap();
 
-            QVariantMap result;
-            result.insert("passwordHint", password.value("password_hint").toString());
-            result.insert("hasRecoveryEmailAddress", password.value("has_recovery_email_address").toBool());
-            result.insert("recoveryEmailAddressPattern", password.value("recovery_email_address_pattern").toString());
+            const auto passwordHint = password.value("password_hint").toString();
+            const auto hasRecoveryEmailAddress = password.value("has_recovery_email_address").toBool();
+            const auto recoveryEmailAddressPattern = password.value("recovery_email_address_pattern").toString();
 
-            emit passwordRequested(result);
+            emit passwordRequested(passwordHint, hasRecoveryEmailAddress, recoveryEmailAddressPattern);
 
-            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateWaitRegistration"): {
+            m_state = AuthorizationStateWaitRegistration;
+
             const auto termsOfService = authorizationState.value("terms_of_service").toMap();
 
-            QVariantMap result;
-            result.insert("text", termsOfService.value("text").toMap().value("text").toString());
-            result.insert("minUserAge", termsOfService.value("min_user_age").toInt());
-            result.insert("showPopup", termsOfService.value("show_popup").toBool());
+            const auto text = termsOfService.value("text").toMap().value("text").toString();
+            const auto minUserAge = termsOfService.value("min_user_age").toInt();
+            const auto showPopup = termsOfService.value("show_popup").toBool();
 
-            emit registrationRequested(result);
+            emit registrationRequested(text, minUserAge, showPopup);
 
-            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateReady"): {
+            m_state = AuthorizationStateReady;
+
             QVariantMap result;
             result.insert("@type", "loadChats");
             result.insert("chat_list", {});
@@ -903,20 +818,22 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
 
             TdApi::getInstance().sendRequest(result);
 
-            m_isAuthorized = true;
+            emit ready();
 
-            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateLoggingOut"): {
-            m_isAuthorized = false;
+            m_state = AuthorizationStateLoggingOut;
 
-            emit isAuthorizedChanged();
             break;
         }
         case fnv::hash("authorizationStateClosed"): {
+            m_state = AuthorizationStateClosed;
+
             m_worker.request_stop();
             break;
         }
     }
+
+    emit authorizationStateChanged(m_state);
 }

@@ -453,8 +453,12 @@ QString Localization::getString(const QString &key) const
     auto result = m_languagePack.value(key);
 
     result.remove(QRegExp("\\$[ds]"));
+
     result.replace(QString::fromUtf8("%%"), QString::fromUtf8("%"));
     result.replace(QString::fromUtf8("%s"), QString::fromUtf8("%1"));
+
+    result.replace(QString::fromUtf8("EEEE"), QString::fromUtf8("dddd"));
+    result.replace(QString::fromUtf8("EEE"), QString::fromUtf8("ddd"));
 
     return result;
 }
@@ -605,6 +609,8 @@ void Localization::processStrings(const QVariantMap &languagePackStrings)
             }
         }
     }
+
+    updatePluralRules();
 }
 
 void Localization::updatePluralRules()

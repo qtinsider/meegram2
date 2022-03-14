@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: Localization.getString("FilterChats") + Localization.emptyString
+        text: Localization.getString("Chats") + Localization.emptyString
 
         Image {
             anchors {
@@ -122,7 +122,7 @@ Page {
         MenuLayout {
 
             MenuItem {
-                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") : Localization.getString("PinFromTop")
+                text: myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") + Localization.emptyString : Localization.getString("PinToTop") + Localization.emptyString
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
                     populateTimer.restart()
@@ -130,7 +130,7 @@ Page {
             }
 
             MenuItem {
-                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isMuted ? Localization.getString("ChatsUnmute") : Localization.getString("ChatsMute")
+                text: myChatModel.get(listView.currentIndex).isMuted ? Localization.getString("ChatsUnmute") + Localization.emptyString : Localization.getString("ChatsMute") + Localization.emptyString
                 onClicked: {
                     myChatModel.toggleChatNotificationSettings(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isMuted);
                     populateTimer.restart()
@@ -139,33 +139,12 @@ Page {
         }
     }
 
-    function onIsAuthorizedChanged() {
-        if (!Api.isAuthorized) {
-            var component = Qt.createComponent("IntroPage.qml")
-            if (component.status === Component.Ready) {
-                pageStack.replace(component)
-            } else {
-                console.debug("Error loading component:", component.errorString());
-            }
-        } else
-            myChatModel.refresh()
-    }
-
     Timer {
         id: populateTimer
 
         interval: 200
         repeat: false
         onTriggered: myChatModel.populate()
-    }
-
-    Timer {
-        id: populateLocale
-
-        interval: 1000
-        repeat: false
-        running: true
-        onTriggered: Localization.languageChanged()
     }
 
     ScrollDecorator {
@@ -184,5 +163,5 @@ Page {
         }
     }
 
-    Component.onCompleted: Api.isAuthorizedChanged.connect(onIsAuthorizedChanged)
+    Component.onCompleted: myChatModel.refresh()
 }

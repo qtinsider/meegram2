@@ -67,20 +67,65 @@ Page {
 
                     platformStyle: ButtonStyle { inverted: true }
 
-                    onClicked: {
-                        var component = Qt.createComponent("SignInPage.qml")
-                        if (component.status === Component.Ready) {
-                            pageStack.push(component)
-                        }
-                    }
+                    onClicked: pageStack.push(signInPageComponent)
                 }
             }
         }
     }
 
-    function onIsAuthorizedChanged() {
-        if (Api.isAuthorized) {}
-        console.log("Introoooooooooooooooooooooooooooooooooooo")
+    Component {
+        id: signInPageComponent
+        SignInPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Component {
+        id: codeEnterPageComponent
+        CodeEnterPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Component {
+        id: passwordPageComponent
+        PasswordPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Component {
+        id: signUpPageComponent
+        SignUpPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Connections {
+        target: Api
+        onCodeRequested: {
+            changePage(codeEnterPageComponent, {
+                                  phoneNumber: phoneNumber,
+                                  type: type,
+                                  nextType: nextType,
+                                  timeout: timeout * 1000})
+        }
+
+        onPasswordRequested: {
+            changePage(passwordPageComponent, {
+                                  passwordHint: passwordHint,
+                                  hasRecoveryEmailAddress: hasRecoveryEmailAddress,
+                                  recoveryEmailAddressPattern: recoveryEmailAddressPattern})
+        }
+
+        onRegistrationRequested: {
+            changePage(signUpPageComponent, {
+                                  text: text,
+                                  minUserAge:minUserAge,
+                                  showPopup: showPopup})
+        }
+
+        onError: appWindow.showBanner(errorString)
     }
 
     AboutDialog {
@@ -101,5 +146,11 @@ Page {
         }
     }
 
-    Component.onCompleted: Api.isAuthorizedChanged.connect(onIsAuthorizedChanged)
+    function changePage(page, prop) {
+        if (pageStack.depth > 1)
+            pageStack.replace(page, prop)
+        else
+            pageStack.push(page, prop)
+    }
+
 }

@@ -6,7 +6,11 @@ import com.strawberry.meegram 1.0
 Page {
     id: root
 
-    property string termsOfServiceString: ""
+    property string text
+    property int minUserAge
+    property bool showPopup
+
+    signal cancelClicked
 
     Flickable {
         id: flickable
@@ -82,32 +86,15 @@ Page {
             }
             ToolButton {
                 text: Localization.getString("Cancel") + Localization.emptyString
-                onClicked: {
-                    pageStack.pop()
-                }
+                onClicked: root.cancelClicked()
             }
         }
     }
 
-    QtObject {
-        id: internal
-        function showTermsOfService() {
-            var dialog = termsOfServiceComponent.createObject(sheet, { termsOfService: termsOfServiceString });
-            dialog.open();
-        }
+    QueryDialog {
+        id: dialog
+        titleText: "Terms of Service"
+        message: termsOfService
+        rejectButtonText: Localization.getString("Close") + Localization.emptyString
     }
-
-    Component {
-        id: termsOfServiceComponent
-
-        QueryDialog {
-            property string termsOfService
-
-            titleText: "Terms of Service"
-            message: termsOfService
-            rejectButtonText: Localization.getString("Close") + Localization.emptyString
-        }
-    }
-
-    Component.onCompleted: Api.error.connect(function(error) { showInfoBanner(error.message) })
 }

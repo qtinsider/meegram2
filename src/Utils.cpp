@@ -705,7 +705,7 @@ QString Utils::getMessageDate(const QVariantMap &message) noexcept
     if (days == 0)
         return date.toString(Localization::getInstance().getString("formatterDay12H"));
     else if (days < 7)
-        return date.toString("ddd");
+        return date.toString(Localization::getInstance().getString("formatterWeek"));
 
     return date.toString(Localization::getInstance().getString("formatterYear"));
 }

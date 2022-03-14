@@ -6,6 +6,8 @@ import com.strawberry.meegram 1.0
 Page {
     id: root
 
+    signal cancelClicked
+
     Flickable {
         id: flickable
         anchors.fill: parent
@@ -101,26 +103,8 @@ Page {
             }
             ToolButton {
                 text: Localization.getString("Cancel") + Localization.emptyString
-                onClicked: {
-                    pageStack.pop()
-                }
+                onClicked: root.cancelClicked()
             }
-        }
-    }
-
-    function onCodeRequested(codeInfo) {
-        var component = Qt.createComponent("CodeEnterPage.qml")
-        if (component.status === Component.Ready) {
-            pageStack.replace(component, {
-                               length: codeInfo.length,
-                               timeout: codeInfo.timeout * 1000,
-                               __title: codeInfo.title,
-                               __subtitle: codeInfo.subtitle,
-                               __nextTypeString: codeInfo.nextTypeString,
-                               __isNextTypeSms: codeInfo.isNextTypeSms,
-                           })
-        } else {
-            console.debug("Error loading component:", component.errorString());
         }
     }
 
@@ -129,15 +113,5 @@ Page {
         titleText: Localization.getString("ChooseCountry") + Localization.emptyString
         selectedIndex: myCountryModel.defaultIndex
         model: CountryModel { id: myCountryModel }
-    }
-
-    Component.onCompleted: {
-        Api.codeRequested.connect(onCodeRequested)
-        Api.error.connect(function(error) { showInfoBanner(error.message) })
-    }
-
-    Component.onDestruction: {
-        Api.codeRequested.disconnect(onCodeRequested);
-        Api.error.disconnect(function(error) { showInfoBanner(error.message) });
     }
 }
