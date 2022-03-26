@@ -22,10 +22,7 @@ Page {
             source: "image://theme/meegotouch-combobox-indicator-inverted"
         }
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: chatFilterDialog.open()
-        }
+        onClicked: chatFilterDialog.open()
     }
 
     Menu {

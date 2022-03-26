@@ -13,8 +13,6 @@ Page {
         id: header
         text: Localization.getString("ArchivedChats") + Localization.emptyString
         isArchived: true
-
-        MouseArea { anchors.fill: parent }
     }
 
     ListView {

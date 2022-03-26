@@ -123,7 +123,7 @@ Item {
         Component {
             id: countBubble
 
-            CustomBubble {
+            MyCountBubble {
                 isMuted: model.isMuted
                 value: model.unreadCount
             }

@@ -8,7 +8,7 @@ class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QVariant chat READ getChat NOTIFY chatChanged)
+    Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
 
@@ -71,30 +71,25 @@ public:
     bool loading() const noexcept;
     bool loadingHistory() const noexcept;
 
-    QVariant getChat() const noexcept;
+    QString getChatId() const noexcept;
+    void setChatId(const QString value) noexcept;
+
     QString getChatSubtitle() const noexcept;
     QString getChatTitle() const noexcept;
 
     Q_INVOKABLE void loadHistory() noexcept;
 
-    Q_INVOKABLE void openChat(qint64 chatId) noexcept;
+    Q_INVOKABLE void openChat() noexcept;
     Q_INVOKABLE void closeChat() noexcept;
-
     Q_INVOKABLE void getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit);
+    Q_INVOKABLE void viewMessages(const QVariantList &messageIds);
+    Q_INVOKABLE void deleteMessage(qint64 messageId, bool revoke = false) noexcept;
 
     Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
 
-    Q_INVOKABLE void viewMessages(const QVariantList &messageIds);
-
-    Q_INVOKABLE void deleteMessage(qint64 messageId, bool revoke = false) noexcept;
-
-    Q_INVOKABLE QVariantMap get(qint64 messageId) const noexcept;
-
-    Q_INVOKABLE int findMessageIndex(qint64 messageId) const noexcept;
-    Q_INVOKABLE int getLastMessageIndex() const noexcept;
-
 signals:
-    void chatChanged();
+    void chatIdChanged();
+
     void countChanged();
     void moreHistoriesLoaded(int modelIndex);
     void statusChanged();
@@ -131,7 +126,7 @@ private:
     QVariantMap m_chat;
     QList<QVariantMap> m_messages;
 
-    qint64 m_chatId{};
+    QString m_chatId{};
 
     bool m_loading{true};
     bool m_loadingHistory{true};

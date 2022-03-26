@@ -13,9 +13,9 @@
         <file>images/outgoing-pressed.png</file>
         <file>qml/components/AboutDialog.qml</file>
         <file>qml/components/ChatItem.qml</file>
-        <file>qml/components/CustomBubble.qml</file>
         <file>qml/components/Icons.qml</file>
         <file>qml/components/MessageBubble.qml</file>
+        <file>qml/components/MyCountBubble.qml</file>
         <file>qml/components/TopBar.qml</file>
         <file>qml/ArchivedChatPage.qml</file>
         <file>qml/CodeEnterPage.qml</file>

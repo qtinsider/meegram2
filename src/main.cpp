@@ -46,9 +46,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterType<LottieAnimation>("com.strawberry.meegram", 1, 0, "LottieAnimation");
 
-    qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
-    qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
-
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
     QScopedPointer<Utils> utils(new Utils);

@@ -10,6 +10,8 @@ Item {
 
     property color __color: isArchived ? "#424345" :  theme.selectionColor
 
+    signal clicked
+
     anchors {
         top: parent.top
         left: parent.left
@@ -45,5 +47,10 @@ Item {
         font.pixelSize: 32
         color: "#ffffff"
         elide: Text.ElideRight
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        onClicked: root.clicked()
     }
 }

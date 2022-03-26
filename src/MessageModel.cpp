@@ -395,9 +395,18 @@ bool MessageModel::loadingHistory() const noexcept
     return m_loadingHistory;
 }
 
-QVariant MessageModel::getChat() const noexcept
+QString MessageModel::getChatId() const noexcept
 {
-    return m_chat;
+    return m_chatId;
+}
+
+void MessageModel::setChatId(const QString value) noexcept
+{
+    if (m_chatId == value)
+        return;
+
+    m_chatId = value;
+    emit chatIdChanged();
 }
 
 QString MessageModel::getChatSubtitle() const noexcept
@@ -429,7 +438,7 @@ QString MessageModel::getChatSubtitle() const noexcept
 
 QString MessageModel::getChatTitle() const noexcept
 {
-    return Utils::getChatTitle(m_chat.value("id").toLongLong());
+    return Utils::getChatTitle(m_chatId.toLongLong());
 }
 
 void MessageModel::loadHistory() noexcept
@@ -444,116 +453,81 @@ void MessageModel::loadHistory() noexcept
     }
 }
 
-void MessageModel::openChat(qint64 chatId) noexcept
+void MessageModel::openChat() noexcept
 {
-    m_chatId = chatId;
-    m_chat = StorageManager::getInstance().getChat(m_chatId);
+    QVariantMap request;
+    request.insert("@type", "openChat");
+    request.insert("chat_id", m_chatId);
 
-    QVariantMap result;
-    result.insert("@type", "openChat");
-    result.insert("chat_id", m_chatId);
-
-    TdApi::getInstance().sendRequest(result);
-
-    emit chatChanged();
-    emit statusChanged();
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::closeChat() noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "closeChat");
-    result.insert("chat_id", m_chatId);
+    QVariantMap request;
+    request.insert("@type", "closeChat");
+    request.insert("chat_id", m_chatId);
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
-    QVariantMap result;
-    result.insert("@type", "getChatHistory");
-    result.insert("chat_id", m_chatId);
-    result.insert("from_message_id", fromMessageId);
-    result.insert("offset", offset);
-    result.insert("limit", limit);
-    result.insert("only_local", false);
+    QVariantMap request;
+    request.insert("@type", "getChatHistory");
+    request.insert("chat_id", m_chatId);
+    request.insert("from_message_id", fromMessageId);
+    request.insert("offset", offset);
+    request.insert("limit", limit);
+    request.insert("only_local", false);
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
-    QVariantMap formattedText;
+    QVariantMap formattedText, inputMessageContent;
     formattedText.insert("@type", "formattedText");
     formattedText.insert("text", message);
 
-    QVariantMap inputMessageContent;
     inputMessageContent.insert("@type", "inputMessageText");
     inputMessageContent.insert("text", formattedText);
 
-    QVariantMap result;
-    result.insert("@type", "sendMessage");
-    result.insert("chat_id", m_chatId);
+    QVariantMap request;
+    request.insert("@type", "sendMessage");
+    request.insert("chat_id", m_chatId);
 
     if (replyToMessageId != 0)
     {
-        result.insert("reply_to_message_id", replyToMessageId);
+        request.insert("reply_to_message_id", replyToMessageId);
     }
 
-    result.insert("input_message_content", inputMessageContent);
+    request.insert("input_message_content", inputMessageContent);
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::viewMessages(const QVariantList &messageIds)
 {
-    QVariantMap result;
-    result.insert("@type", "viewMessages");
-    result.insert("chat_id", m_chatId);
-    result.insert("message_thread_id", 0);
-    result.insert("message_ids", messageIds);
-    result.insert("force_read", true);
+    QVariantMap request;
+    request.insert("@type", "viewMessages");
+    request.insert("chat_id", m_chatId);
+    request.insert("message_thread_id", 0);
+    request.insert("message_ids", messageIds);
+    request.insert("force_read", true);
 
-    TdApi::getInstance().sendRequest(result);
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "deleteMessages");
-    result.insert("chat_id", m_chatId);
-    result.insert("message_ids", QVariantList() << messageId);
-    result.insert("revoke", revoke);
+    QVariantMap request;
+    request.insert("@type", "deleteMessages");
+    request.insert("chat_id", m_chatId);
+    request.insert("message_ids", QVariantList() << messageId);
+    request.insert("revoke", revoke);
 
-    TdApi::getInstance().sendRequest(result);
-}
-
-QVariantMap MessageModel::get(qint64 messageId) const noexcept
-{
-    auto index = findMessageIndex(messageId);
-    return m_messages.value(index);
-}
-
-int MessageModel::findMessageIndex(qint64 messageId) const noexcept
-{
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
-
-    if (it != m_messages.end())
-    {
-        auto index = std::distance(m_messages.begin(), it);
-        return static_cast<int>(index);
-    }
-
-    return -1;
-}
-
-int MessageModel::getLastMessageIndex() const noexcept
-{
-    auto unread = m_chat.value("unread_count").toInt() > 0;
-    auto fromMessageId =
-        unread ? m_chat.value("last_read_inbox_message_id").toLongLong() : m_chat.value("last_message").toMap().value("id").toLongLong();
-
-    return findMessageIndex(fromMessageId);
+    TdApi::getInstance().sendRequest(request);
 }
 
 void MessageModel::refresh() noexcept
@@ -574,7 +548,7 @@ void MessageModel::refresh() noexcept
 
 void MessageModel::handleNewMessage(const QVariantMap &message)
 {
-    if (m_chatId != message.value("chat_id").toLongLong())
+    if (m_chatId != message.value("chat_id").toString())
         return;
 
     if (auto lastMessageId = m_chat.value("last_message").toMap().value("id").toLongLong(); m_messageIds.contains(lastMessageId))
@@ -600,7 +574,7 @@ void MessageModel::handleMessageSendFailed(const QVariantMap &message, qint64 ol
 
 void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const QVariantMap &newContent)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
@@ -616,7 +590,7 @@ void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const Q
 
 void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, const QVariantMap &replyMarkup)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
@@ -633,7 +607,7 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
 
 void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
@@ -649,7 +623,7 @@ void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool i
 
 void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, const QVariantMap &interactionInfo)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message.value("id").toLongLong() == messageId; });
@@ -665,49 +639,55 @@ void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId,
 
 void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messageIds, bool isPermanent, bool fromCache)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     QListIterator<QVariant> it(messageIds);
     while (it.hasNext())
     {
-        auto index = findMessageIndex(it.next().toLongLong());
+        auto result = std::ranges::find_if(m_messages,
+                                           [&](const auto &message) { return message.value("id").toLongLong() == it.next().toLongLong(); });
 
-        beginRemoveRows(QModelIndex(), index, index);
-        m_messages.removeAt(index);
-        endRemoveRows();
+        if (result != m_messages.end())
+        {
+            auto index = std::distance(m_messages.begin(), result);
+
+            beginRemoveRows(QModelIndex(), index, index);
+            m_messages.removeAt(index);
+            endRemoveRows();
+        }
     }
 }
 
 void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount)
 {
-    if (chatId == m_chatId)
+    if (chatId == m_chatId.toLongLong())
     {
         m_chat.insert("online_member_count", onlineMemberCount);
 
-        emit chatChanged();
+        emit chatIdChanged();
         emit statusChanged();
     }
 }
 
 void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
 {
-    if (chatId == m_chatId)
+    if (chatId == m_chatId.toLongLong())
     {
         m_chat.insert("last_read_inbox_message_id", lastReadInboxMessageId);
         m_chat.insert("unread_count", unreadCount);
 
-        emit chatChanged();
+        emit chatIdChanged();
     }
 }
 
 void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId)
 {
-    if (chatId != m_chatId)
+    if (chatId != m_chatId.toLongLong())
         return;
 
     m_chat.insert("last_read_outbox_message_id", lastReadOutboxMessageId);
-    emit chatChanged();
+    emit chatIdChanged();
 }
 
 void MessageModel::handleMessages(const QVariantMap &messages)
@@ -717,7 +697,7 @@ void MessageModel::handleMessages(const QVariantMap &messages)
     QVariantList result;
     std::ranges::copy_if(list, std::back_inserter(result), [this](const auto &message) {
         return !m_messageIds.contains(message.toMap().value("id").toLongLong()) &&
-               message.toMap().value("chat_id").toLongLong() == m_chatId;
+               message.toMap().value("chat_id").toString() == m_chatId;
     });
 
     if (result.isEmpty())

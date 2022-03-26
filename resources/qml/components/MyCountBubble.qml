@@ -6,9 +6,9 @@ Item {
 
     property bool isMuted: false
 
-    property int value: 0
+    property string value: ""
 
-    implicitWidth: internal.getBubbleWidth()
+    implicitWidth: text.paintedWidth + 19
     implicitHeight: 32
 
     BorderImage {
@@ -27,21 +27,5 @@ Item {
         verticalAlignment: Text.AlignVCenter
         font.pixelSize: 22
         text: root.value
-    }
-
-    QtObject {
-        id: internal
-
-        function getBubbleWidth() {
-            if (root.value < 10)
-                return 32;
-            else if (root.value < 100)
-                return 40;
-            else if (root.value < 1000)
-                return 52;
-            else
-                return text.paintedWidth + 19
-
-        }
     }
 }

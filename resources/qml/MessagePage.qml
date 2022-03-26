@@ -6,7 +6,8 @@ import "components"
 Page {
     id: root
 
-    property string chatId: ""
+    property alias chatId: myMessageModel.chatId
+
     property int replyMessageId: 0
     property int editMessageId: 0
 
@@ -374,6 +375,6 @@ Page {
         }
     }
 
-    Component.onCompleted: myMessageModel.openChat(chatId)
+    Component.onCompleted: myMessageModel.openChat()
     Component.onDestruction: myMessageModel.closeChat()
 }

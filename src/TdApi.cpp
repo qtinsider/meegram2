@@ -55,6 +55,9 @@ TdApi::TdApi()
     // disable TDLib logging
     td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
 
+    qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
+    qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
+
     initEvents();
     QTimer::singleShot(0, this, SLOT(listen()));
 }

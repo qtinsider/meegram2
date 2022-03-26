@@ -518,11 +518,11 @@ QString Localization::formatTtl(int ttl) const
 
 void Localization::loadLanguage()
 {
-    QVariantMap result;
-    result.insert("@type", "getLanguagePackStrings");
-    result.insert("language_pack_id", QLocale::system().name().left(2));
+    QVariantMap request;
+    request.insert("@type", "getLanguagePackStrings");
+    request.insert("language_pack_id", "en");
 
-    TdApi::getInstance().sendRequest(result, [this](const auto &value) { processStrings(value); });
+    TdApi::getInstance().sendRequest(request, [this](const auto &value) { processStrings(value); });
 
     updatePluralRules();
 }

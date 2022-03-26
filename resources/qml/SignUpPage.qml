@@ -67,11 +67,12 @@ Page {
                     }
                 }
 
+                // TODO(strawberry): refactor
                 Label {
                     width: parent.width
                     text: "<style type=text/css> a { text-decoration: none; color: #0088cc } </style>By signing up,<br>you agree to the <a href='http://www.telegram.com'>Terms of Service.</a>"
                     font.pixelSize: 24
-                    onLinkActivated: internal.showTermsOfService()
+                    onLinkActivated: dialog.open()
                     horizontalAlignment: Text.AlignHCenter
                 }
             }
@@ -93,8 +94,8 @@ Page {
 
     QueryDialog {
         id: dialog
-        titleText: "Terms of Service"
-        message: termsOfService
+        titleText: Localization.getString("TermsOfService") + Localization.emptyString
+        message: Localization.getString("TermsOfServiceLogin") + Localization.emptyString
         rejectButtonText: Localization.getString("Close") + Localization.emptyString
     }
 }

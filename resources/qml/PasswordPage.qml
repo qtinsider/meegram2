@@ -69,7 +69,7 @@ Page {
                     id: hint
                     width: parent.width
                     font.pixelSize: 24
-                    text: "<b>Password hint:</b> <span style=\"color: #999\">(%1)</span>".arg(passwordHint)
+                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(Localization.getString("PasswordHint")).arg(passwordHint)
                     visible: passwordHint !== ""
                 }
             }

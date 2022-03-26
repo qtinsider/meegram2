@@ -70,7 +70,7 @@ Page {
                     TextField {
                         id: phoneNumber
                         inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
-                        placeholderText: "Phone number"
+                        placeholderText: Localization.getString("PhoneNumberSearch") + Localization.emptyString
                     }
                 }
 

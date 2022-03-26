@@ -10,10 +10,6 @@ Page {
     TopBar {
         id: header
         text: Localization.getString("SETTINGS") + Localization.emptyString
-
-        MouseArea {
-            anchors.fill: parent
-        }
     }
 
     Flickable {
