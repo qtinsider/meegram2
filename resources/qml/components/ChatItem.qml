@@ -104,7 +104,7 @@ Item {
 
             anchors { verticalCenter: parent.verticalCenter; right: parent.right }
 
-            sourceComponent: model.unreadCount > 0 ? countBubble : model.isPinned ? pinnedBubble : moreIndicator
+            sourceComponent: model.unreadCount > 0 ? countBubble : model.isPinned ? pinnedBubble : undefined
         }
 
         Loader {
@@ -127,12 +127,6 @@ Item {
                 isMuted: model.isMuted
                 value: model.unreadCount
             }
-        }
-
-        Component {
-            id: moreIndicator
-
-            MoreIndicator {}
         }
 
         Component {
