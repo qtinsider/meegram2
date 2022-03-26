@@ -70,7 +70,7 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: Localization.emptyString + myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") : Localization.getString("PinToTop")
+                text: myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") + Localization.emptyString : Localization.getString("PinToTop") + Localization.emptyString
                 onClicked: {
                     myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
                     populateTimer.restart()
