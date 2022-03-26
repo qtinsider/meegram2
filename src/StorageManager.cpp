@@ -395,7 +395,7 @@ void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positio
 {
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
-        QVariantList result(it->second.value("positions").toList());
+        auto result = it->second.value("positions").toList();
 
         std::ranges::for_each(positions, [&result](const auto &position) {
             result.erase(std::remove_if(result.begin(), result.end(),

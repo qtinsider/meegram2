@@ -16,86 +16,91 @@ Page {
         MouseArea { anchors.fill: parent }
     }
 
-    Item {
-        id: signInInfo
-
-        anchors {
-            top: header.bottom
-            left: parent.left
-            right: parent.right
-            bottom: parent.bottom
+    Loader {
+        id: loader
+        anchors { fill: parent; topMargin: header.height; }
+        sourceComponent: Item {
+            anchors.fill: parent
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: true
+                platformStyle: BusyIndicatorStyle { size: "large" }
+            }
         }
+    }
 
-        clip: true
-
-        Column {
-            id: signInInfoColumn
-
-            anchors{
-                top: parent.top
-                topMargin: 30
-                left: parent.left
-                right: parent.right
-            }
-
-            spacing: 16
-
-            Text {
-                anchors{
-                    left: parent.left
-                    right: parent.right
-                    leftMargin: 24
-                    rightMargin: 24
-                }
-
-                text: "Different, Handy, Powerful"
-                wrapMode: Text.WordWrap
-
-                font.pixelSize: 30
-                color: "#777777"
-
-                horizontalAlignment: Text.AlignHCenter
-            }
+    Component {
+        id: infoComponent
+        Item {
+            anchors.fill: parent
 
             Column {
-                anchors.horizontalCenter: parent.horizontalCenter
+                anchors{
+                    top: parent.top
+                    topMargin: 30
+                    left: parent.left
+                    right: parent.right
+                }
 
                 spacing: 16
 
-                Button {
-                    text: Localization.getString("StartMessaging") + Localization.emptyString
+                Text {
+                    anchors{
+                        left: parent.left
+                        right: parent.right
+                        leftMargin: 24
+                        rightMargin: 24
+                    }
 
-                    platformStyle: ButtonStyle { inverted: true }
+                    text: "Different, Handy, Powerful"
+                    wrapMode: Text.WordWrap
 
-                    onClicked: pageStack.push(signInPageComponent)
+                    font.pixelSize: 30
+                    color: "#777777"
+
+                    horizontalAlignment: Text.AlignHCenter
+                }
+
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
+
+                    spacing: 16
+
+                    Button {
+                        text: Localization.getString("StartMessaging") + Localization.emptyString
+
+                        platformStyle: ButtonStyle { inverted: true }
+
+                        onClicked: pageStack.push(signInPage)
+                    }
                 }
             }
         }
     }
 
     Component {
-        id: signInPageComponent
+        id: signInPage
         SignInPage {
             onCancelClicked: pageStack.pop()
         }
     }
 
     Component {
-        id: codeEnterPageComponent
+        id: codeEnterPage
         CodeEnterPage {
             onCancelClicked: pageStack.pop()
         }
     }
 
     Component {
-        id: passwordPageComponent
+        id: passwordPage
         PasswordPage {
             onCancelClicked: pageStack.pop()
         }
     }
 
     Component {
-        id: signUpPageComponent
+        id: signUpPage
         SignUpPage {
             onCancelClicked: pageStack.pop()
         }
@@ -104,25 +109,25 @@ Page {
     Connections {
         target: Api
         onCodeRequested: {
-            changePage(codeEnterPageComponent, {
-                                  phoneNumber: phoneNumber,
-                                  type: type,
-                                  nextType: nextType,
-                                  timeout: timeout * 1000})
+            internal.changePage(codeEnterPage, {
+                                    phoneNumber: phoneNumber,
+                                    type: type,
+                                    nextType: nextType,
+                                    timeout: timeout * 1000})
         }
 
         onPasswordRequested: {
-            changePage(passwordPageComponent, {
-                                  passwordHint: passwordHint,
-                                  hasRecoveryEmailAddress: hasRecoveryEmailAddress,
-                                  recoveryEmailAddressPattern: recoveryEmailAddressPattern})
+            internal.changePage(passwordPage, {
+                                    passwordHint: passwordHint,
+                                    hasRecoveryEmailAddress: hasRecoveryEmailAddress,
+                                    recoveryEmailAddressPattern: recoveryEmailAddressPattern})
         }
 
         onRegistrationRequested: {
-            changePage(signUpPageComponent, {
-                                  text: text,
-                                  minUserAge:minUserAge,
-                                  showPopup: showPopup})
+            internal.changePage(signUpPage, {
+                                    text: text,
+                                    minUserAge:minUserAge,
+                                    showPopup: showPopup})
         }
 
         onError: appWindow.showBanner(errorString)
@@ -146,11 +151,24 @@ Page {
         }
     }
 
-    function changePage(page, prop) {
-        if (pageStack.depth > 1)
-            pageStack.replace(page, prop)
-        else
-            pageStack.push(page, prop)
+    Timer {
+        id: delayInfoTimer
+
+        interval: 2000
+        repeat: false
+        onTriggered: loader.sourceComponent = infoComponent;
     }
 
+    QtObject {
+        id:internal
+
+        function changePage(page, prop) {
+            if (pageStack.depth > 1)
+                pageStack.replace(page, prop)
+            else
+                pageStack.push(page, prop)
+        }
+    }
+
+    Component.onCompleted: delayInfoTimer.restart()
 }

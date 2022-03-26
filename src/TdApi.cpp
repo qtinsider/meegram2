@@ -65,7 +65,7 @@ TdApi &TdApi::getInstance()
     return staticObject;
 }
 
-void TdApi::sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback)
+void TdApi::sendRequest(const QVariantMap &request, std::function<void(const QVariantMap &)> callback)
 {
     auto requestId = m_requestId.fetch_add(1, std::memory_order_relaxed);
     if (callback)
@@ -73,13 +73,7 @@ void TdApi::sendRequest(const QVariantMap &object, std::function<void(const QVar
         m_handlers.emplace(requestId, std::move(callback));
     }
 
-    auto request = toRequest(nlohmann::json(object).dump());
-    td::ClientManager::get_manager_singleton()->send(clientId, requestId, std::move(request));
-}
-
-QVariantMap TdApi::execute(const QVariantMap &request) const
-{
-    return fromResponse(*td::ClientManager::execute(toRequest(nlohmann::json(request).dump())), 0);
+    td::ClientManager::get_manager_singleton()->send(clientId, requestId, toRequest(nlohmann::json(request).dump()));
 }
 
 TdApi::AuthorizationState TdApi::getAuthorizationState() const noexcept
@@ -89,72 +83,72 @@ TdApi::AuthorizationState TdApi::getAuthorizationState() const noexcept
 
 void TdApi::checkCode(const QString &code) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "checkAuthenticationCode");
-    result.insert("code", code);
+    QVariantMap request;
+    request.insert("@type", "checkAuthenticationCode");
+    request.insert("code", code);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::checkPassword(const QString &password) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "checkAuthenticationPassword");
-    result.insert("password", password);
+    QVariantMap request;
+    request.insert("@type", "checkAuthenticationPassword");
+    request.insert("password", password);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::logOut() noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "logOut");
+    QVariantMap request;
+    request.insert("@type", "logOut");
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::registerUser(const QString &firstName, const QString &lastName) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "registerUser");
-    result.insert("first_name", firstName);
-    result.insert("last_name", lastName);
+    QVariantMap request;
+    request.insert("@type", "registerUser");
+    request.insert("first_name", firstName);
+    request.insert("last_name", lastName);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::setPhoneNumber(const QString &phoneNumber) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "setAuthenticationPhoneNumber");
-    result.insert("phone_number", phoneNumber);
+    QVariantMap request;
+    request.insert("@type", "setAuthenticationPhoneNumber");
+    request.insert("phone_number", phoneNumber);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::resendCode() noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "resendAuthenticationCode");
+    QVariantMap request;
+    request.insert("@type", "resendAuthenticationCode");
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::deleteAccount(const QString &reason) noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "deleteAccount");
-    result.insert("reason", reason);
+    QVariantMap request;
+    request.insert("@type", "deleteAccount");
+    request.insert("reason", reason);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::close() noexcept
 {
-    QVariantMap result;
-    result.insert("@type", "close");
+    QVariantMap request;
+    request.insert("@type", "close");
 
-    sendRequest(result);
+    sendRequest(request);
 
     // 1 sec delay
     QEventLoop loop;
@@ -164,24 +158,24 @@ void TdApi::close() noexcept
 
 void TdApi::downloadFile(qint32 fileId, qint32 priority, qint32 offset, qint32 limit, bool synchronous)
 {
-    QVariantMap result;
-    result.insert("@type", "downloadFile");
-    result.insert("file_id", fileId);
-    result.insert("priority", priority);
-    result.insert("offset", offset);
-    result.insert("limit", limit);
-    result.insert("synchronous", synchronous);
+    QVariantMap request;
+    request.insert("@type", "downloadFile");
+    request.insert("file_id", fileId);
+    request.insert("priority", priority);
+    request.insert("offset", offset);
+    request.insert("limit", limit);
+    request.insert("synchronous", synchronous);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::setLogVerbosityLevel(qint32 newVerbosityLevel)
 {
-    QVariantMap result;
-    result.insert("@type", "setLogVerbosityLevel");
-    result.insert("new_verbosity_level", newVerbosityLevel);
+    QVariantMap request;
+    request.insert("@type", "setLogVerbosityLevel");
+    request.insert("new_verbosity_level", newVerbosityLevel);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::setOption(const QString &name, const QVariant &value)
@@ -208,12 +202,12 @@ void TdApi::setOption(const QString &name, const QVariant &value)
             optionValue.insert("value", QVariant());
     }
 
-    QVariantMap result;
-    result.insert("@type", "setOption");
-    result.insert("name", name);
-    result.insert("value", optionValue);
+    QVariantMap request;
+    request.insert("@type", "setOption");
+    request.insert("name", name);
+    request.insert("value", optionValue);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::listen()
@@ -727,11 +721,11 @@ void TdApi::initialParameters()
     parameters.insert("system_version", SystemVersion);
     parameters.insert("application_version", AppVersion);
 
-    QVariantMap result;
-    result.insert("@type", "setTdlibParameters");
-    result.insert("parameters", parameters);
+    QVariantMap request;
+    request.insert("@type", "setTdlibParameters");
+    request.insert("parameters", parameters);
 
-    sendRequest(result);
+    sendRequest(request);
 }
 
 void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
@@ -743,11 +737,11 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
         case fnv::hash("authorizationStateWaitEncryptionKey"): {
             m_state = AuthorizationStateWaitEncryptionKey;
 
-            QVariantMap result;
-            result.insert("@type", "checkDatabaseEncryptionKey");
-            result.insert("encryption_key", "");
+            QVariantMap request;
+            request.insert("@type", "checkDatabaseEncryptionKey");
+            request.insert("encryption_key", "");
 
-            sendRequest(result);
+            sendRequest(request);
             break;
         }
         case fnv::hash("authorizationStateWaitPhoneNumber"): {
@@ -774,11 +768,8 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
                 nextType.insert("type", codeInfo.value("next_type").toMap().value("@type").toString());
                 nextType.insert("length", codeInfo.value("next_type").toMap().value("length").toString());
             }
+
             emit codeRequested(phoneNumber, type, nextType, timeout);
-
-            nlohmann::json json(type);
-
-            qDebug() << json.dump(2).c_str();
 
             break;
         }
@@ -811,12 +802,12 @@ void TdApi::handleAuthorizationState(const QVariantMap &authorizationState)
         case fnv::hash("authorizationStateReady"): {
             m_state = AuthorizationStateReady;
 
-            QVariantMap result;
-            result.insert("@type", "loadChats");
-            result.insert("chat_list", {});
-            result.insert("limit", ChatSliceLimit);
+            QVariantMap request;
+            request.insert("@type", "loadChats");
+            request.insert("chat_list", {});
+            request.insert("limit", ChatSliceLimit);
 
-            TdApi::getInstance().sendRequest(result);
+            TdApi::getInstance().sendRequest(request);
 
             emit ready();
 

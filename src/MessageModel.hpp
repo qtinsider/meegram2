@@ -119,7 +119,6 @@ private slots:
     void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
     void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
 
-    void handleMessage(const QVariantMap &message);
     void handleMessages(const QVariantMap &messages);
 
     void loadMessages() noexcept;

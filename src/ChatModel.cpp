@@ -389,12 +389,12 @@ void ChatModel::loadChats()
             break;
     }
 
-    QVariantMap result;
-    result.insert("@type", "loadChats");
-    result.insert("chat_list", m_list);
-    result.insert("limit", ChatSliceLimit);
+    QVariantMap request;
+    request.insert("@type", "loadChats");
+    request.insert("chat_list", m_list);
+    request.insert("limit", ChatSliceLimit);
 
-    TdApi::getInstance().sendRequest(result, [this](const auto &value) {
+    TdApi::getInstance().sendRequest(request, [this](const auto &value) {
         if (value.value("code").toInt() == 404)
         {
             m_loading = false;

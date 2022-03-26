@@ -710,10 +710,6 @@ void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMess
     emit chatChanged();
 }
 
-void MessageModel::handleMessage(const QVariantMap &message)
-{
-}
-
 void MessageModel::handleMessages(const QVariantMap &messages)
 {
     const auto list = messages.value("messages").toList();

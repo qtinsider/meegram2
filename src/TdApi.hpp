@@ -38,9 +38,7 @@ public:
         ChatListFilter,
     };
 
-    void sendRequest(const QVariantMap &object, std::function<void(const QVariantMap &)> callback = {});
-
-    QVariantMap execute(const QVariantMap &request) const;
+    void sendRequest(const QVariantMap &request, std::function<void(const QVariantMap &)> callback = {});
 
     AuthorizationState getAuthorizationState() const noexcept;
 
