@@ -193,8 +193,6 @@ MessageModel::MessageModel(QObject *parent)
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadInbox(qint64, qint64, int)), SLOT(handleChatReadInbox(qint64, qint64, int)));
     connect(&TdApi::getInstance(), SIGNAL(updateChatReadOutbox(qint64, qint64)), SLOT(handleChatReadOutbox(qint64, qint64)));
 
-    QTimer::singleShot(1000, this, SLOT(loadMessages()));
-
     setRoleNames(roleNames());
 }
 
@@ -281,12 +279,12 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case DateRole: {
             auto date = QDateTime::fromMSecsSinceEpoch(message.value("date").toLongLong() * 1000);
 
-            return QLocale::system().toString(date.time(), QLocale::ShortFormat);
+            return date.toString(Localization::getInstance().getString("formatterDay12H"));
         }
         case EditDateRole: {
             auto date = QDateTime::fromMSecsSinceEpoch(message.value("edit_date").toLongLong() * 1000);
 
-            return QLocale::system().toString(date.time(), QLocale::ShortFormat);
+            return date.toString(Localization::getInstance().getString("formatterDay12H"));
         }
         case ForwardInfoRole:
             return message.value("forward_info").toMap();
@@ -326,11 +324,11 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             const auto days = date.daysTo(QDateTime::currentDateTime());
 
             if (days == 0)
-                return tr("Today");
+                return Localization::getInstance().getString("Today");
             else if (days < 2)
-                return tr("Yesterday");
+                return Localization::getInstance().getString("Yesterday");
 
-            return QLocale::system().toString(date.date(), "dddd, d MMMM yyyy");
+            return date.toString(Localization::getInstance().getString("chatFullDate"));
         }
         case ServiceMessageRole: {
             return Utils::getServiceMessageContent(message, true);
@@ -400,13 +398,19 @@ QString MessageModel::getChatId() const noexcept
     return m_chatId;
 }
 
-void MessageModel::setChatId(const QString value) noexcept
+void MessageModel::setChatId(const QString &value) noexcept
 {
     if (m_chatId == value)
         return;
 
     m_chatId = value;
+
+    m_chat = StorageManager::getInstance().getChat(m_chatId.toLong());
+
     emit chatIdChanged();
+    emit statusChanged();
+
+    loadMessages();
 }
 
 QString MessageModel::getChatSubtitle() const noexcept
@@ -439,6 +443,17 @@ QString MessageModel::getChatSubtitle() const noexcept
 QString MessageModel::getChatTitle() const noexcept
 {
     return Utils::getChatTitle(m_chatId.toLongLong());
+}
+
+QString MessageModel::getChatPhoto() const noexcept
+{
+    if (auto chatPhoto = m_chat.value("photo").toMap();
+        chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+    {
+        return "image://chatPhoto/" + chatPhoto.value("small").toMap().value("local").toMap().value("path").toString();
+    }
+
+    return "image://theme/icon-l-content-avatar-placeholder";
 }
 
 void MessageModel::loadHistory() noexcept
@@ -481,7 +496,7 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
     request.insert("limit", limit);
     request.insert("only_local", false);
 
-    TdApi::getInstance().sendRequest(request);
+    TdApi::getInstance().sendRequest(request, [this](const auto &messages) { handleMessages(messages); });
 }
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
@@ -696,8 +711,7 @@ void MessageModel::handleMessages(const QVariantMap &messages)
 
     QVariantList result;
     std::ranges::copy_if(list, std::back_inserter(result), [this](const auto &message) {
-        return !m_messageIds.contains(message.toMap().value("id").toLongLong()) &&
-               message.toMap().value("chat_id").toString() == m_chatId;
+        return !m_messageIds.contains(message.toMap().value("id").toLongLong()) && message.toMap().value("chat_id").toString() == m_chatId;
     });
 
     if (result.isEmpty())

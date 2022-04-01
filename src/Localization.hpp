@@ -23,8 +23,6 @@ public:
 
     static Localization &getInstance();
 
-    void setLanguage(const QString &value);
-
     QString getEmptyString() const;
 
     Q_INVOKABLE QString getString(const QString &key) const;

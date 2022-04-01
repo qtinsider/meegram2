@@ -11,6 +11,7 @@ class MessageModel : public QAbstractListModel
     Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
+    Q_PROPERTY(QString chatPhoto READ getChatPhoto NOTIFY statusChanged)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
@@ -72,10 +73,11 @@ public:
     bool loadingHistory() const noexcept;
 
     QString getChatId() const noexcept;
-    void setChatId(const QString value) noexcept;
+    void setChatId(const QString &value) noexcept;
 
     QString getChatSubtitle() const noexcept;
     QString getChatTitle() const noexcept;
+    QString getChatPhoto() const noexcept;
 
     Q_INVOKABLE void loadHistory() noexcept;
 
@@ -114,12 +116,11 @@ private slots:
     void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
     void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
 
+private:
     void handleMessages(const QVariantMap &messages);
+    void insertMessages(const QVariantList &messages) noexcept;
 
     void loadMessages() noexcept;
-
-private:
-    void insertMessages(const QVariantList &messages) noexcept;
 
     void itemChanged(int64_t index);
 

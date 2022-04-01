@@ -2,6 +2,7 @@
 
 #include "Common.hpp"
 #include "Serialize.hpp"
+#include "Settings.hpp"
 #include "TdApi.hpp"
 
 #include <QDebug>
@@ -393,9 +394,11 @@ Localization::Localization()
     connect(&TdApi::getInstance(), SIGNAL(updateLanguagePackStrings(const QString &, const QString &, const QVariantList &)),
             SLOT(handleLanguagePackStrings(const QString &, const QString &, const QVariantList &)));
 
+    connect(&Settings::getInstance(), SIGNAL(languageChanged()), SIGNAL(languageChanged()));
+
     TdApi::getInstance().setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
     TdApi::getInstance().setOption("localization_target", "android");
-    TdApi::getInstance().setOption("language_pack_id", QLocale::system().name().left(2));
+    TdApi::getInstance().setOption("language_pack_id", Settings::getInstance().language());
 
     // clang-format off
     addRules(QStringList() <<"bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
@@ -431,10 +434,6 @@ Localization &Localization::getInstance()
 {
     static Localization staticObject;
     return staticObject;
-}
-
-void Localization::setLanguage(const QString &value)
-{
 }
 
 QString Localization::getEmptyString() const
@@ -520,7 +519,7 @@ void Localization::loadLanguage()
 {
     QVariantMap request;
     request.insert("@type", "getLanguagePackStrings");
-    request.insert("language_pack_id", "en");
+    request.insert("language_pack_id", Settings::getInstance().language());
 
     TdApi::getInstance().sendRequest(request, [this](const auto &value) { processStrings(value); });
 
@@ -615,7 +614,7 @@ void Localization::processStrings(const QVariantMap &languagePackStrings)
 
 void Localization::updatePluralRules()
 {
-    if (auto langId = QLocale::system().name().left(2); m_allRules.contains(langId))
+    if (auto langId = Settings::getInstance().language(); m_allRules.contains(langId))
         m_currentPluralRules = m_allRules.value(langId);
     else
         m_currentPluralRules = m_allRules.value("en");

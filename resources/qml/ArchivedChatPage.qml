@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: Localization.getString("ArchivedChats") + Localization.emptyString
+        title: Localization.getString("ArchivedChats") + Localization.emptyString
         isArchived: true
     }
 

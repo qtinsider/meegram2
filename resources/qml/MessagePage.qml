@@ -96,7 +96,7 @@ Page {
                             smooth: true
                             fillMode: Image.PreserveAspectCrop
                             clip: true
-                            source: myMessageModel.chat.photo ? "image://chatPhoto/" + myMessageModel.chat.photo.small.local.path : "image://theme/icon-l-content-avatar-placeholder"
+                            source: myMessageModel.chatPhoto
                         }
 
                         MouseArea {

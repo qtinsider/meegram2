@@ -16,19 +16,15 @@
 #include "MessageModel.hpp"
 #include "NotificationManager.hpp"
 #include "SelectionModel.hpp"
+#include "Settings.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
 #include "Utils.hpp"
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-#ifdef MEEGO_EDITION_HARMATTAN
-    QScopedPointer<QApplication> app(MDeclarativeCache::qApplication(argc, argv));
-    QScopedPointer<QDeclarativeView> viewer(MDeclarativeCache::qDeclarativeView());
-#else
     QScopedPointer<QApplication> app(new QApplication(argc, argv));
     QScopedPointer<QDeclarativeView> viewer(new QDeclarativeView);
-#endif
 
     QCoreApplication::setApplicationName(AppName);
     QCoreApplication::setApplicationVersion(AppVersion);
@@ -56,6 +52,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     viewer->rootContext()->setContextProperty("Api", &TdApi::getInstance());
     viewer->rootContext()->setContextProperty("Localization", &Localization::getInstance());
     viewer->rootContext()->setContextProperty("Notification", &NotificationManager::getInstance());
+    viewer->rootContext()->setContextProperty("Settings", &Settings::getInstance());
     viewer->rootContext()->setContextProperty("Store", &StorageManager::getInstance());
     viewer->rootContext()->setContextProperty("Utils", utils.data());
 

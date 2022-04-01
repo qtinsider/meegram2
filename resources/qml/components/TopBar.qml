@@ -5,10 +5,10 @@ Item {
     id: root
     z: 100
 
-    property alias text: titleLabel.text
+    property alias title: label.text
     property bool isArchived: false
 
-    property color __color: isArchived ? "#424345" :  theme.selectionColor
+    property color color: isArchived ? "#424345" :  theme.selectionColor
 
     signal clicked
 
@@ -24,13 +24,13 @@ Item {
         id: background
         anchors.fill: parent
         gradient: Gradient {
-            GradientStop { position: 0.0; color: __color }
-            GradientStop { position: 1.0; color: Qt.darker(__color) }
+            GradientStop { position: 0.0; color: root.color }
+            GradientStop { position: 1.0; color: Qt.darker(root.color) }
         }
     }
 
     Label {
-        id: titleLabel
+        id: label
         anchors {
             top: parent.top
             bottom: parent.bottom

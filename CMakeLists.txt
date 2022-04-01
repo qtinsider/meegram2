@@ -25,6 +25,8 @@ set(src_files
     src/MessageModel.cpp
     src/NotificationManager.cpp
     src/SelectionModel.cpp
+    src/Settings.cpp
+#   src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
     src/TdApi.cpp
     src/Utils.cpp
@@ -40,6 +42,9 @@ set(header_files
     src/MessageModel.hpp
     src/NotificationManager.hpp
     src/SelectionModel.hpp
+    src/Serialize.hpp
+    src/Settings.hpp
+#   src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/TdApi.hpp
     src/Utils.hpp

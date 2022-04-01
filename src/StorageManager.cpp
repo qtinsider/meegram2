@@ -398,12 +398,14 @@ void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positio
         auto result = it->second.value("positions").toList();
 
         std::ranges::for_each(positions, [&result](const auto &position) {
-            result.erase(std::remove_if(result.begin(), result.end(),
-                                        [position](const auto &value) {
-                                            return Utils::chatListEquals(value.toMap().value("list").toMap(),
-                                                                         position.toMap().value("list").toMap());
-                                        }),
-                         result.end());
+            auto removeIt = std::ranges::find_if(result, [position](const auto &value) {
+                return Utils::chatListEquals(value.toMap().value("list").toMap(), position.toMap().value("list").toMap());
+            });
+
+            if (removeIt != result.end())
+            {
+                result.erase(removeIt);
+            }
 
             result.append(position);
         });

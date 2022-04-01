@@ -7,7 +7,7 @@ class CountryModel : public QAbstractListModel
     Q_OBJECT
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged);
+    Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged)
 
 public:
     CountryModel(QObject *parent = nullptr);

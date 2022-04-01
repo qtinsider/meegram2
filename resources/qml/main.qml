@@ -23,10 +23,7 @@ PageStackWindow {
 
     Component {
         id: mainPage
-        MainPage {
-            id: mainPageItem
-            onToolsChanged: appWindow.pageStack.toolBar.setTools(mainPageItem.tools, "replace")
-        }
+        MainPage { }
     }
 
     Component {

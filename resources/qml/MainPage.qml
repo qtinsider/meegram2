@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: Localization.getString("Chats") + Localization.emptyString
+        title: Localization.getString("Chats") + Localization.emptyString
 
         Image {
             anchors {

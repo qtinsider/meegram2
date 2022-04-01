@@ -11,9 +11,7 @@ Page {
 
     TopBar {
         id: header
-        text: "MeeGram"
-
-        MouseArea { anchors.fill: parent }
+        title: "MeeGram"
     }
 
     Loader {

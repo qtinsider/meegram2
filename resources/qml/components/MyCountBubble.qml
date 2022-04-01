@@ -6,9 +6,9 @@ Item {
 
     property bool isMuted: false
 
-    property string value: ""
+    property alias value: label.text
 
-    implicitWidth: text.paintedWidth + 19
+    implicitWidth: label.paintedWidth + 19
     implicitHeight: 32
 
     BorderImage {
@@ -17,15 +17,13 @@ Item {
         border { left: 10; top: 10; right: 10; bottom: 10 }
     }
 
-    Text {
-        id: text
+    Label {
+        id: label
         height: parent.height
-        y:1
+        y: 1
         color: "#FFFFFF"
-        font.family: "Nokia Pure Text"
         anchors.horizontalCenter: parent.horizontalCenter
         verticalAlignment: Text.AlignVCenter
         font.pixelSize: 22
-        text: root.value
     }
 }

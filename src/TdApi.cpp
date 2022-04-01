@@ -10,6 +10,7 @@
 
 #include "td/utils/JsonBuilder.h"
 
+#include <QAbstractListModel>
 #include <QDebug>
 #include <QDir>
 #include <QEventLoop>
@@ -57,6 +58,7 @@ TdApi::TdApi()
 
     qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
+    qRegisterMetaType<QModelIndex>("QModelIndex");
 
     initEvents();
     QTimer::singleShot(0, this, SLOT(listen()));

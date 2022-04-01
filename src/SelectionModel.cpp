@@ -4,6 +4,8 @@
 #include "Serialize.hpp"
 #include "TdApi.hpp"
 
+#include <QDebug>
+
 #include <algorithm>
 
 CountryModel::CountryModel(QObject *parent)
@@ -16,10 +18,10 @@ CountryModel::CountryModel(QObject *parent)
 
     setRoleNames(roles);
 
-    QVariantMap result;
-    result.insert("@type", "getCountries");
+    QVariantMap request;
+    request.insert("@type", "getCountries");
 
-    TdApi::getInstance().sendRequest(result, [this](const auto &value) {
+    TdApi::getInstance().sendRequest(request, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "countries")
         {
             beginInsertRows(QModelIndex(), rowCount(), value.count() - 1);
