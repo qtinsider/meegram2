@@ -1,19 +1,27 @@
 cmake_minimum_required(VERSION 3.18.0)
 project(MeeGram VERSION 0.1.4 LANGUAGES CXX)
 
-option(MEEGO_EDITION_HARMATTAN "Use MeeGo Harmattan Device." OFF)
-
 find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtDeclarative REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(boostable QUIET qdeclarative-boostable)
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
-include(dependencies)
-
 set(QML_IMPORT_PATH "/opt/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
+
+include(FetchContent)
+
+# nlohmann json
+message(STATUS "Fetching dependency nlohmann json...")
+FetchContent_Declare(json
+    URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz
+    )
+
+FetchContent_GetProperties(json)
+if (NOT json_POPULATED)
+    FetchContent_Populate(json)
+    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 set(src_files
     src/ChatModel.cpp
@@ -59,19 +67,13 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 target_compile_features(meegram PRIVATE cxx_std_20)
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
-target_link_libraries(meegram PRIVATE external::libs Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtDeclarative Threads::Threads)
+target_link_libraries(meegram PRIVATE nlohmann_json::nlohmann_json #[[rlottie::rlottie Td::TdJsonStatic]] Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtDeclarative Threads::Threads)
 
 if (boostable_FOUND)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})
-    target_compile_definitions(meegram PRIVATE MEEGO_EDITION_HARMATTAN)
     target_include_directories(meegram PRIVATE ${boostable_INCLUDE_DIRS})
 
-    target_link_options(meegram PRIVATE
-        -static-libstdc++
-        -Wl,--dynamic-linker=/lib/ld-linux.so.3
-        -pie
-        -rdynamic
-        )
+    target_link_options(meegram PRIVATE -static-libstdc++ -Wl,--dynamic-linker=/lib/ld-linux.so.3 -pie -rdynamic)
 
     target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES})
 endif()

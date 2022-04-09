@@ -741,14 +741,13 @@ void MessageModel::handleMessages(const QVariantMap &messages)
 
 void MessageModel::insertMessages(const QVariantList &messages) noexcept
 {
-    if (auto min = std::ranges::min_element(m_messageIds);
-        min != m_messageIds.end() && messages.last().toMap().value("id").toLongLong() < *min)
+    if (m_loadingHistory)
     {
         m_loadingHistory = false;
 
-        beginInsertRows(QModelIndex(), 0, messages.count() - 1);
-
         int offset = 0;
+
+        beginInsertRows(QModelIndex(), 0, messages.count() - 1);
 
         std::ranges::for_each(messages, [this, &offset](const auto &message) {
             m_messages.insert(offset, message.toMap());
@@ -760,40 +759,37 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
 
         if (offset > 0)
             emit moreHistoriesLoaded(offset);
-
-        emit loadingChanged();
-
-        return;
     }
 
-    m_loading = false;
+    if (m_loading)
+    {
+        m_loading = false;
 
-    beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
+        beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
 
-    std::ranges::for_each(messages, [this](const auto &message) {
-        m_messages.append(message.toMap());
-        m_messageIds.emplace(message.toMap().value("id").toLongLong());
-    });
+        std::ranges::for_each(messages, [this](const auto &message) {
+            m_messages.append(message.toMap());
+            m_messageIds.emplace(message.toMap().value("id").toLongLong());
+        });
 
-    endInsertRows();
+        endInsertRows();
 
-    QVariantList messageIds;
+        QVariantList messageIds;
 
-    std::ranges::for_each(messages, [this, &messageIds](const auto &message) {
-        if (m_chat.value("unread_count").toInt() > 0)
-        {
-            auto id = message.toMap().value("id").toLongLong();
-            if (!message.toMap().value("is_outgoing").toBool() && id > m_chat.value("last_read_inbox_message_id").toLongLong())
+        std::ranges::for_each(messages, [this, &messageIds](const auto &message) {
+            if (m_chat.value("unread_count").toInt() > 0)
             {
-                messageIds.append(id);
+                auto id = message.toMap().value("id").toLongLong();
+                if (!message.toMap().value("is_outgoing").toBool() && id > m_chat.value("last_read_inbox_message_id").toLongLong())
+                {
+                    messageIds.append(id);
+                }
             }
-        }
-    });
+        });
 
-    m_loadingHistory = false;
-
-    if (messageIds.size() > 0)
-        viewMessages(messageIds);
+        if (messageIds.size() > 0)
+            viewMessages(messageIds);
+    }
 
     emit loadingChanged();
 }

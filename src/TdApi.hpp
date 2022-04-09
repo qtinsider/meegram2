@@ -168,7 +168,7 @@ signals:
                                 const QVariantMap &payload);
     void updateNewInlineCallbackQuery(qint64 id, qint64 senderUserId, const QString &inlineMessageId, qint64 chatInstance,
                                       const QVariantMap &payload);
-    void updateNewShippingQuery(qint64 id, qint64 senderUserId, const QString &invoice_payload_, const QVariantMap &shipping_address_);
+    void updateNewShippingQuery(qint64 id, qint64 senderUserId, const QString &invoicePayload, const QVariantMap &shippingAddress);
     void updateNewPreCheckoutQuery(qint64 id, qint64 senderUserId, const QString &currency, qint64 totalAmount,
                                    const QByteArray &invoicePayload, const QString &shippingOptionId, const QVariantMap &orderInfo);
     void updateNewCustomEvent(const QString &event);
