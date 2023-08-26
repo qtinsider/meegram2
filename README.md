@@ -14,4 +14,4 @@ If you find MeeGram useful and would like to support my work, consider donating 
 
 Thank you!
 
-<a href="https://www.buymeacoffee.com/nwutobo"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=nwutobo&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=ffffff"></a>
+<a href="https://www.buymeacoffee.com/qtinsider"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=&slug=nwutobo&button_colour=FFDD00&font_colour=000000&font_family=Arial&outline_colour=000000&coffee_colour=ffffff"></a>
