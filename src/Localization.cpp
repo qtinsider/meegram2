@@ -2,404 +2,400 @@
 
 #include "Common.hpp"
 #include "Serialize.hpp"
-#include "Settings.hpp"
-#include "TdApi.hpp"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QSettings>
 #include <QStringBuilder>
+#include <QStringList>
+
+#include <algorithm>
+#include <cmath>
 
 class PluralRules
 {
 public:
-    virtual Quantity quantityForNumber(int count) = 0;
+    virtual Locale::Quantity quantityForNumber(int count) = 0;
 };
 
 class PluralRules_Zero : public PluralRules
 {
-    Quantity quantityForNumber(int count)
+    Locale::Quantity quantityForNumber(int count)
     {
         if (count == 0 || count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Welsh : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 0)
         {
-            return Quantity::QuantityZero;
+            return Locale::QuantityZero;
         }
         else if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count == 2)
         {
-            return Quantity::QuantityTwo;
+            return Locale::QuantityTwo;
         }
         else if (count == 3)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if (count == 6)
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Two : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count == 2)
         {
-            return Quantity::QuantityTwo;
+            return Locale::QuantityTwo;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Tachelhit : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count >= 0 && count <= 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count >= 2 && count <= 10)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Slovenian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         if (rem100 == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (rem100 == 2)
         {
-            return Quantity::QuantityTwo;
+            return Locale::QuantityTwo;
         }
         else if (rem100 >= 3 && rem100 <= 4)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Romanian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if ((count == 0 || (rem100 >= 1 && rem100 <= 19)))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Polish : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if ((rem10 >= 0 && rem10 <= 1) || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 12 && rem100 <= 14))
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_One : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
-        return count == 1 ? Quantity::QuantityOne : Quantity::QuantityOther;
+        return count == 1 ? Locale::QuantityOne : Locale::QuantityOther;
     }
 };
 
 class PluralRules_None : public PluralRules
 {
-    Quantity quantityForNumber(int /*count*/) override
+    Locale::Quantity quantityForNumber(int /*count*/) override
     {
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Maltese : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count == 0 || (rem100 >= 2 && rem100 <= 10))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if (rem100 >= 11 && rem100 <= 19)
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Macedonian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count % 10 == 1 && count != 11)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Lithuanian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && !(rem100 >= 11 && rem100 <= 19))
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (rem10 >= 2 && rem10 <= 9 && !(rem100 >= 11 && rem100 <= 19))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Latvian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 0)
         {
-            return Quantity::QuantityZero;
+            return Locale::QuantityZero;
         }
         else if (count % 10 == 1 && count % 100 != 11)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Langi : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 0)
         {
-            return Quantity::QuantityZero;
+            return Locale::QuantityZero;
         }
         else if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_French : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count >= 0 && count < 2)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Czech : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count >= 2 && count <= 4)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Breton : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         if (count == 0)
         {
-            return Quantity::QuantityZero;
+            return Locale::QuantityZero;
         }
         else if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count == 2)
         {
-            return Quantity::QuantityTwo;
+            return Locale::QuantityTwo;
         }
         else if (count == 3)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if (count == 6)
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Balkan : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && rem100 != 11)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if ((rem10 == 0 || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 11 && rem100 <= 14)))
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Serbian : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && rem100 != 11)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
 class PluralRules_Arabic : public PluralRules
 {
-    Quantity quantityForNumber(int count) override
+    Locale::Quantity quantityForNumber(int count) override
     {
         const auto rem100 = count % 100;
         if (count == 0)
         {
-            return Quantity::QuantityZero;
+            return Locale::QuantityZero;
         }
         else if (count == 1)
         {
-            return Quantity::QuantityOne;
+            return Locale::QuantityOne;
         }
         else if (count == 2)
         {
-            return Quantity::QuantityTwo;
+            return Locale::QuantityTwo;
         }
         else if (rem100 >= 3 && rem100 <= 10)
         {
-            return Quantity::QuantityFew;
+            return Locale::QuantityFew;
         }
         else if (rem100 >= 11 && rem100 <= 99)
         {
-            return Quantity::QuantityMany;
+            return Locale::QuantityMany;
         }
 
-        return Quantity::QuantityOther;
+        return Locale::QuantityOther;
     }
 };
 
-Localization::Localization()
+Locale::Locale(QObject *parent)
+    : QObject(parent)
 {
-    connect(&TdApi::getInstance(), SIGNAL(updateLanguagePackStrings(const QString &, const QString &, const QVariantList &)),
-            SLOT(handleLanguagePackStrings(const QString &, const QString &, const QVariantList &)));
-
-    connect(&Settings::getInstance(), SIGNAL(languageChanged()), SIGNAL(languageChanged()));
-
-    TdApi::getInstance().setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
-    TdApi::getInstance().setOption("localization_target", "android");
-    TdApi::getInstance().setOption("language_pack_id", Settings::getInstance().language());
-
     // clang-format off
     addRules(QStringList() <<"bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
                  "nl" << "nn" << "no" << "sv" << "af" << "bg" << "bn" << "ca" << "eu" << "fur" << "fy" << "gu" << "ha" << "is" << "ku" <<
@@ -426,22 +422,14 @@ Localization::Localization()
     addRules(QStringList() <<"az" << "bm" << "fa" << "ig" << "hu" << "ja" << "kde" << "kea" << "ko" << "my" << "ses" << "sg" << "to" <<
                  "tr" << "vi" << "wo" << "yo" << "zh" << "bo" << "dz" << "id" << "jv" << "jw" << "ka" << "km" << "kn" << "ms" << "th" << "in", new PluralRules_None());
     // clang-format on
-
-    loadLanguage();
 }
 
-Localization &Localization::getInstance()
-{
-    static Localization staticObject;
-    return staticObject;
-}
-
-QString Localization::getEmptyString() const
+QString Locale::getEmptyString() const
 {
     return {};
 }
 
-QString Localization::getString(const QString &key) const
+QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))
     {
@@ -462,14 +450,14 @@ QString Localization::getString(const QString &key) const
     return result;
 }
 
-QString Localization::formatPluralString(const QString &key, int plural) const
+QString Locale::formatPluralString(const QString &key, int plural) const
 {
     const auto pluralKey = key + stringForQuantity(m_currentPluralRules->quantityForNumber(plural));
 
     return getString(pluralKey).arg(plural);
 }
 
-QString Localization::formatCallDuration(int duration) const
+QString Locale::formatCallDuration(int duration) const
 {
     if (duration > 3600)
     {
@@ -491,7 +479,7 @@ QString Localization::formatCallDuration(int duration) const
     return formatPluralString("CallDurationSeconds", std::floor(duration));
 }
 
-QString Localization::formatTtl(int ttl) const
+QString Locale::formatTtl(int ttl) const
 {
     if (ttl < 60)
     {
@@ -515,50 +503,60 @@ QString Localization::formatTtl(int ttl) const
     return formatPluralString("TTLStringWeeks", std::floor(days / 7)) % formatPluralString("TTLStringDays", std::floor(days % 7));
 }
 
-void Localization::loadLanguage()
+QString Locale::languageCode() const
 {
-    QVariantMap request;
-    request.insert("@type", "getLanguagePackStrings");
-    request.insert("language_pack_id", Settings::getInstance().language());
-
-    TdApi::getInstance().sendRequest(request, [this](const auto &value) { processStrings(value); });
-
-    updatePluralRules();
+    return m_languageCode;
 }
 
-void Localization::handleLanguagePackStrings(const QString &localizationTarget, const QString &languagePackId, const QVariantList &strings)
+void Locale::setLanguageCode(const QString &value)
 {
+    if (m_languageCode != value)
+    {
+        m_languageCode = value;
+        emit languageChanged();
+    }
 }
 
-QString Localization::stringForQuantity(Quantity quantity) const
+QString Locale::languagePlural() const
+{
+    return m_languagePlural;
+}
+
+void Locale::setLanguagePlural(const QString &value)
+{
+    if (m_languagePlural != value)
+    {
+        m_languagePlural = value;
+        emit languageChanged();
+    }
+}
+
+QString Locale::stringForQuantity(Locale::Quantity quantity) const
 {
     switch (quantity)
     {
-        case Quantity::QuantityZero:
+        case Locale::QuantityZero:
             return "_zero";
-        case Quantity::QuantityOne:
+        case Locale::QuantityOne:
             return "_one";
-        case Quantity::QuantityTwo:
+        case Locale::QuantityTwo:
             return "_two";
-        case Quantity::QuantityFew:
+        case Locale::QuantityFew:
             return "_few";
-        case Quantity::QuantityMany:
+        case Locale::QuantityMany:
             return "_many";
         default:
             return "_other";
     }
 }
 
-void Localization::addRules(const QStringList &languages, PluralRules *rules)
+void Locale::addRules(const QStringList &languages, PluralRules *rules)
 {
     std::ranges::for_each(languages, [&, this](const auto &x) { m_allRules.insert(x, rules); });
 }
 
-void Localization::processStrings(const QVariantMap &languagePackStrings)
+void Locale::processStrings(const QVariantMap &languagePackStrings)
 {
-    if (languagePackStrings.value("@type").toByteArray() != "languagePackStrings")
-        return;
-
     for (auto strings = languagePackStrings.value("strings").toList(); const auto &value : strings)
     {
         auto valueType = value.toMap().value("value").toMap().value("@type").toByteArray();
@@ -609,13 +607,16 @@ void Localization::processStrings(const QVariantMap &languagePackStrings)
         }
     }
 
+    // nlohmann::json json(languagePackStrings);
+    // qDebug() << json.dump(2).c_str();
+
     updatePluralRules();
 }
 
-void Localization::updatePluralRules()
+void Locale::updatePluralRules()
 {
-    if (auto langId = Settings::getInstance().language(); m_allRules.contains(langId))
-        m_currentPluralRules = m_allRules.value(langId);
+    if (m_allRules.contains(m_languagePlural))
+        m_currentPluralRules = m_allRules.value(m_languagePlural);
     else
         m_currentPluralRules = m_allRules.value("en");
 

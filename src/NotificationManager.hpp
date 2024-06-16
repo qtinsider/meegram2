@@ -3,14 +3,17 @@
 #include <QObject>
 #include <QVariant>
 
+class Client;
+class TdManager;
+
 class NotificationManager : public QObject
 {
     Q_OBJECT
 public:
-    NotificationManager(const NotificationManager &) = delete;
-    NotificationManager &operator=(const NotificationManager &) = delete;
+    explicit NotificationManager(QObject *parent = nullptr);
 
-    static NotificationManager &getInstance();
+    TdManager *manager() const;
+    void setManager(TdManager *manager);
 
 private slots:
     void handleActiveNotifications(const QVariantList &groups);
@@ -21,5 +24,6 @@ private slots:
     void handleNotification(int notificationGroupId, const QVariantMap &notification);
 
 private:
-    NotificationManager();
+    Client *m_client;
+    TdManager *m_manager;
 };

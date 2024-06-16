@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourCode") + Localization.emptyString
+                text: locale.getString("YourCode") + locale.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -58,11 +58,11 @@ Page {
                         id: code
                         width: parent.width
                         inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("Code") + Localization.emptyString
+                        placeholderText: locale.getString("Code") + locale.emptyString
 
                         onTextChanged: {
                             if(text.length >= getCodeLength()) {
-                                Api.checkCode(code.text)
+                                authorization.checkCode(code.text)
                             }
                         }
                     }
@@ -83,13 +83,13 @@ Page {
                         font.underline: true
 
                         color: "#0088cc"
-                        text: Localization.getString("DidNotGetTheCodeSms") + Localization.emptyString
+                        text: locale.getString("DidNotGetTheCodeSms") + locale.emptyString
 
                         visible: nextType.type === "authenticationCodeTypeSms"
 
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: Api.resendCode()
+                            onClicked: authorization.resendCode()
                         }
                     }
 
@@ -122,7 +122,7 @@ Page {
                             if (timeout === 0) {
                                 codeExpireTimer.stop()
                                 codeTextRow.visible = false;
-                                Api.resendCode()
+                                authorization.resendCode()
                             }
                         }
                     }
@@ -134,11 +134,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next") + Localization.emptyString
-                onClicked: Api.checkCode(code.text)
+                text: locale.getString("Next") + locale.emptyString
+                onClicked: authorization.checkCode(code.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel") + Localization.emptyString
+                text: locale.getString("Cancel") + locale.emptyString
                 onClicked: root.cancelClicked()
             }
         }
@@ -146,27 +146,27 @@ Page {
 
     function getCodeTitle() {
         if (type.type === "authenticationCodeTypeTelegramMessage") {
-            return Localization.getString("SentAppCodeTitle");
+            return locale.getString("SentAppCodeTitle");
         }
         if (type.type === "authenticationCodeTypeCall" || type.type === "authenticationCodeTypeSms") {
-            return Localization.getString("SentSmsCodeTitle");
+            return locale.getString("SentSmsCodeTitle");
         }
 
-        return Localization.getString("Title");
+        return locale.getString("Title");
     }
 
     function getCodeSubtitle() {
         if (type.type === "authenticationCodeTypeCall") {
-            return Localization.getString("SentCallCode").arg(phoneNumber);
+            return locale.getString("SentCallCode").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeFlashCall") {
-            return Localization.getString("SentCallOnly").arg(phoneNumber);
+            return locale.getString("SentCallOnly").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeSms") {
-            return Localization.getString("SentSmsCode").arg(phoneNumber);
+            return locale.getString("SentSmsCode").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeTelegramMessage") {
-            return Localization.getString("SentAppCode");
+            return locale.getString("SentAppCode");
         }
 
         return "";
@@ -174,10 +174,10 @@ Page {
 
     function getCodeNextTypeString() {
         if (nextType.type === "authenticationCodeTypeCall") {
-            return Localization.getString("CallText");
+            return locale.getString("CallText");
         }
         if (nextType.type === "authenticationCodeTypeSms") {
-            return Localization.getString("SmsText");
+            return locale.getString("SmsText");
         }
 
         return "";
@@ -199,6 +199,6 @@ Page {
 
     onTimeoutChanged: {
         codeExpireTimer.start()
-        codeTimeText.text = Utils.formatTime(timeout / 1000)
+        codeTimeText.text = authorization.formatTime(timeout / 1000)
     }
 }

@@ -11,7 +11,7 @@ PageStackWindow {
 
     property bool isPortrait: (screen.currentOrientation === Screen.Landscape) ? false : true
 
-    initialPage: introPage
+    initialPage: Component { MainPage {} }
 
     onOrientationChangeFinished: showStatusBar = isPortrait
 
@@ -21,14 +21,32 @@ PageStackWindow {
         z: 100
     }
 
-    Component {
-        id: mainPage
-        MainPage { }
+    Client { id: client }
+    Settings { id: settings }
+
+    Locale {
+        id: locale
+        languageCode: settings.languagePackId
+        languagePlural: settings.languagePluralId
     }
 
-    Component {
-        id: introPage
-        IntroPage { }
+    StorageManager {
+        id: storageManager
+        client: client
+    }
+
+
+    TdManager {
+        id: tdManager
+        locale: locale
+        storageManager: storageManager
+    }
+
+    Authorization {
+        id: authorization
+        manager: tdManager
+
+        onReady: { pageStack.push(Qt.resolvedUrl("ChatsPage.qml")) }
     }
 
     function showInfoBanner(message) {
@@ -37,18 +55,11 @@ PageStackWindow {
     }
 
     function openChat(chatId) {
-        var component = Qt.createComponent("MessagePage.qml");
+        var component = Qt.createComponent("ChatPage.qml");
 
         if (component.status === Component.Ready)
             pageStack.push(component, { chatId: chatId });
         else
             console.debug("Error loading component:", component.errorString());
     }
-
-    Connections{
-        target: Api
-        onReady: pageStack.replace(mainPage)
-    }
-
-    Component.onCompleted: Api.initialParameters()
 }

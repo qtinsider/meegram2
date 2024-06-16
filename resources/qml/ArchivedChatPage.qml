@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        title: Localization.getString("ArchivedChats") + Localization.emptyString
+        title: locale.getString("ArchivedChats") + locale.emptyString
         isArchived: true
     }
 
@@ -29,7 +29,6 @@ Page {
 
         delegate: ChatItem {
             onPressAndHold: {
-                listView.currentIndex = -1;
                 listView.currentIndex = index;
                 contextMenu.open();
             }
@@ -42,7 +41,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: Localization.getString("NoChats") + Localization.emptyString
+        text: locale.getString("NoChats") + locale.emptyString
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -55,6 +54,7 @@ Page {
 
     ChatModel {
         id: myChatModel
+        manager: tdManager
         chatList: TdApi.ChatListArchive
 
         onLoadingChanged: {
@@ -68,10 +68,9 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") + Localization.emptyString : Localization.getString("PinToTop") + Localization.emptyString
+                text: myChatModel.isPinned(listView.currentIndex) ? locale.getString("UnpinFromTop") + locale.emptyString : locale.getString("PinToTop") + locale.emptyString
                 onClicked: {
-                    myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
-                    populateTimer.restart()
+                    myChatModel.toggleChatIsPinned(listView.currentIndex)
                 }
             }
         }

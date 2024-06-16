@@ -25,7 +25,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourPhone") + Localization.emptyString
+                text: locale.getString("YourPhone") + locale.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -70,14 +70,14 @@ Page {
                     TextField {
                         id: phoneNumber
                         inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("PhoneNumberSearch") + Localization.emptyString
+                        placeholderText: locale.getString("PhoneNumberSearch") + locale.emptyString
                     }
                 }
 
                 Label {
                     font.pixelSize: 24
                     width: parent.width
-                    text: Localization.getString("StartText") + Localization.emptyString
+                    text: locale.getString("StartText") + locale.emptyString
                 }
 
                 Row {
@@ -92,26 +92,31 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next") + Localization.emptyString
+                text: locale.getString("Next") + locale.emptyString
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
-                        Api.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
+                        authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
                     } else {
-                        Api.setPhoneNumber("")
+                        authorization.setPhoneNumber("")
                     }
                 }
             }
             ToolButton {
-                text: Localization.getString("Cancel") + Localization.emptyString
+                text: locale.getString("Cancel") + locale.emptyString
                 onClicked: root.cancelClicked()
             }
         }
     }
 
+    CountryModel {
+        id: myCountryModel
+        manager: tdManager
+    }
+
     SelectionDialog {
         id: selectionDialog
-        titleText: Localization.getString("ChooseCountry") + Localization.emptyString
+        titleText: locale.getString("ChooseCountry") + locale.emptyString
         selectedIndex: myCountryModel.defaultIndex
-        model: CountryModel { id: myCountryModel }
+        model: myCountryModel
     }
 }

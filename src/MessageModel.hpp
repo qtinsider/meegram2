@@ -4,9 +4,16 @@
 
 #include <unordered_set>
 
+class Client;
+class Locale;
+class StorageManager;
+class TdManager;
+
 class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
+
+    Q_PROPERTY(TdManager *manager READ manager WRITE setManager)
 
     Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
@@ -57,6 +64,10 @@ public:
         SectionRole,
         ServiceMessageRole,
     };
+
+
+    TdManager *manager() const;
+    void setManager(TdManager *manager);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -123,6 +134,18 @@ private:
     void loadMessages() noexcept;
 
     void itemChanged(int64_t index);
+
+    QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) const noexcept;
+    QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
+    QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
+    QString getUserStatus(const QVariantMap &user) const noexcept;
+    QString getTitle(const QVariantMap &message)const noexcept;
+    QString getUserFullName(qint64 userId)const noexcept;
+
+    Client *m_client;
+    Locale *m_locale;
+    TdManager *m_manager;
+    StorageManager *m_storageManager;
 
     QVariantMap m_chat;
     QList<QVariantMap> m_messages;

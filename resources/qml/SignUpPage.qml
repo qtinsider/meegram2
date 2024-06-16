@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("YourName") + Localization.emptyString
+                text: locale.getString("YourName") + locale.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -46,7 +46,7 @@ Page {
                 spacing: 10
 
                 Label {
-                    text: Localization.getString("RegisterText2") + Localization.emptyString
+                    text: locale.getString("RegisterText2") + locale.emptyString
                 }
 
                 Column {
@@ -57,13 +57,13 @@ Page {
                         id: firstName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("FirstName") + Localization.emptyString
+                        placeholderText: locale.getString("FirstName") + locale.emptyString
                     }
                     TextField {
                         id: lastName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: Localization.getString("LastName") + Localization.emptyString
+                        placeholderText: locale.getString("LastName") + locale.emptyString
                     }
                 }
 
@@ -82,11 +82,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next") + Localization.emptyString
-                onClicked: Api.registerUser(firstName.text, lastName.text)
+                text: locale.getString("Next") + locale.emptyString
+                onClicked: authorization.registerUser(firstName.text, lastName.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel") + Localization.emptyString
+                text: locale.getString("Cancel") + locale.emptyString
                 onClicked: root.cancelClicked()
             }
         }
@@ -94,8 +94,8 @@ Page {
 
     QueryDialog {
         id: dialog
-        titleText: Localization.getString("TermsOfService") + Localization.emptyString
-        message: Localization.getString("TermsOfServiceLogin") + Localization.emptyString
-        rejectButtonText: Localization.getString("Close") + Localization.emptyString
+        titleText: locale.getString("TermsOfService") + locale.emptyString
+        message: locale.getString("TermsOfServiceLogin") + locale.emptyString
+        rejectButtonText: locale.getString("Close") + locale.emptyString
     }
 }

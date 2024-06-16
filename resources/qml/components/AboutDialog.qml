@@ -50,7 +50,7 @@ Dialog {
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
                 color: "white"
-                text: "Telegram client for Nokia N9 based on <font color=\"#d7ccc8\">TDLib</font>"
+                text: "Telegram client for Nokia N9 based on <b>TDLib</b>"
             }
 
             Label {

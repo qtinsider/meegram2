@@ -1,40 +1,45 @@
 #pragma once
 
+#include <QObject>
+#include <QVariant>
+
+#pragma once
+
+#include <array>
 #include <cstdint>
-#include <initializer_list>
 
-static constexpr auto AppName = "MeeGram";
-static constexpr auto AppVersion = "0.1.4";
+constexpr auto AppName = "MeeGram";
+constexpr auto AppVersion = "0.1.6";
 
-static constexpr auto ApiId = 142713;
-static constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
+constexpr auto ApiId = 142713;
+constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
 
-static constexpr auto DatabaseDirectory = "/.meegram/tdlib";
+constexpr auto DatabaseDirectory = "/.meegram/tdlib";
 
-static constexpr auto DeviceModel = "Nokia N9";
-static constexpr auto SystemVersion = "MeeGo 1.2 Harmattan";
+constexpr auto DeviceModel = "Nokia N9";
+constexpr auto SystemVersion = "MeeGo 1.2 Harmattan";
 
-static constexpr auto WaitTimeout = 30.0;  // 30 sec
+constexpr auto WaitTimeout = 30.0;  // 30 sec
 
-[[maybe_unused]] static constexpr auto ServiceNotificationsUserIds = {42777, 333000, 777000};
-static constexpr auto ChatSliceLimit = 25;
-static constexpr auto MessageSliceLimit = 20;
+[[maybe_unused]] constexpr std::array<int, 3> ServiceNotificationsUserIds = {42777, 333000, 777000};
+constexpr auto ChatSliceLimit = 25;
+constexpr auto MessageSliceLimit = 20;
 
-static constexpr auto MutedValueMax = 2147483647;  // int32.max = 2^32 - 1
-static constexpr auto MutedValueMin = 0;
+constexpr auto MutedValueMax = 2147483647;  // int32.max = 2^32 - 1
+constexpr auto MutedValueMin = 0;
 
 namespace fnv {
 constexpr uint32_t offsetBasis = 0x811c9dc5;
 constexpr uint32_t prime = 0x1000193;
 
-constexpr uint32_t hash(const char *str, const uint32_t value = offsetBasis) noexcept
+consteval uint32_t hash(const char *str, const uint32_t value = offsetBasis) noexcept
 {
     return *str ? hash(str + 1, (value ^ *str) * static_cast<unsigned long long>(prime)) : value;
 }
 
-constexpr uint32_t hashRuntime(const char *str) noexcept
+[[nodiscard]] constexpr uint32_t hashRuntime(const char *str) noexcept
 {
-    auto value = offsetBasis;
+    uint32_t value = offsetBasis;
 
     while (*str)
     {
@@ -44,3 +49,35 @@ constexpr uint32_t hashRuntime(const char *str) noexcept
     return value;
 }
 }  // namespace fnv
+
+class TdApi : public QObject
+{
+    Q_OBJECT
+    Q_ENUMS(AuthorizationState ChatList)
+
+public:
+    explicit TdApi(QObject *parent = nullptr)
+        : QObject(parent)
+    {
+    }
+
+    enum AuthorizationState {
+        AuthorizationStateWaitTdlibParameters,
+        AuthorizationStateWaitEncryptionKey,
+        AuthorizationStateWaitPhoneNumber,
+        AuthorizationStateWaitCode,
+        AuthorizationStateWaitOtherDeviceConfirmation,
+        AuthorizationStateWaitRegistration,
+        AuthorizationStateWaitPassword,
+        AuthorizationStateReady,
+        AuthorizationStateLoggingOut,
+        AuthorizationStateClosing,
+        AuthorizationStateClosed,
+    };
+
+    enum ChatList {
+        ChatListMain,
+        ChatListArchive,
+        ChatListFilter,
+    };
+};

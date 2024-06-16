@@ -1,4 +1,4 @@
-#include "TdApi.hpp"
+#include "TdManager.hpp"
 
 #include "Client.hpp"
 #include "Common.hpp"
@@ -16,8 +16,12 @@
 
 TdManager::TdManager(QObject *parent)
     : QObject(parent)
+    , m_networkManager(new QNetworkAccessManager(this))
+    , m_networkConfigManager(new QNetworkConfigurationManager(this))
 {
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
+    
+    connect(m_networkConfigManager, configurationChanged(const QNetworkConfiguration &), this, SLOT(handleNetworkConfiguration(const QNetworkConfiguration &)))
 }
 
 void TdManager::sendRequest(const QVariantMap &request, std::function<void(const QVariantMap &)> callback)
@@ -54,6 +58,11 @@ Locale *TdManager::locale() const
 void TdManager::setLocale(Locale *locale)
 {
     m_locale = locale;
+}
+
+bool TdManager::loading() const
+{
+    return m_loading;
 }
 
 void TdManager::addFileToDownloads(int fileId, qint64 chatId, qint64 messageId, int priority)
@@ -127,6 +136,24 @@ void TdManager::setOption(const QString &name, const QVariant &value)
     sendRequest(request);
 }
 
+void TdManager::setNetworkType(TdApi::NetworkType value)
+{
+    QVariantMap networkType;
+    
+    switch(value)
+    {
+        case TdApi::NetworkTypeMobile
+            networkType.insert("@type", "networkTypeMobile");
+        break;
+    }
+
+    QVariantMap request;
+    request.insert("@type", "setNetworkType");
+    request.insert("type", networkType);
+
+    sendRequest(request);
+}
+
 void TdManager::initialLanguagePack()
 {
     QSettings settings(QCoreApplication::organizationName(), AppName);
@@ -139,27 +166,30 @@ void TdManager::initialLanguagePack()
     request.insert("@type", "getLanguagePackStrings");
     request.insert("language_pack_id", settings.value("languagePackId", "en"));
 
-    sendRequest(request, [this](const auto &r) {
-        if (r.value("@type").toByteArray() == "languagePackStrings")
-            m_locale->processStrings(r);
+    m_client->send(request, [this](const auto &strings) {
+        if (strings.value("@type").toByteArray() == "languagePackStrings")
+            emit localizationStringChanged(strings);
     });
 }
 
 void TdManager::initialParameters()
 {
+    QVariantMap parameters;
+    parameters.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
+    parameters.insert("use_file_database", true);
+    parameters.insert("use_chat_info_database", true);
+    parameters.insert("use_message_database", true);
+    parameters.insert("use_secret_chats", true);
+    parameters.insert("api_id", ApiId);
+    parameters.insert("api_hash", ApiHash);
+    parameters.insert("system_language_code", QLocale::system().name().left(2));
+    parameters.insert("device_model", DeviceModel);
+    parameters.insert("system_version", SystemVersion);
+    parameters.insert("application_version", AppVersion);
+
     QVariantMap request;
     request.insert("@type", "setTdlibParameters");
-    request.insert("database_directory", QString(QDir::homePath() % DatabaseDirectory));
-    request.insert("use_file_database", true);
-    request.insert("use_chat_info_database", true);
-    request.insert("use_message_database", true);
-    request.insert("use_secret_chats", true);
-    request.insert("api_id", ApiId);
-    request.insert("api_hash", ApiHash);
-    request.insert("system_language_code", QLocale::system().name().left(2));
-    request.insert("device_model", DeviceModel);
-    request.insert("system_version", SystemVersion);
-    request.insert("application_version", AppVersion);
+    request.insert("parameters", parameters);
 
     sendRequest(request);
 }
@@ -183,6 +213,11 @@ void TdManager::handleResult(const QVariantMap &object)
             break;
         }
     }
+}
+
+void TdManager::handleNetworkConfiguration(const QNetworkConfiguration &config)
+{
+
 }
 
 void TdManager::handleAuthorizationState(const QVariantMap &authorizationState)

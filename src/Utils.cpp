@@ -24,10 +24,8 @@
 
 namespace detail {
 
-bool isBotUser(qint64 userId) noexcept
+bool isBotUser(const QVariantMap &user) noexcept
 {
-    auto user = StorageManager::getInstance().getUser(userId);
-
     auto userType = user.value("type").toMap();
     return userType.value("@type").toByteArray() == "userTypeBot";
 }

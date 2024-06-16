@@ -1,10 +1,12 @@
 #include "SelectionModel.hpp"
 
+#include "Client.hpp"
 #include "Localization.hpp"
-#include "Serialize.hpp"
+#include "StorageManager.hpp"
 #include "TdApi.hpp"
+#include "qdebug.h"
 
-#include <QDebug>
+#include <QStringList>
 
 #include <algorithm>
 
@@ -17,11 +19,21 @@ CountryModel::CountryModel(QObject *parent)
     roles.insert(CodeRole, "code");
 
     setRoleNames(roles);
+}
+
+TdManager *CountryModel::manager() const
+{
+    return m_manager;
+}
+
+void CountryModel::setManager(TdManager *manager)
+{
+    m_manager = manager;
 
     QVariantMap request;
     request.insert("@type", "getCountries");
 
-    TdApi::getInstance().sendRequest(request, [this](const auto &value) {
+    m_manager->sendRequest(request, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "countries")
         {
             beginInsertRows(QModelIndex(), rowCount(), value.count() - 1);
@@ -73,6 +85,14 @@ int CountryModel::count() const noexcept
     return m_countries.count();
 }
 
+void CountryModel::classBegin()
+{
+}
+
+void CountryModel::componentComplete()
+{
+}
+
 int CountryModel::getDefaultIndex() const noexcept
 {
     // TODO(strawberry): refactor
@@ -96,8 +116,17 @@ ChatFilterModel::ChatFilterModel(QObject *parent)
     roles.insert(IconNameRole, "iconName");
 
     setRoleNames(roles);
+}
 
-    connect(&TdApi::getInstance(), SIGNAL(updateChatFilters(const QVariantList &)), SLOT(handleChatFilters(const QVariantList &)));
+TdManager *ChatFilterModel::manager() const
+{
+    return m_manager;
+}
+
+void ChatFilterModel::setManager(TdManager *manager)
+{
+    m_manager = manager;
+    m_locale = m_manager->locale();
 }
 
 int ChatFilterModel::rowCount(const QModelIndex &index) const
@@ -140,17 +169,31 @@ int ChatFilterModel::count() const noexcept
     return m_chatFilters.count();
 }
 
-void ChatFilterModel::handleChatFilters(const QVariantList &chatFilters)
+void ChatFilterModel::classBegin()
+{
+}
+
+void ChatFilterModel::componentComplete()
 {
     QVariantMap chatFilter;
     chatFilter.insert("id", 0);
-    chatFilter.insert("title", Localization::getInstance().getString("FilterAllChats"));
+    chatFilter.insert("title", m_locale->getString("FilterAllChats"));
 
-    beginResetModel();
-    m_chatFilters.clear();
+    //    beginResetModel();
+    //    m_chatFilters.clear();
+    //    m_chatFilters.append(chatFilter);
+    //    std::ranges::copy(chatFilters, std::back_inserter(m_chatFilters));
+    //    endResetModel();
+
+    beginInsertRows(QModelIndex(), rowCount(), m_manager->storageManager()->getChatFilters().count());
+
     m_chatFilters.append(chatFilter);
-    std::ranges::copy(chatFilters, std::back_inserter(m_chatFilters));
-    endResetModel();
+    m_chatFilters.append(m_manager->storageManager()->getChatFilters());
+
+    endInsertRows();
+
+    qDebug() << m_chatFilters;
+
 
     emit countChanged();
 }

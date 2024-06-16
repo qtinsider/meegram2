@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: Localization.getString("TwoStepVerification") + Localization.emptyString
+                text: locale.getString("TwoStepVerification") + locale.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -47,7 +47,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: Localization.getString("LoginPasswordText") + Localization.emptyString
+                    text: locale.getString("LoginPasswordText") + locale.emptyString
                 }
 
                 Item {
@@ -55,21 +55,21 @@ Page {
                 }
 
                 Label {
-                    text: Localization.getString("YourPassword") + Localization.emptyString
+                    text: locale.getString("YourPassword") + locale.emptyString
                 }
 
                 TextField {
                     id: password
                     width: parent.width
                     echoMode: TextInput.Password
-                    placeholderText: Localization.getString("Password") + Localization.emptyString
+                    placeholderText: locale.getString("Password") + locale.emptyString
                 }
 
                 Label {
                     id: hint
                     width: parent.width
                     font.pixelSize: 24
-                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(Localization.getString("PasswordHint")).arg(passwordHint)
+                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(locale.getString("PasswordHint")).arg(passwordHint)
                     visible: passwordHint !== ""
                 }
             }
@@ -79,11 +79,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: Localization.getString("Next") + Localization.emptyString
-                onClicked: Api.checkPassword(password.text)
+                text: locale.getString("Next") + locale.emptyString
+                onClicked: authorization.checkPassword(password.text)
             }
             ToolButton {
-                text: Localization.getString("Cancel") + Localization.emptyString
+                text: locale.getString("Cancel") + locale.emptyString
                 onClicked: root.cancelClicked()
             }
         }
