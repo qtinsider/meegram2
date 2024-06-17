@@ -9,7 +9,7 @@ PageStackWindow {
 
     property QtObject icons: Icons {}
 
-    property bool isPortrait: (screen.currentOrientation === Screen.Landscape) ? false : true
+    property bool isPortrait: screen.currentOrientation !== Screen.Landscape
 
     initialPage: Component { MainPage {} }
 
@@ -57,9 +57,12 @@ PageStackWindow {
     function openChat(chatId) {
         var component = Qt.createComponent("ChatPage.qml");
 
-        if (component.status === Component.Ready)
-            pageStack.push(component, { chatId: chatId });
-        else
-            console.debug("Error loading component:", component.errorString());
+        component.statusChanged.connect(function() {
+            if (component.status === Component.Ready) {
+                pageStack.push(component, { chatId: chatId });
+            } else if (component.status === Component.Error) {
+                console.debug("Error loading component:", component.errorString());
+            }
+        });
     }
 }

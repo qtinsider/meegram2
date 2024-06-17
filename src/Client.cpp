@@ -4,8 +4,6 @@
 
 #include <td/telegram/td_json_client.h>
 
-#include <QDebug>
-
 #include <mutex>
 
 Client::Client(QObject *parent)
@@ -13,7 +11,7 @@ Client::Client(QObject *parent)
     , m_clientId(td_create_client_id())  // Ensure client ID is initialized properly
 {
     // disable TDLib logging
-    td_execute(R"({"@type":"setLogVerbosityLevel", "new_verbosity_level":3})");
+    td_execute(R"({"@type":"setLogVerbosityLevel", "new_verbosity_level":0})");
 
     initialize();
 }

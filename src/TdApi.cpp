@@ -176,12 +176,12 @@ void TdManager::initialReady()
 
 void TdManager::handleResult(const QVariantMap &object)
 {
-    switch (const auto objectType = object.value("@type").toByteArray(); fnv::hashRuntime(objectType.constData()))
+    const auto objectType = object.value("@type").toByteArray();
+    switch (fnv::hashRuntime(objectType.constData()))
     {
-        case fnv::hash("updateAuthorizationState"): {
+        case fnv::hash("updateAuthorizationState"):
             handleAuthorizationState(object.value("authorization_state").toMap());
             break;
-        }
     }
 }
 
