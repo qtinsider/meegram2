@@ -65,7 +65,6 @@ public:
         ServiceMessageRole,
     };
 
-
     TdManager *manager() const;
     void setManager(TdManager *manager);
 
@@ -100,6 +99,8 @@ public:
 
     Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
 
+    bool isValid() const noexcept;
+
 signals:
     void chatIdChanged();
 
@@ -113,6 +114,8 @@ public slots:
     void refresh() noexcept;
 
 private slots:
+    void handleResult(const QVariantMap &object);
+
     void handleNewMessage(const QVariantMap &message);
     void handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId);
     void handleMessageSendFailed(const QVariantMap &message, qint64 oldMessageId, int errorCode, const QString &errorMessage);
@@ -139,8 +142,8 @@ private:
     QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
     QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
     QString getUserStatus(const QVariantMap &user) const noexcept;
-    QString getTitle(const QVariantMap &message)const noexcept;
-    QString getUserFullName(qint64 userId)const noexcept;
+    QString getTitle(const QVariantMap &message) const noexcept;
+    QString getUserFullName(qint64 userId) const noexcept;
 
     Client *m_client;
     Locale *m_locale;

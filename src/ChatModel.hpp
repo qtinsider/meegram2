@@ -61,6 +61,9 @@ public:
     int chatFilterId() const;
     void setChatFilterId(int value);
 
+
+    Q_INVOKABLE QVariant get(int index) const noexcept;
+
     Q_INVOKABLE bool isPinned(int index) const noexcept;
     Q_INVOKABLE bool isMuted(int index) const noexcept;
 

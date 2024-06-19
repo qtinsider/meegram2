@@ -153,61 +153,71 @@ void Authorization::handleResult(const QVariantMap &object)
         return;
 
     const auto authorizationState = object.value("authorization_state").toMap();
-    const auto authorizationStateType = authorizationState.value("@type").toByteArray();
+    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
 
-    switch (fnv::hashRuntime(authorizationStateType.constData()))
+    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+        {"authorizationStateWaitPhoneNumber", [this](const QVariantMap &state) { handleAuthorizationStateWaitPhoneNumber(state); }},
+        {"authorizationStateWaitCode", [this](const QVariantMap &state) { handleAuthorizationStateWaitCode(state); }},
+        {"authorizationStateWaitPassword", [this](const QVariantMap &state) { handleAuthorizationStateWaitPassword(state); }},
+        {"authorizationStateWaitRegistration", [this](const QVariantMap &state) { handleAuthorizationStateWaitRegistration(state); }},
+        {"authorizationStateReady", [this](const QVariantMap &state) { handleAuthorizationStateReady(state); }},
+    };
+
+    if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
     {
-        case fnv::hash("authorizationStateWaitPhoneNumber"): {
-            break;
-        }
-        case fnv::hash("authorizationStateWaitCode"): {
-            const auto codeInfo = authorizationState.value("code_info").toMap();
-
-            const auto phoneNumber = codeInfo.value("phone_number").toString();
-            const auto timeout = codeInfo.value("timeout").toInt();
-
-            QVariantMap type;
-            QVariantMap nextType;
-
-            type.insert("type", codeInfo.value("type").toMap().value("@type").toString());
-            type.insert("length", codeInfo.value("type").toMap().value("length").toString());
-
-            if (!codeInfo.value("next_type").isNull())
-            {
-                nextType.insert("type", codeInfo.value("next_type").toMap().value("@type").toString());
-                nextType.insert("length", codeInfo.value("next_type").toMap().value("length").toString());
-            }
-
-            emit codeRequested(phoneNumber, type, nextType, timeout);
-
-            break;
-        }
-        case fnv::hash("authorizationStateWaitPassword"): {
-            const auto password = authorizationState.value("password").toMap();
-
-            const auto passwordHint = password.value("password_hint").toString();
-            const auto hasRecoveryEmailAddress = password.value("has_recovery_email_address").toBool();
-            const auto recoveryEmailAddressPattern = password.value("recovery_email_address_pattern").toString();
-
-            emit passwordRequested(passwordHint, hasRecoveryEmailAddress, recoveryEmailAddressPattern);
-
-            break;
-        }
-        case fnv::hash("authorizationStateWaitRegistration"): {
-            const auto termsOfService = authorizationState.value("terms_of_service").toMap();
-
-            const auto text = termsOfService.value("text").toMap().value("text").toString();
-            const auto minUserAge = termsOfService.value("min_user_age").toInt();
-            const auto showPopup = termsOfService.value("show_popup").toBool();
-
-            emit registrationRequested(text, minUserAge, showPopup);
-
-            break;
-        }
-        case fnv::hash("authorizationStateReady"): {
-            emit ready();
-
-            break;
-        }
+        it->second(authorizationState);
     }
+}
+
+void Authorization::handleAuthorizationStateWaitPhoneNumber(const QVariantMap &)
+{
+    // Handle wait phone number state (empty function as per the original code)
+}
+
+void Authorization::handleAuthorizationStateWaitCode(const QVariantMap &authorizationState)
+{
+    const auto codeInfo = authorizationState.value("code_info").toMap();
+    const auto phoneNumber = codeInfo.value("phone_number").toString();
+    const auto timeout = codeInfo.value("timeout").toInt();
+
+    QVariantMap type;
+    QVariantMap nextType;
+
+    const auto typeMap = codeInfo.value("type").toMap();
+    type.insert("type", typeMap.value("@type").toString());
+    type.insert("length", typeMap.value("length").toString());
+
+    if (!codeInfo.value("next_type").isNull())
+    {
+        const auto nextTypeMap = codeInfo.value("next_type").toMap();
+        nextType.insert("type", nextTypeMap.value("@type").toString());
+        nextType.insert("length", nextTypeMap.value("length").toString());
+    }
+
+    emit codeRequested(phoneNumber, type, nextType, timeout);
+}
+
+void Authorization::handleAuthorizationStateWaitPassword(const QVariantMap &authorizationState)
+{
+    const auto password = authorizationState.value("password").toMap();
+    const auto passwordHint = password.value("password_hint").toString();
+    const auto hasRecoveryEmailAddress = password.value("has_recovery_email_address").toBool();
+    const auto recoveryEmailAddressPattern = password.value("recovery_email_address_pattern").toString();
+
+    emit passwordRequested(passwordHint, hasRecoveryEmailAddress, recoveryEmailAddressPattern);
+}
+
+void Authorization::handleAuthorizationStateWaitRegistration(const QVariantMap &authorizationState)
+{
+    const auto termsOfService = authorizationState.value("terms_of_service").toMap();
+    const auto text = termsOfService.value("text").toMap().value("text").toString();
+    const auto minUserAge = termsOfService.value("min_user_age").toInt();
+    const auto showPopup = termsOfService.value("show_popup").toBool();
+
+    emit registrationRequested(text, minUserAge, showPopup);
+}
+
+void Authorization::handleAuthorizationStateReady(const QVariantMap &)
+{
+    emit ready();
 }

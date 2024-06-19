@@ -232,6 +232,26 @@ void ChatModel::setChatFilterId(int value)
     }
 }
 
+QVariant ChatModel::get(int index) const noexcept
+{
+    QModelIndex modelIndex = createIndex(index, 0);
+
+    QVariantMap result;
+    result.insert("id", data(modelIndex, IdRole));
+    result.insert("type", data(modelIndex, TypeRole));
+    result.insert("title", data(modelIndex, TitleRole));
+    result.insert("photo", data(modelIndex, PhotoRole));
+    result.insert("lastMessageSender", data(modelIndex, LastMessageSenderRole));
+    result.insert("lastMessageContent", data(modelIndex, LastMessageContentRole));
+    result.insert("lastMessageDate", data(modelIndex, LastMessageDateRole));
+    result.insert("isPinned", data(modelIndex, IsPinnedRole));
+    result.insert("unreadMentionCount", data(modelIndex, UnreadMentionCountRole));
+    result.insert("unreadCount", data(modelIndex, UnreadCountRole));
+    result.insert("isMuted", data(modelIndex, IsMutedRole));
+
+    return result;
+}
+
 bool ChatModel::isPinned(int index) const noexcept
 {
     return data(createIndex(index, 0), IsPinnedRole).toBool();

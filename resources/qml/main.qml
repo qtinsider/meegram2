@@ -57,12 +57,9 @@ PageStackWindow {
     function openChat(chatId) {
         var component = Qt.createComponent("ChatPage.qml");
 
-        component.statusChanged.connect(function() {
-            if (component.status === Component.Ready) {
-                pageStack.push(component, { chatId: chatId });
-            } else if (component.status === Component.Error) {
-                console.debug("Error loading component:", component.errorString());
-            }
-        });
+        if (component.status === Component.Ready)
+            pageStack.push(component, { chatId: chatId });
+        else
+            console.debug("Error loading component:", component.errorString());
     }
 }

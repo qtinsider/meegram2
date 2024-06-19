@@ -1,11 +1,12 @@
 #include "MessageModel.hpp"
 
-#include "Client.hpp"
 #include "ChatModel.hpp"
+#include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
+#include "qdebug.h"
 
 #include <QDateTime>
 #include <QLocale>
@@ -32,6 +33,8 @@ TdManager *MessageModel::manager() const
 
 void MessageModel::setManager(TdManager *manager)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     m_manager = manager;
     m_client = m_manager->storageManager()->client();
     m_locale = m_manager->locale();
@@ -41,6 +44,10 @@ void MessageModel::setManager(TdManager *manager)
 
     connect(m_storageManager, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
     connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
+
+    m_chat = m_storageManager->getChat(m_chatId.toLong());
+    loadMessages();
+    emit statusChanged();
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -87,7 +94,8 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
-    switch (const auto &message = m_messages.at(index.row()); role)
+    const auto &message = m_messages.at(index.row());
+    switch (role)
     {
         case IdRole:
             return message.value("id").toString();
@@ -247,21 +255,22 @@ QString MessageModel::getChatId() const noexcept
 
 void MessageModel::setChatId(const QString &value) noexcept
 {
-    if (m_chatId == value)
-        return;
+    qDebug() << __PRETTY_FUNCTION__;
 
-    m_chatId = value;
-
-    m_chat = m_storageManager->getChat(m_chatId.toLong());
-
-    emit chatIdChanged();
-    emit statusChanged();
-
-    loadMessages();
+    if (m_chatId != value)
+    {
+        m_chatId = value;
+        emit chatIdChanged();
+    }
 }
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return "";
+
     auto type = m_chat.value("type").toMap();
 
     auto chatType = type.value("@type").toByteArray();
@@ -286,6 +295,11 @@ QString MessageModel::getChatSubtitle() const noexcept
 
 QString MessageModel::getChatTitle() const noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return "";
+
     auto isMeChat = [this](const QVariantMap &chat) {
         auto type = chat.value("type").toMap();
 
@@ -306,6 +320,11 @@ QString MessageModel::getChatTitle() const noexcept
 
 QString MessageModel::getChatPhoto() const noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return "";
+
     if (auto chatPhoto = m_chat.value("photo").toMap();
         chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
     {
@@ -317,6 +336,8 @@ QString MessageModel::getChatPhoto() const noexcept
 
 void MessageModel::loadHistory() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (auto min = std::ranges::min_element(m_messageIds); min != m_messageIds.end() && !m_loadingHistory)
     {
         m_loadingHistory = true;
@@ -329,6 +350,11 @@ void MessageModel::loadHistory() noexcept
 
 void MessageModel::openChat() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap request;
     request.insert("@type", "openChat");
     request.insert("chat_id", m_chatId);
@@ -338,6 +364,11 @@ void MessageModel::openChat() noexcept
 
 void MessageModel::closeChat() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap request;
     request.insert("@type", "closeChat");
     request.insert("chat_id", m_chatId);
@@ -347,6 +378,11 @@ void MessageModel::closeChat() noexcept
 
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap request;
     request.insert("@type", "getChatHistory");
     request.insert("chat_id", m_chatId);
@@ -360,6 +396,11 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap formattedText, inputMessageContent;
     formattedText.insert("@type", "formattedText");
     formattedText.insert("text", message);
@@ -381,8 +422,18 @@ void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
     m_manager->sendRequest(request);
 }
 
+bool MessageModel::isValid() const noexcept
+{
+    return m_client != nullptr && m_storageManager != nullptr && m_locale != nullptr;
+}
+
 void MessageModel::viewMessages(const QVariantList &messageIds)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap request;
     request.insert("@type", "viewMessages");
     request.insert("chat_id", m_chatId);
@@ -395,6 +446,11 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
 
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!isValid())
+        return;
+
     QVariantMap request;
     request.insert("@type", "deleteMessages");
     request.insert("chat_id", m_chatId);
@@ -418,6 +474,49 @@ void MessageModel::refresh() noexcept
     endResetModel();
 
     emit countChanged();
+}
+
+void MessageModel::handleResult(const QVariantMap &object)
+{
+    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+        {"updateNewMessage", [this](const QVariantMap &obj) { handleNewMessage(obj.value("message").toMap()); }},
+        {"updateMessageSendSucceeded",
+         [this](const QVariantMap &obj) {
+             handleMessageSendSucceeded(obj.value("message").toMap(), obj.value("old_message_id").toLongLong());
+         }},
+        {"updateMessageSendFailed",
+         [this](const QVariantMap &obj) {
+             handleMessageSendFailed(obj.value("message").toMap(), obj.value("old_message_id").toLongLong(),
+                                     obj.value("error_code").toInt(), obj.value("error_message").toString());
+         }},
+        {"updateMessageContent",
+         [this](const QVariantMap &obj) {
+             handleMessageContent(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
+                                  obj.value("new_content").toMap());
+         }},
+        {"updateMessageEdited",
+         [this](const QVariantMap &obj) {
+             handleMessageEdited(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("edit_date").toInt(),
+                                 obj.value("reply_markup").toMap());
+         }},
+        {"updateMessageIsPinned",
+         [this](const QVariantMap &obj) {
+             handleMessageIsPinned(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
+                                   obj.value("is_pinned").toBool());
+         }},
+        {"updateMessageInteractionInfo",
+         [this](const QVariantMap &obj) {
+             handleMessageInteractionInfo(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
+                                          obj.value("interaction_info").toMap());
+         }},
+    };
+
+    const auto objectType = object.value("@type").toString().toStdString();
+
+    if (const auto it = handlers.find(objectType); it != handlers.end())
+    {
+        it->second(object);
+    }
 }
 
 void MessageModel::handleNewMessage(const QVariantMap &message)

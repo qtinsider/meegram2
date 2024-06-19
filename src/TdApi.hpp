@@ -8,76 +8,105 @@
 
 #include <atomic>
 #include <coroutine>
-#include <functional>
 #include <stdexcept>
 
 class Client;
 class Locale;
 class StorageManager;
 
-class ResponseAwaiter {
+class ResponseAwaiter
+{
 public:
-    explicit ResponseAwaiter(Client* client, const QVariantMap& request) noexcept
-        : client_(client), request_(request), ready_(false) {}
+    explicit ResponseAwaiter(Client *client, const QVariantMap &request) noexcept
+        : client_(client)
+        , request_(request)
+        , ready_(false)
+    {
+    }
 
-    bool await_ready() const noexcept {
+    bool await_ready() const noexcept
+    {
         return ready_.load(std::memory_order_acquire);
     }
 
-    void await_suspend(std::coroutine_handle<> handle) {
-        client_->send(request_, [this, handle](const QVariantMap& res) {
+    void await_suspend(std::coroutine_handle<> handle)
+    {
+        client_->send(request_, [this, handle](const QVariantMap &res) {
             response_ = res;
             ready_.store(true, std::memory_order_release);
             handle.resume();
         });
     }
 
-    QVariantMap await_resume() {
-        if (!ready_.load(std::memory_order_acquire)) {
+    QVariantMap await_resume()
+    {
+        if (!ready_.load(std::memory_order_acquire))
+        {
             throw std::runtime_error("Response not ready");
         }
         return std::move(response_);
     }
 
 private:
-    Client* client_;
+    Client *client_;
     QVariantMap request_;
     QVariantMap response_;
     std::atomic_bool ready_;
 };
 
-class ResponseAwaitable {
+class ResponseAwaitable
+{
 public:
-    ResponseAwaitable(Client* client, const QVariantMap& request) noexcept
-        : client_(client), request_(request) {}
+    ResponseAwaitable(Client *client, const QVariantMap &request) noexcept
+        : client_(client)
+        , request_(request)
+    {
+    }
 
-    ResponseAwaiter operator co_await() const {
+    ResponseAwaiter operator co_await() const
+    {
         return ResponseAwaiter{client_, request_};
     }
 
 private:
-    Client* client_;
+    Client *client_;
     QVariantMap request_;
 };
 
-class TaskPromise {
+class TaskPromise
+{
 public:
-    struct promise_type {
+    struct promise_type
+    {
         promise_type() = default;
 
-        std::suspend_never initial_suspend() const noexcept { return {}; }
-        std::suspend_never final_suspend() const noexcept { return {}; }
-        TaskPromise get_return_object() { return TaskPromise(); }
-        void unhandled_exception() { std::terminate(); }
-        void return_void() const noexcept {}
+        std::suspend_never initial_suspend() const noexcept
+        {
+            return {};
+        }
+        std::suspend_never final_suspend() const noexcept
+        {
+            return {};
+        }
+        TaskPromise get_return_object()
+        {
+            return TaskPromise();
+        }
+        void unhandled_exception()
+        {
+            std::terminate();
+        }
+        void return_void() const noexcept
+        {
+        }
 
-        template<typename... Args>
-        auto await_transform(Args&&... args) {
+        template <typename... Args>
+        auto await_transform(Args &&...args)
+        {
             return ResponseAwaitable{std::forward<Args>(args)...};
         }
     };
 };
-
 
 class TdManager : public QObject
 {

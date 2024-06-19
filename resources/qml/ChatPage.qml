@@ -370,11 +370,19 @@ Page {
     MessageModel {
         id: myMessageModel
 
+        manager: tdManager
+
         onMoreHistoriesLoaded: {
             listView.positionViewAtIndex(modelIndex - 1, ListView.Beginning)
         }
+
+        Component.onCompleted: {
+            console.log("myMessageModel Component.onCompleted")
+            myMessageModel.openChat()
+        }
+
     }
 
-    Component.onCompleted: myMessageModel.openChat()
+    Component.onCompleted: { console.log("Global Component.onCompleted") }
     Component.onDestruction: myMessageModel.closeChat()
 }

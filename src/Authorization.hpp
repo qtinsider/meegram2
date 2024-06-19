@@ -47,6 +47,12 @@ private slots:
 private:
     void setLoading(bool value);
 
+    void handleAuthorizationStateWaitPhoneNumber(const QVariantMap &authorizationState);
+    void handleAuthorizationStateWaitCode(const QVariantMap &authorizationState);
+    void handleAuthorizationStateWaitPassword(const QVariantMap &authorizationState);
+    void handleAuthorizationStateWaitRegistration(const QVariantMap &authorizationState);
+    void handleAuthorizationStateReady(const QVariantMap &authorizationState);
+
     bool m_loading{true};
 
     Client *m_client;

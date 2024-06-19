@@ -181,7 +181,7 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            appWindow.openChat(myChatModel.model.id);
+            appWindow.openChat(myChatModel.get(index).id);
         }
         onPressAndHold: root.pressAndHold()
     }

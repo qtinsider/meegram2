@@ -152,8 +152,8 @@ void LottieAnimation::load()
         return;
     }
 
-    auto width = size_t(0);
-    auto height = size_t(0);
+    size_t width = 0;
+    size_t height = 0;
     m_animation->size(width, height);
 
     setImplicitWidth(width);
