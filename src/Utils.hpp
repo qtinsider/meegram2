@@ -4,40 +4,39 @@
 #include <QObject>
 #include <QVariant>
 
-class Utils : public QObject
+class Locale;
+class StorageManager;
+
+namespace Utils
 {
-    Q_OBJECT
-public:
-    explicit Utils(QObject *parent = nullptr);
+      QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList);
+      bool isChatPinned(qint64 chatId, const QVariantMap &chatList, StorageManager *store);
+      qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList, StorageManager *store);
+      bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
 
-    static QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList);
-    static bool isChatPinned(qint64 chatId, const QVariantMap &chatList);
-    static qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList);
-    static bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
+      QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages = false);
+      bool isChatMuted(qint64 chatId, StorageManager *store);
+      int getChatMuteFor(qint64 chatId, StorageManager *store);
 
-    static QString getChatTitle(qint64 chatId, bool showSavedMessages = false);
-    static bool isChatMuted(qint64 chatId);
-    static int getChatMuteFor(qint64 chatId);
+      QString getServiceMessageContent(const QVariantMap &message, StorageManager *store, Locale *locale, bool openUser = false);
+      bool isServiceMessage(const QVariantMap &message);
 
-    static QString getServiceMessageContent(const QVariantMap &message, bool openUser = false);
-    static bool isServiceMessage(const QVariantMap &message);
+        QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept;
 
-    Q_INVOKABLE static QString getUserShortName(qint64 userId) noexcept;
+        QString getContent(const QVariantMap &message, StorageManager *store, Locale *locale) noexcept;
+        QString getFormattedText(const QVariantMap &formattedText, StorageManager *store, Locale *locale, const QVariantMap &options = {}) noexcept;
+        QString getTitle(const QVariantMap &message) noexcept;
+        QString getMessageDate(const QVariantMap &message, Locale *locale) noexcept;
+        QString getMessageSenderName(const QVariantMap &message, StorageManager *store, Locale *locale) noexcept;
 
-    Q_INVOKABLE static QString getContent(const QVariantMap &message) noexcept;
-    Q_INVOKABLE static QString getFormattedText(const QVariantMap &formattedText, const QVariantMap &options = {}) noexcept;
-    Q_INVOKABLE static QString getTitle(const QVariantMap &message) noexcept;
-    Q_INVOKABLE static QString getMessageDate(const QVariantMap &message) noexcept;
-    Q_INVOKABLE static QString getMessageSenderName(const QVariantMap &message) noexcept;
+        bool isChatUnread(qint64 chatId, StorageManager *store) noexcept;
+        bool isMessageUnread(qint64 chatId, const QVariantMap &message, StorageManager *store) noexcept;
 
-    Q_INVOKABLE static bool isChatUnread(qint64 chatId) noexcept;
-    Q_INVOKABLE static bool isMessageUnread(qint64 chatId, const QVariantMap &message) noexcept;
+        QString getFileSize(const QVariantMap &file) noexcept;
 
-    Q_INVOKABLE static QString getFileSize(const QVariantMap &file) noexcept;
+      void copyToClipboard(const QVariantMap &content) noexcept;
+      QImage getThumb(const QVariantMap &thumbnail)  noexcept;
+      QString getViews(int views) noexcept;
 
-    Q_INVOKABLE void copyToClipboard(const QVariantMap &content) noexcept;
-    Q_INVOKABLE QImage getThumb(const QVariantMap &thumbnail) const noexcept;
-    Q_INVOKABLE QString getViews(int views) const noexcept;
-
-    Q_INVOKABLE QString formatTime(int totalSeconds) const noexcept;
-};
+      QString formatTime(int totalSeconds)  noexcept;
+}

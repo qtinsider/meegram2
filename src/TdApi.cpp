@@ -176,68 +176,43 @@ void TdManager::initialReady()
 
 void TdManager::handleResult(const QVariantMap &object)
 {
-    const auto objectType = object.value("@type").toByteArray();
-    switch (fnv::hashRuntime(objectType.constData()))
+    const QString type = object.value(QLatin1String("@type")).toString();
+
+    if (type == QLatin1String("updateAuthorizationState"))
     {
-        case fnv::hash("updateAuthorizationState"):
-            handleAuthorizationState(object.value("authorization_state").toMap());
-            break;
+        handleAuthorizationState(object.value("authorization_state").toMap());
     }
 }
 
 void TdManager::handleAuthorizationState(const QVariantMap &authorizationState)
 {
-    const auto authorizationStateType = authorizationState.value("@type").toByteArray();
+    static const std::unordered_map<std::string, std::function<void()>> handlers = {
+        {"authorizationStateWaitEncryptionKey",
+         [this]() {
+             m_state = TdApi::AuthorizationStateWaitEncryptionKey;
+             QVariantMap request;
+             request.insert("@type", "checkDatabaseEncryptionKey");
+             request.insert("encryption_key", "");
+             sendRequest(request);
+         }},
+        {"authorizationStateWaitPhoneNumber", [this]() { m_state = TdApi::AuthorizationStateWaitPhoneNumber; }},
+        {"authorizationStateWaitCode", [this]() { m_state = TdApi::AuthorizationStateWaitCode; }},
+        {"authorizationStateWaitPassword", [this]() { m_state = TdApi::AuthorizationStateWaitPassword; }},
+        {"authorizationStateWaitRegistration", [this]() { m_state = TdApi::AuthorizationStateWaitRegistration; }},
+        {"authorizationStateReady",
+         [this]() {
+             m_state = TdApi::AuthorizationStateReady;
+             initialReady();
+         }},
+        {"authorizationStateLoggingOut", [this]() { m_state = TdApi::AuthorizationStateLoggingOut; }},
+        {"authorizationStateClosed", [this]() { m_state = TdApi::AuthorizationStateClosed; }},
+    };
 
-    switch (fnv::hashRuntime(authorizationStateType.constData()))
+    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
+
+    if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
     {
-        case fnv::hash("authorizationStateWaitEncryptionKey"): {
-            m_state = TdApi::AuthorizationStateWaitEncryptionKey;
-
-            QVariantMap request;
-            request.insert("@type", "checkDatabaseEncryptionKey");
-            request.insert("encryption_key", "");
-
-            sendRequest(request);
-            break;
-        }
-        case fnv::hash("authorizationStateWaitPhoneNumber"): {
-            m_state = TdApi::AuthorizationStateWaitPhoneNumber;
-
-            break;
-        }
-        case fnv::hash("authorizationStateWaitCode"): {
-            m_state = TdApi::AuthorizationStateWaitCode;
-
-            break;
-        }
-        case fnv::hash("authorizationStateWaitPassword"): {
-            m_state = TdApi::AuthorizationStateWaitPassword;
-
-            break;
-        }
-        case fnv::hash("authorizationStateWaitRegistration"): {
-            m_state = TdApi::AuthorizationStateWaitRegistration;
-
-            break;
-        }
-        case fnv::hash("authorizationStateReady"): {
-            m_state = TdApi::AuthorizationStateReady;
-
-            initialReady();
-
-            break;
-        }
-        case fnv::hash("authorizationStateLoggingOut"): {
-            m_state = TdApi::AuthorizationStateLoggingOut;
-
-            break;
-        }
-        case fnv::hash("authorizationStateClosed"): {
-            m_state = TdApi::AuthorizationStateClosed;
-
-            break;
-        }
+        it->second();
     }
 
     emit authorizationStateChanged(m_state);

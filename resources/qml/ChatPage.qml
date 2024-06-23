@@ -164,7 +164,7 @@ Page {
 
                                     content: Text {
                                         id: messageText
-                                        text:  model.isServiceMessage ? model.serviceMessage.trim() : Utils.getFormattedText(model.content.text)
+                                        text:  model.isServiceMessage ? model.serviceMessage.trim() : myMessageModel.getFormattedText(model.content.text)
 
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                         width: isPortrait ? 380 : 754

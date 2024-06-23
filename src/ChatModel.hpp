@@ -61,7 +61,6 @@ public:
     int chatFilterId() const;
     void setChatFilterId(int value);
 
-
     Q_INVOKABLE QVariant get(int index) const noexcept;
 
     Q_INVOKABLE bool isPinned(int index) const noexcept;
@@ -69,8 +68,6 @@ public:
 
     Q_INVOKABLE void toggleChatIsPinned(int index);
     Q_INVOKABLE void toggleChatNotificationSettings(int index);
-
-    static bool isServiceMessage(const QVariantMap &message) noexcept;
 
 protected:
     void classBegin() override;
@@ -97,29 +94,6 @@ private slots:
 
 private:
     void clear();
-
-    bool isBotUser(const QVariantMap &user) const noexcept;
-    bool isMeChat(const QVariantMap &chat) const noexcept;
-    bool isMeUser(qint64 userId) const noexcept;
-    bool isUserOnline(const QVariantMap &user) const noexcept;
-    bool isChannelChat(const QVariantMap &chat) const noexcept;
-    bool isSupergroup(const QVariantMap &chat) const noexcept;
-
-    QString getAudioTitle(const QVariantMap &audio) const noexcept;
-    QString getCallContent(const QVariantMap &sender, const QVariantMap &content) const noexcept;
-    QString getChatTitle(const QVariantMap &chat) const noexcept;
-    QString getMessageAuthor(const QVariantMap &message, bool openUser) const noexcept;
-    QString getUserShortName(qint64 userId) const noexcept;
-    QString getMessageSenderName(const QVariantMap &message) const noexcept;
-    QString getUserShortName(const QVariantMap &user) const noexcept;
-    QVariantMap getChatPosition(const QVariantMap &chat, const QVariantMap &chatList) const noexcept;
-    bool isChatMuted(const QVariantMap &chat) const noexcept;
-    int getChatMuteFor(const QVariantMap &chat) const noexcept;
-    bool isChatPinned(const QVariantMap &chat, const QVariantMap &chatList) const noexcept;
-    qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList) const noexcept;
-    bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2) const noexcept;
-    QString getServiceMessageContent(const QVariantMap &message, bool openUser = false) const noexcept;
-    QString getContent(const QVariantMap &message) const noexcept;
 
     Client *m_client;
     Locale *m_locale;

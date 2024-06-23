@@ -30,7 +30,7 @@ set(src_files
 #   src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
     src/TdApi.cpp
-#    src/Utils.cpp
+    src/Utils.cpp
 )
 
 set(header_files
@@ -50,7 +50,7 @@ set(header_files
 #   src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/TdApi.hpp
-#    src/Utils.hpp
+    src/Utils.hpp
 )
 
 set(qrc_files resources/resources.qrc)

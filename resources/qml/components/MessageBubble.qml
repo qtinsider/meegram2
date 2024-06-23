@@ -36,7 +36,7 @@ Item {
 
             onClicked:  root.clicked()
             onPressAndHold: {
-                if (Utils.copyToClipboard(model.content)) {
+                if (myMessageModel.copyToClipboard(model.content)) {
                     banner.text = "Copy text to clipbord";
                     banner.show()
                 }

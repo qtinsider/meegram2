@@ -6,19 +6,16 @@
 #include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
-#include "qdebug.h"
+#include "Utils.hpp"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QLocale>
 #include <QStringBuilder>
 #include <QTimer>
 
 #include <algorithm>
 #include <utility>
-
-namespace detail {
-
-}  // namespace detail
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -48,6 +45,7 @@ void MessageModel::setManager(TdManager *manager)
     m_chat = m_storageManager->getChat(m_chatId.toLong());
     loadMessages();
     emit statusChanged();
+    emit chatIdChanged();
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -171,7 +169,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case BubbleColorRole:
             return QVariant();
         case IsServiceMessageRole: {
-            return ChatModel::isServiceMessage(message);
+            return Utils::isServiceMessage(message);
         }
         case SectionRole: {
             const auto date = QDateTime::fromMSecsSinceEpoch(message.value("date").toLongLong() * 1000);
@@ -186,7 +184,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return date.toString(m_locale->getString("chatFullDate"));
         }
         case ServiceMessageRole: {
-            return {} /*getServiceMessageContent(message, true)*/;
+            return Utils::getServiceMessageContent(message, m_storageManager, m_locale, true);
         }
     }
     return QVariant();
@@ -332,6 +330,11 @@ QString MessageModel::getChatPhoto() const noexcept
     }
 
     return "image://theme/icon-l-content-avatar-placeholder";
+}
+
+QString MessageModel::getFormattedText(const QVariantMap &formattedText, const QVariantMap &options) noexcept
+{
+    return Utils::getFormattedText(formattedText, m_storageManager, m_locale, options);
 }
 
 void MessageModel::loadHistory() noexcept
