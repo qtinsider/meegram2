@@ -101,8 +101,6 @@ public:
 
     Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
 
-    bool isValid() const noexcept;
-
 signals:
     void chatIdChanged();
 
@@ -139,13 +137,6 @@ private:
     void loadMessages() noexcept;
 
     void itemChanged(int64_t index);
-
-    QString getBasicGroupStatus(const QVariantMap &basicGroup, const QVariantMap &chat) const noexcept;
-    QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
-    QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat) const noexcept;
-    QString getUserStatus(const QVariantMap &user) const noexcept;
-    QString getTitle(const QVariantMap &message) const noexcept;
-    QString getUserFullName(qint64 userId) const noexcept;
 
     Client *m_client;
     Locale *m_locale;

@@ -277,8 +277,6 @@ void ChatModel::toggleChatNotificationSettings(int index)
     auto chatId = data(modelIndex, IdRole).toLongLong();
     auto isMuted = !data(modelIndex, IsMutedRole).toBool();
 
-    auto chat = m_storageManager->getChat(chatId);
-
     if (auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
         return;
 
