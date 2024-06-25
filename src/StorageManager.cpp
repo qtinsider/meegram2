@@ -2,6 +2,7 @@
 
 #include "Client.hpp"
 #include "Common.hpp"
+#include "Utils.hpp"
 
 #include <QDebug>
 
@@ -137,258 +138,230 @@ qint64 StorageManager::getMyId() const
 
 void StorageManager::handleResult(const QVariantMap &object)
 {
-    switch (const auto objectType = object.value("@type").toByteArray(); fnv::hashRuntime(objectType.constData()))
+    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+        {"updateNewChat",
+         [this](const QVariantMap &object) {
+             const auto chat = object.value("chat").toMap();
+             m_chats.emplace(chat.value("id").toLongLong(), chat);
+         }},
+        {"updateChatTitle",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("title", object.value("title").toString());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatPhoto",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("photo", object.value("photo").toMap());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatPermissions",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("permissions", object.value("permissions").toMap());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatLastMessage",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             const auto positions = object.value("positions").toList();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("last_message", object.value("last_message").toMap());
+                 if (!positions.isEmpty())
+                     emit updateChatPosition(chatId);
+                 emit updateChatItem(chatId);
+             }
+             setChatPositions(chatId, positions);
+         }},
+        {"updateChatPosition",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             const auto position = QVariantList() << object.value("position").toMap();
+             setChatPositions(chatId, position);
+         }},
+        {"updateChatReadInbox",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("last_read_inbox_message_id", object.value("last_read_inbox_message_id").toLongLong());
+                 it->second.insert("unread_count", object.value("unread_count").toInt());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatReadOutbox",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("last_read_outbox_message_id", object.value("last_read_outbox_message_id").toLongLong());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatActionBar",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("action_bar", object.value("action_bar").toMap());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatDraftMessage",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             const auto positions = object.value("positions").toList();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("draft_message", object.value("draft_message").toMap());
+                 if (!positions.isEmpty())
+                     emit updateChatPosition(chatId);
+                 emit updateChatItem(chatId);
+             }
+             setChatPositions(chatId, positions);
+         }},
+        {"updateChatNotificationSettings",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("notification_settings", object.value("notification_settings").toMap());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatReplyMarkup",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("reply_markup_message_id", object.value("reply_markup_message_id").toLongLong());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatUnreadMentionCount",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("unread_mention_count", object.value("unread_mention_count").toInt());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatIsMarkedAsUnread",
+         [this](const QVariantMap &object) {
+             const auto chatId = object.value("chat_id").toLongLong();
+             auto it = m_chats.find(chatId);
+             if (it != m_chats.end())
+             {
+                 it->second.insert("is_marked_as_unread", object.value("is_marked_as_unread").toBool());
+                 emit updateChatItem(chatId);
+             }
+         }},
+        {"updateChatFilters",
+         [this](const QVariantMap &object) {
+             m_chatFilters = object.value("chat_filters").toList();
+             qDebug() << m_chatFilters;
+         }},
+        {"updateUser",
+         [this](const QVariantMap &object) {
+             const auto user = object.value("user").toMap();
+             m_users.emplace(user.value("id").toLongLong(), user);
+         }},
+        {"updateBasicGroup",
+         [this](const QVariantMap &object) {
+             const auto basicGroup = object.value("basic_group").toMap();
+             m_basicGroup.emplace(basicGroup.value("id").toLongLong(), basicGroup);
+         }},
+        {"updateSupergroup",
+         [this](const QVariantMap &object) {
+             const auto supergroup = object.value("supergroup").toMap();
+             m_supergroup.emplace(supergroup.value("id").toLongLong(), supergroup);
+         }},
+        {"updateUserFullInfo",
+         [this](const QVariantMap &object) {
+             const auto userId = object.value("user_id").toLongLong();
+             m_userFullInfo.emplace(userId, object.value("user_full_info").toMap());
+         }},
+        {"updateBasicGroupFullInfo",
+         [this](const QVariantMap &object) {
+             const auto basicGroupId = object.value("basic_group_id").toLongLong();
+             m_basicGroupFullInfo.emplace(basicGroupId, object.value("basic_group_full_info").toMap());
+         }},
+        {"updateSupergroupFullInfo",
+         [this](const QVariantMap &object) {
+             const auto supergroupId = object.value("supergroup_id").toLongLong();
+             m_supergroupFullInfo.emplace(supergroupId, object.value("supergroup_full_info").toMap());
+         }},
+        {"updateFile",
+         [this](const QVariantMap &object) {
+             const auto file = object.value("file").toMap();
+             m_files.emplace(file.value("id").toInt(), file);
+         }},
+        {"updateOption", [this](const QVariantMap &object) {
+             m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value"));
+         }}};
+
+    const auto objectType = object.value("@type").toString().toStdString();
+
+    if (auto it = handlers.find(objectType); it != handlers.end())
     {
-        case fnv::hash("updateNewChat"): {
-            m_chats.emplace(object.value("chat").toMap().value("id").toLongLong(), object.value("chat").toMap());
-
-            break;
-        }
-        case fnv::hash("updateChatTitle"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(object.value("chat_id").toLongLong()); it != m_chats.end())
-            {
-                it->second.insert("title", object.value("title").toString());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatPhoto"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("photo", object.value("photo").toMap());
-
-                emit updateChatItem(chatId);
-            }
-            break;
-        }
-        case fnv::hash("updateChatPermissions"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("permissions", object.value("permissions").toMap());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatLastMessage"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-            const auto positions = object.value("positions").toList();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("last_message", object.value("last_message").toMap());
-
-                if (not positions.isEmpty())
-                    emit updateChatPosition(chatId);
-
-                emit updateChatItem(chatId);
-            }
-
-            setChatPositions(chatId, positions);
-
-            break;
-        }
-        case fnv::hash("updateChatPosition"): {
-            setChatPositions(object.value("chat_id").toLongLong(), QVariantList() << object.value("position").toMap());
-
-            break;
-        }
-        case fnv::hash("updateChatReadInbox"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("last_read_inbox_message_id", object.value("last_read_inbox_message_id").toLongLong());
-                it->second.insert("unread_count", object.value("unread_count").toInt());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatReadOutbox"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("last_read_outbox_message_id", object.value("last_read_outbox_message_id").toLongLong());
-
-                emit updateChatItem(chatId);
-            }
-            break;
-        }
-        case fnv::hash("updateChatActionBar"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("action_bar", object.value("action_bar").toMap());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatDraftMessage"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-            const auto positions = object.value("positions").toList();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("draft_message", object.value("draft_message").toMap());
-
-                if (not positions.isEmpty())
-                    emit updateChatPosition(chatId);
-
-                emit updateChatItem(chatId);
-            }
-
-            setChatPositions(chatId, positions);
-
-            break;
-        }
-        case fnv::hash("updateChatNotificationSettings"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("notification_settings", object.value("notification_settings").toMap());
-
-                emit updateChatItem(chatId);
-            }
-            break;
-        }
-        case fnv::hash("updateChatReplyMarkup"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("reply_markup_message_id", object.value("reply_markup_message_id").toLongLong());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatUnreadMentionCount"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("unread_mention_count", object.value("unread_mention_count").toInt());
-
-                emit updateChatItem(chatId);
-            }
-
-            break;
-        }
-        case fnv::hash("updateChatIsMarkedAsUnread"): {
-            const auto chatId = object.value("chat_id").toLongLong();
-
-            if (auto it = m_chats.find(chatId); it != m_chats.end())
-            {
-                it->second.insert("is_marked_as_unread", object.value("is_marked_as_unread").toBool());
-
-                emit updateChatItem(chatId);
-            }
-            break;
-        }
-
-        case fnv::hash("updateChatFilters"): {
-            m_chatFilters.clear();
-            m_chatFilters.append(object.value("chat_filters").toList());
-
-            qDebug() << m_chatFilters;
-
-            break;
-        }
-
-        case fnv::hash("updateUser"): {
-            m_users.emplace(object.value("user").toMap().value("id").toLongLong(), object.value("user").toMap());
-
-            break;
-        }
-        case fnv::hash("updateBasicGroup"): {
-            m_basicGroup.emplace(object.value("basic_group").toMap().value("id").toLongLong(), object.value("basic_group").toMap());
-
-            break;
-        }
-        case fnv::hash("updateSupergroup"): {
-            m_supergroup.emplace(object.value("supergroup").toMap().value("id").toLongLong(), object.value("supergroup").toMap());
-            break;
-        }
-        case fnv::hash("updateUserFullInfo"): {
-            m_userFullInfo.emplace(object.value("user_id").toLongLong(), object.value("user_full_info").toMap());
-            break;
-        }
-        case fnv::hash("updateBasicGroupFullInfo"): {
-            m_basicGroupFullInfo.emplace(object.value("basic_group_id").toLongLong(), object.value("basic_group_full_info").toMap());
-            break;
-        }
-        case fnv::hash("updateSupergroupFullInfo"): {
-            m_supergroupFullInfo.emplace(object.value("supergroup_id").toLongLong(), object.value("supergroup_full_info").toMap());
-            break;
-        }
-        case fnv::hash("updateFile"): {
-            m_files.emplace(object.value("file").toMap().value("id").toInt(), object.value("file").toMap());
-            break;
-        }
-
-        case fnv::hash("updateOption"): {
-            m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value"));
-            break;
-        }
+        it->second(object);
+    }
+    else
+    {
+        qWarning() << "Unhandled update type: " << QString::fromStdString(objectType);
     }
 }
 
 void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positions) noexcept
 {
-    if (auto it = m_chats.find(chatId); it != m_chats.end())
+    auto it = m_chats.find(chatId);
+    if (it == m_chats.end())
     {
-        auto result = it->second.value("positions").toList();
+        return;  // Early return if chatId is not found
+    }
 
-        std::ranges::for_each(positions, [&result](const auto &position) {
-            auto removeIt = std::ranges::find_if(result, [position](const auto &value) {
-                auto chatListEquals = [](const QVariantMap &list1, const QVariantMap &list2) {
-                    if (list1.value("@type") != list2.value("@type"))
-                        return false;
+    auto currentPositions = it->second.value("positions").toList();  // Use a local variable to hold the list
 
-                    auto listType = list1.value("@type").toByteArray();
-
-                    switch (fnv::hashRuntime(listType.constData()))
-                    {
-                        case fnv::hash("chatListMain"):
-                            return true;
-                        case fnv::hash("chatListArchive"):
-                            return true;
-                        case fnv::hash("chatListFilter"): {
-                            return list1.value("chat_filter_id").toByteArray() == list2.value("chat_filter_id").toByteArray();
-                        }
-                    }
-
-                    return false;
-                };
-
-                return chatListEquals(value.toMap().value("list").toMap(), position.toMap().value("list").toMap());
-            });
-
-            if (removeIt != result.end())
-            {
-                result.erase(removeIt);
-            }
-
-            result.append(position);
+    // Update or append positions
+    for (const auto &position : positions)
+    {
+        auto removeIt = std::ranges::find_if(currentPositions, [&](const auto &value) {
+            return Utils::chatListEquals(value.toMap()["list"].toMap(), position.toMap()["list"].toMap());
         });
 
-        it->second.insert("positions", QVariantList() << result);
+        if (removeIt != currentPositions.end())
+        {
+            *removeIt = position;  // Update existing position
+        }
+        else
+        {
+            currentPositions.push_back(position);  // Add new position
+        }
     }
+
+    // Update positions in m_chats
+    it->second.insert("positions", currentPositions);
 }

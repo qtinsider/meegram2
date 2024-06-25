@@ -104,10 +104,17 @@ void Authorization::deleteAccount(const QString &reason) noexcept
 QString Authorization::formatTime(int totalSeconds) const noexcept
 {
     QString result;
+    QTextStream stream(&result);
 
-    auto appendDuration = [&result](int count, QChar &&order) {
-        result.append(QString::number(count));
-        result.append(order);
+    auto appendDuration = [&stream](int count, QChar order) {
+        if (count > 0)
+        {
+            if (!stream.string()->isEmpty())
+            {
+                stream << " ";
+            }
+            stream << count << order;
+        }
     };
 
     int seconds = totalSeconds % 60;
@@ -116,34 +123,12 @@ QString Authorization::formatTime(int totalSeconds) const noexcept
     int timeoutHours = timeoutMinutes / 60;
     int hours = timeoutHours % 24;
     int days = timeoutHours / 24;
-    if (days > 0)
-    {
-        appendDuration(days, 'd');
-    }
-    if (hours > 0)
-    {
-        if (!result.isEmpty())
-        {
-            result.append(" ");
-        }
-        appendDuration(hours, 'h');
-    }
-    if (minutes > 0)
-    {
-        if (!result.isEmpty())
-        {
-            result.append(" ");
-        }
-        appendDuration(minutes, 'm');
-    }
-    if (seconds > 0)
-    {
-        if (!result.isEmpty())
-        {
-            result.append(" ");
-        }
-        appendDuration(seconds, 's');
-    }
+
+    appendDuration(days, 'd');
+    appendDuration(hours, 'h');
+    appendDuration(minutes, 'm');
+    appendDuration(seconds, 's');
+
     return result;
 }
 

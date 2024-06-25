@@ -11,28 +11,28 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <cstring>
 
 namespace detail {
 
 QString getChatType(const QVariantMap &chat)
 {
+    static const std::unordered_map<const char *, QString> chatTypeMap = {{"chatTypePrivate", "private"},
+                                                                          {"chatTypeSecret", "secret"},
+                                                                          {"chatTypeBasicGroup", "group"},
+                                                                          {"chatTypeSupergroup", "supergroup"}};
+
     const auto type = chat.value("type").toMap();
-    const auto chatType = type.value("@type").toByteArray();
+    const auto chatType = type.value("@type").toByteArray().constData();
 
-    switch (fnv::hashRuntime(chatType.constData()))
+    auto it = chatTypeMap.find(chatType);
+    if (it != chatTypeMap.end())
     {
-        case fnv::hash("chatTypePrivate"):
-            return "private";
-        case fnv::hash("chatTypeSecret"):
-            return "secret";
-        case fnv::hash("chatTypeBasicGroup"):
-            return "group";
-        case fnv::hash("chatTypeSupergroup"): {
-            if (type.value("is_channel").toBool())
-                return "channel";
-
-            return "supergroup";
+        if (std::strcmp(chatType, "chatTypeSupergroup") == 0 && type.value("is_channel").toBool())
+        {
+            return "channel";
         }
+        return it->second;
     }
 
     return {};
