@@ -131,28 +131,28 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TypeRole:
             return detail::getChatType(chat);
         case TitleRole:
-            return Utils::getChatTitle(chatId, m_storageManager, m_locale);
+            return Utils::getChatTitle(chatId, m_storageManager, m_locale, true);
         case PhotoRole: {
             const auto chatPhoto = chat.value("photo").toMap();
-            const auto localPhoto = chatPhoto.value("small").toMap().value("local").toMap();
+            const auto smallPhoto = chatPhoto.value("small").toMap();
+            const auto localPhoto = smallPhoto.value("local").toMap();
+
             if (localPhoto.value("is_downloading_completed").toBool())
+            {
                 return localPhoto.value("path").toString();
-            return {};
+            }
+            else
+            {
+                return QString();
+            }
         }
+
         case LastMessageSenderRole:
             return Utils::getMessageSenderName(chat.value("last_message").toMap(), m_storageManager, m_locale);
         case LastMessageContentRole:
             return Utils::getContent(chat.value("last_message").toMap(), m_storageManager, m_locale);
         case LastMessageDateRole: {
-            const auto lastMessage = chat.value("last_message").toMap();
-            const auto date = QDateTime::fromMSecsSinceEpoch(lastMessage.value("date").toLongLong() * 1000);
-            const auto days = date.daysTo(QDateTime::currentDateTime());
-
-            if (days == 0)
-                return date.toString(m_locale->getString("formatterDay12H"));
-            else if (days < 7)
-                return date.toString(m_locale->getString("formatterWeek"));
-            return date.toString(m_locale->getString("formatterYear"));
+            return Utils::getMessageDate(chat.value("last_message").toMap(), m_locale);
         }
         case IsPinnedRole:
             return Utils::isChatPinned(chatId, m_list, m_storageManager);
@@ -322,6 +322,22 @@ void ChatModel::populate()
             {
                 m_chatIds.append(id);
                 break;  // No need to check further positions for this chat
+            }
+        }
+
+        if (const auto chatPhoto = chat.value("photo").toMap(); !chatPhoto.isEmpty())
+        {
+            const auto smallPhoto = chatPhoto.value("small").toMap();
+            const auto localPhoto = smallPhoto.value("local").toMap();
+
+            if (!localPhoto.value("is_downloading_completed").toBool())
+            {
+                QVariantMap request;
+                request.insert("@type", "downloadFile");
+                request.insert("file_id", smallPhoto.value("id").toInt());
+                request.insert("priority", 1);
+
+                m_manager->sendRequest(request);
             }
         }
     }

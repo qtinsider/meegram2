@@ -28,16 +28,16 @@ namespace detail {
 
 bool isBotUser(const QVariantMap &user) noexcept
 {
-    auto userType = user.value("type").toMap();
-    return userType.value("@type").toByteArray() == "userTypeBot";
+    const auto userType = user.value("type").toMap();
+    return userType.value("@type").toString() == QLatin1String("userTypeBot");
 }
 
 bool isMeChat(const QVariantMap &chat, StorageManager *store) noexcept
 {
-    auto type = chat.value("type").toMap();
+    const auto type = chat.value("type").toMap();
+    const auto chatType = type.value("@type").toString();
 
-    auto chatType = type.value("@type").toByteArray();
-    if (chatType == "chatTypeSecret" || chatType == "chatTypePrivate")
+    if (chatType == QLatin1String("chatTypeSecret") || chatType == QLatin1String("chatTypePrivate"))
     {
         return store->getMyId() == type.value("user_id").toLongLong();
     }
@@ -70,8 +70,8 @@ bool isUserOnline(const QVariantMap &user) noexcept
 
 bool isChannelChat(const QVariantMap &chat) noexcept
 {
-    const QVariantMap type = chat.value("type").toMap();
-    const QByteArray chatType = type.value("@type").toByteArray();
+    const auto type = chat.value("type").toMap();
+    const auto chatType = type.value("@type").toByteArray();
 
     if (chatType == "chatTypeSupergroup")
     {
@@ -83,7 +83,7 @@ bool isChannelChat(const QVariantMap &chat) noexcept
 
 bool isSupergroup(const QVariantMap &chat) noexcept
 {
-    auto type = chat.value("type").toMap();
+    const auto type = chat.value("type").toMap();
 
     return type.value("@type").toByteArray() == "chatTypeSupergroup";
 }
@@ -196,11 +196,6 @@ bool isDeletedUser(qint64 userId, StorageManager *store)
     return userType.value("@type").toByteArray() == "userTypeDeleted";
 }
 
-void appendDuration(int count, QChar &&order, QString &outString)
-{
-    outString.append(QString::number(count));
-    outString.append(order);
-}
 }  // namespace detail
 
 namespace Utils {
@@ -507,7 +502,7 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
 
 bool isServiceMessage(const QVariantMap &message)
 {
-    auto contentType = message.value("content").toMap().value("@type").toByteArray();
+    const auto contentType = message.value("content").toMap().value("@type").toString();
     static const std::unordered_map<std::string, bool> serviceMap = {
         {"messageText", false},
         {"messageAnimation", false},
@@ -553,24 +548,23 @@ bool isServiceMessage(const QVariantMap &message)
         {"messageUnsupported", true},
     };
 
-    if (auto it = serviceMap.find(contentType.constData()); it != serviceMap.end())
+    if (const auto it = serviceMap.find(contentType.toStdString()); it != serviceMap.end())
     {
         return it->second || message.value("ttl").toInt() > 0;
     }
 
-    return {};
+    return false;
 }
 
 QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept
 {
-    auto user = store->getUser(userId);
+    const auto user = store->getUser(userId);
+    const auto type = user.value("type").toMap();
+    const auto firstName = user.value("first_name").toString();
+    const auto lastName = user.value("last_name").toString();
+    const auto userType = type.value("@type").toString();
 
-    auto type = user.value("type").toMap();
-    auto firstName = user.value("first_name").toString();
-    auto lastName = user.value("last_name").toString();
-
-    auto userType = type.value("@type").toByteArray();
-    if (userType == "userTypeBot" || userType == "userTypeRegular")
+    if (userType == QLatin1String("userTypeBot") || userType == QLatin1String("userTypeRegular"))
     {
         if (!firstName.isEmpty())
             return firstName;
@@ -578,24 +572,28 @@ QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) n
         if (!lastName.isEmpty())
             return lastName;
     }
-    if (userType == "userTypeDeleted" || userType == "userTypeUnknown")
+    if (userType == QLatin1String("userTypeDeleted") || userType == QLatin1String("userTypeUnknown"))
+    {
         return locale->getString("HiddenName");
+    }
 
     return QString();
 }
 
 QString getTitle(const QVariantMap &message, StorageManager *store, Locale *locale) noexcept
 {
-    auto sender = message.value("sender_id").toMap();
+    const auto sender = message.value("sender_id").toMap();
+    const auto senderType = sender.value("@type").toString();
 
-    auto senderType = sender.value("@type").toByteArray();
-    if (senderType == "messageSenderUser")
+    if (senderType == QLatin1String("messageSenderUser"))
     {
         return detail::getUserFullName(sender.value("user_id").toLongLong(), store, locale);
     }
 
-    if (senderType == "messageSenderChat")
+    if (senderType == QLatin1String("messageSenderChat"))
+    {
         return store->getChat(sender.value("chat_id").toLongLong()).value("title").toString();
+    }
 
     return QString();
 }
@@ -908,25 +906,23 @@ QString getFormattedText(const QVariantMap &formattedText, StorageManager *store
 
 void copyToClipboard(const QVariantMap &content) noexcept
 {
-    const auto contentType = content.value("@type").toByteArray();
-    if (contentType != "messageText")
+    const auto contentType = content.value("@type").toString();
+    if (contentType != QLatin1String("messageText"))
         return;
 
     auto clipboard = QApplication::clipboard();
+    const auto text = content.value("text").toMap().value("text").toString();
 
-    clipboard->setText(content.value("text").toMap().value("text").toString());
+    clipboard->setText(text);
 }
 
 QImage getThumb(const QVariantMap &thumbnail) noexcept
 {
-    QByteArray thumb("data:image/jpeg;base64, ");
-    thumb += thumbnail.value("data").toByteArray();
-
-    QBuffer buf;
-    buf.setData(thumb);
+    QByteArray thumb = "data:image/jpeg;base64, " + thumbnail.value("data").toByteArray();
+    QBuffer buf(&thumb);
+    buf.open(QIODevice::ReadOnly);
 
     QImageReader reader(&buf);
-
     return reader.read();
 }
 
@@ -955,20 +951,23 @@ bool isMessageUnread(qint64 chatId, const QVariantMap &message, StorageManager *
 QString getViews(int views) noexcept
 {
     if (views < 1000)
-        return QString::number(views);
-
-    if (views < 1000000)
     {
-        auto value = trunc(views / 100);
-        auto fractionDigits = int(value) % 10 < 1 ? 0 : 1;
-
-        return QString("%1K").arg(value / 10, 0, 'f', fractionDigits);
+        return QString::number(views);
     }
+    else if (views < 1000000)
+    {
+        auto value = views / 100;
+        auto fractionDigits = (value % 10 == 0) ? 0 : 1;
 
-    auto value = trunc(views / 100000);
-    auto fractionDigits = int(value) % 10 < 1 ? 0 : 1;
+        return QString("%1K").arg(static_cast<double>(value) / 10.0, 0, 'f', fractionDigits);
+    }
+    else
+    {
+        auto value = views / 100000;
+        auto fractionDigits = (value % 10 == 0) ? 0 : 1;
 
-    return QString("%1M").arg(value / 10, 0, 'f', fractionDigits);
+        return QString("%1M").arg(static_cast<double>(value) / 10.0, 0, 'f', fractionDigits);
+    }
 }
 
 QString getFileSize(const QVariantMap &file) noexcept
@@ -977,57 +976,49 @@ QString getFileSize(const QVariantMap &file) noexcept
     if (size <= 0)
         return QString();
 
-    if (size < 1024)
+    const double KB = 1024.0;
+    const double MB = KB * 1024.0;
+    const double GB = MB * 1024.0;
+
+    if (size < KB)
         return QString("%1 B").arg(size);
-
-    if (size < 1024 * 1024)
-        return QString("%1 KB").arg(size / 1024);
-
-    if (size < 1024 * 1024 * 1024)
-        return QString("%1 MB").arg(size / 1024 / 1024);
-
-    return QString("%1 GB").arg(size / 1024 / 1024 / 1024);
+    else if (size < MB)
+        return QString("%1 KB").arg(static_cast<double>(size) / KB, 0, 'f', 2);
+    else if (size < GB)
+        return QString("%1 MB").arg(static_cast<double>(size) / MB, 0, 'f', 2);
+    else
+        return QString("%1 GB").arg(static_cast<double>(size) / GB, 0, 'f', 2);
 }
 
 QString formatTime(int totalSeconds) noexcept
 {
-    QString res;
+    QString result;
+    QTextStream stream(&result);
 
-    int seconds = totalSeconds % 60;
-    int timeoutMinutes = totalSeconds / 60;
-    int minutes = timeoutMinutes % 60;
-    int timeoutHours = timeoutMinutes / 60;
-    int hours = timeoutHours % 24;
-    int days = timeoutHours / 24;
-    if (days > 0)
-    {
-        detail::appendDuration(days, 'd', res);
-    }
-    if (hours > 0)
-    {
-        if (!res.isEmpty())
+    auto appendDuration = [&stream](int count, QChar order) {
+        if (count > 0)
         {
-            res.append(" ");
+            if (!stream.string()->isEmpty())
+            {
+                stream << ' ';
+            }
+            stream << count << order;
         }
-        detail::appendDuration(hours, 'h', res);
-    }
-    if (minutes > 0)
-    {
-        if (!res.isEmpty())
-        {
-            res.append(" ");
-        }
-        detail::appendDuration(minutes, 'm', res);
-    }
-    if (seconds > 0)
-    {
-        if (!res.isEmpty())
-        {
-            res.append(" ");
-        }
-        detail::appendDuration(seconds, 's', res);
-    }
-    return res;
+    };
+
+    const int seconds = totalSeconds % 60;
+    const int totalMinutes = totalSeconds / 60;
+    const int minutes = totalMinutes % 60;
+    const int totalHours = totalMinutes / 60;
+    const int hours = totalHours % 24;
+    const int days = totalHours / 24;
+
+    appendDuration(days, 'd');
+    appendDuration(hours, 'h');
+    appendDuration(minutes, 'm');
+    appendDuration(seconds, 's');
+
+    return result;
 }
 
 }  // namespace Utils

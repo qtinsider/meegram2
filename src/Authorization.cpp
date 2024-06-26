@@ -4,6 +4,7 @@
 #include "Common.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
+#include "Utils.hpp"
 
 #include <QDebug>
 
@@ -103,33 +104,7 @@ void Authorization::deleteAccount(const QString &reason) noexcept
 
 QString Authorization::formatTime(int totalSeconds) const noexcept
 {
-    QString result;
-    QTextStream stream(&result);
-
-    auto appendDuration = [&stream](int count, QChar order) {
-        if (count > 0)
-        {
-            if (!stream.string()->isEmpty())
-            {
-                stream << " ";
-            }
-            stream << count << order;
-        }
-    };
-
-    int seconds = totalSeconds % 60;
-    int timeoutMinutes = totalSeconds / 60;
-    int minutes = timeoutMinutes % 60;
-    int timeoutHours = timeoutMinutes / 60;
-    int hours = timeoutHours % 24;
-    int days = timeoutHours / 24;
-
-    appendDuration(days, 'd');
-    appendDuration(hours, 'h');
-    appendDuration(minutes, 'm');
-    appendDuration(seconds, 's');
-
-    return result;
+    return Utils::formatTime(totalSeconds);
 }
 
 void Authorization::handleResult(const QVariantMap &object)

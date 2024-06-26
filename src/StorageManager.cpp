@@ -331,7 +331,7 @@ void StorageManager::handleResult(const QVariantMap &object)
     }
     else
     {
-        qWarning() << "Unhandled update type: " << QString::fromStdString(objectType);
+        //   qWarning() << "Unhandled update type: " << QString::fromStdString(objectType);
     }
 }
 
