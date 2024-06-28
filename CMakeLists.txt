@@ -12,7 +12,7 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(boostable QUIET qdeclarative-boostable)
 
-set(QML_IMPORT_PATH "/opt/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
+set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
 set(src_files
     src/Authorization.cpp

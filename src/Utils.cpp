@@ -2,6 +2,7 @@
 
 #include "Common.hpp"
 #include "Localization.hpp"
+#include "Serialize.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
 
@@ -311,15 +312,28 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
     const auto isChannel = detail::isChannelChat(chat);
     const auto author = detail::getMessageAuthor(message, store, locale, openUser);
 
-    auto getUserName = [openUser, store, locale](qlonglong userId) {
-        const QString userName = Utils::getUserShortName(userId, store, locale);
-        return openUser ? QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
+    const auto getUserName = [&](auto userId) {
+        const auto userName = getUserShortName(userId, store, locale);
+        if (userName.isEmpty())
+        {
+            return QString();  // Return an empty QString if userName is empty
+        }
+
+        if (openUser)
+        {
+            auto result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
                               .arg(userId)
-                              .arg(userName)
-                        : userName;
+                              .arg(userName);
+            return result;
+        }
+        else
+        {
+            return userName;
+        }
     };
 
     const auto contentType = content.value("@type").toString().toStdString();
+    qDebug() << "Content type: " << QString::fromStdString(contentType);
 
     static const std::unordered_map<std::string, std::function<QString()>> handlers = {
         {"messagePhoto",
@@ -342,7 +356,7 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
          [&]() { return isChannel ? locale->getString("ActionCreateChannel") : locale->getString("ActionCreateMega"); }},
         {"messageChatChangeTitle",
          [&]() {
-             const QString title = content.value("title").toString();
+             const auto title = content.value("title").toString();
              return isChannel    ? locale->getString("ActionChannelChangedTitle").replace("un2", title)
                     : isOutgoing ? locale->getString("ActionYouChangedTitle").replace("un2", title)
                                  : locale->getString("ActionChangedTitle").replace("un1", author).replace("un2", title);
@@ -361,11 +375,11 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
          }},
         {"messageChatAddMembers",
          [&]() {
-             const QList<QVariant> memberIds = content.value("member_user_ids").toList();
-             const int memberCount = memberIds.size();
+             const auto memberIds = content.value("member_user_ids").toList();
+             const auto memberCount = memberIds.size();
              if (memberCount == 1)
              {
-                 const qint64 memberUserId = memberIds.first().toLongLong();
+                 const auto memberUserId = memberIds.first().toLongLong();
                  if (sender.value("user_id") == memberUserId)
                  {
                      if (detail::isSupergroup(chat))
@@ -428,7 +442,7 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
                  {
                      members << getUserName(userId.toLongLong());
                  }
-                 const QString users = members.join(", ");
+                 const auto users = members.join(", ");
 
                  return isOutgoing ? locale->getString("ActionYouAddUser").arg(users)
                                    : locale->getString("ActionAddUser").replace("un1", author).replace("un2", users);
@@ -440,7 +454,7 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
          }},
         {"messageChatDeleteMember",
          [&]() {
-             const qint64 userId = content.value("user_id").toLongLong();
+             const auto userId = content.value("user_id").toLongLong();
              if (userId == sender.value("user_id").toLongLong())
              {
                  return isOutgoing ? locale->getString("ActionYouLeftUser") : locale->getString("ActionLeftUser").replace("un1", author);
@@ -468,8 +482,8 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
          }},
         {"messageChatSetTtl",
          [&]() {
-             const int ttlValue = content.value("ttl").toInt();
-             const QString ttlString = locale->formatTtl(ttlValue);
+             const auto ttlValue = content.value("ttl").toInt();
+             const auto ttlString = locale->formatTtl(ttlValue);
 
              if (ttlValue <= 0)
              {
@@ -490,14 +504,18 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
         {"messageWebsiteConnected", [&]() { return locale->getString("ActionBotAllowed"); }},
         {"messageUnsupported", [&]() { return locale->getString("UnsupportedMedia"); }}};
 
-    if (auto it = handlers.find(contentType); it != handlers.end())
-    {
-        return it->second();
-    }
-    else
-    {
-        return locale->getString("UnsupportedMedia");
-    }
+    // TODO (qtinsider): bug fixes
+    // if (const auto it = handlers.find(contentType); it != handlers.end())
+    // {
+    //     qDebug() << "Handler found for content type: " << QString::fromStdString(contentType);
+    //     return it->second();
+    // }
+    // else
+    // {
+    //     qDebug() << "Unsupported media type: " << QString::fromStdString(contentType);
+    // }
+
+    return locale->getString("UnsupportedMedia");
 }
 
 bool isServiceMessage(const QVariantMap &message)
@@ -559,6 +577,7 @@ bool isServiceMessage(const QVariantMap &message)
 QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
+
     const auto type = user.value("type").toMap();
     const auto firstName = user.value("first_name").toString();
     const auto lastName = user.value("last_name").toString();
@@ -567,11 +586,16 @@ QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) n
     if (userType == QLatin1String("userTypeBot") || userType == QLatin1String("userTypeRegular"))
     {
         if (!firstName.isEmpty())
+        {
             return firstName;
+        }
 
         if (!lastName.isEmpty())
+        {
             return lastName;
+        }
     }
+
     if (userType == QLatin1String("userTypeDeleted") || userType == QLatin1String("userTypeUnknown"))
     {
         return locale->getString("HiddenName");
@@ -641,7 +665,7 @@ QString getContent(const QVariantMap &message, StorageManager *store, Locale *lo
     };
 
     QString attachmentCaption;
-    if (const auto captionText = messageContent.value("caption").toMap().value("text").toString(); !captionText.isEmpty())
+    if (const auto captionText = messageContent.value("caption").toString(); !captionText.isEmpty())
     {
         attachmentCaption.append(": ").append(sanitizeText(captionText));
     }
@@ -654,7 +678,6 @@ QString getContent(const QVariantMap &message, StorageManager *store, Locale *lo
 
     const auto contentType = messageContent.value("@type").toString().toStdString();
 
-    // Handlers for different message types
     const std::unordered_map<std::string, std::function<QString()>> messageHandlers = {
         {"messageAnimation", [&]() { return locale->getString("AttachGif").append(attachmentCaption); }},
         {"messageAudio",
@@ -682,7 +705,7 @@ QString getContent(const QVariantMap &message, StorageManager *store, Locale *lo
              return locale->getString("AttachDocument").append(attachmentCaption);
          }},
         {"messageInvoice", [&]() { return messageContent.value("title").toString().append(attachmentCaption); }},
-        {"messageLocation", [&]() { return locale->getString("AttachLocation").arg(attachmentCaption); }},
+        {"messageLocation", [&]() { return locale->getString("AttachLocation").append(attachmentCaption); }},
         {"messagePhoto", [&]() { return locale->getString("AttachPhoto").append(attachmentCaption); }},
         {"messagePoll",
          [&]() {
@@ -699,7 +722,6 @@ QString getContent(const QVariantMap &message, StorageManager *store, Locale *lo
         {"messageVideoNote", [&]() { return locale->getString("AttachRound").append(attachmentCaption); }},
         {"messageVoiceNote", [&]() { return locale->getString("AttachAudio").append(attachmentCaption); }}};
 
-    // Check if contentType exists in messageHandlers
     if (const auto handler = messageHandlers.find(contentType); handler != messageHandlers.end())
     {
         return handler->second();
@@ -722,7 +744,6 @@ QString getContent(const QVariantMap &message, StorageManager *store, Locale *lo
         return getServiceMessageContent(message, store, locale);
     }
 
-    // Default case: Unsupported attachment
     return locale->getString("UnsupportedAttachment");
 }
 

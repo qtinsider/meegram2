@@ -6,8 +6,6 @@
 #include "TdApi.hpp"
 #include "Utils.hpp"
 
-#include <QDebug>
-
 Authorization::Authorization(QObject *parent)
     : QObject(parent)
 {

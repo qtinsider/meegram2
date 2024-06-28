@@ -83,9 +83,10 @@ QString getChannelStatus(const QVariantMap &supergroup, const QVariantMap &chat,
 QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &chat, StorageManager *store, Locale *locale) noexcept
 {
     const auto statusType = supergroup.value("status").toMap().value("@type").toByteArray();
-    int count = supergroup.value("member_count").toInt();
-    const QString username = supergroup.value("username").toString();
-    const bool hasLocation = supergroup.value("has_location").toBool();
+    const auto username = supergroup.value("username").toString();
+    const auto hasLocation = supergroup.value("has_location").toBool();
+
+    auto count = supergroup.value("member_count").toInt();
 
     if (statusType == "chatMemberStatusBanned")
     {
@@ -108,13 +109,13 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
         return !username.isEmpty() ? locale->getString("MegaPublic") : locale->getString("MegaPrivate");
     }
 
-    const QString memberString = locale->formatPluralString("Members", count);
+    const auto memberString = locale->formatPluralString("Members", count);
     if (count <= 1)
     {
         return memberString;
     }
 
-    const int onlineCount = chat.value("online_member_count").toInt();
+    const auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
         return memberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
@@ -125,8 +126,8 @@ QString getSupergroupStatus(const QVariantMap &supergroup, const QVariantMap &ch
 
 QString getUserStatus(const QVariantMap &user, Locale *locale) noexcept
 {
-    const qint64 userId = user.value("id").toLongLong();
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [userId](qint64 id) { return id == userId; }))
+    const auto userId = user.value("id").toLongLong();
+    if (std::ranges::any_of(ServiceNotificationsUserIds, [userId](auto id) { return id == userId; }))
     {
         return locale->getString("ServiceNotifications");
     }
@@ -136,14 +137,14 @@ QString getUserStatus(const QVariantMap &user, Locale *locale) noexcept
         return locale->getString("SupportStatus");
     }
 
-    const QByteArray userType = user.value("type").toMap().value("@type").toByteArray();
+    const auto userType = user.value("type").toMap().value("@type").toByteArray();
     if (userType == "userTypeBot")
     {
         return locale->getString("Bot");
     }
 
     const auto status = user.value("status").toMap();
-    const QByteArray statusType = status.value("@type").toByteArray();
+    const auto statusType = status.value("@type").toByteArray();
 
     if (statusType == "userStatusEmpty")
     {
@@ -159,14 +160,14 @@ QString getUserStatus(const QVariantMap &user, Locale *locale) noexcept
     }
     else if (statusType == "userStatusOffline")
     {
-        const qint64 was_online = status.value("was_online").toLongLong();
+        const auto was_online = status.value("was_online").toLongLong();
         if (was_online == 0)
         {
             return locale->getString("Invisible");
         }
 
-        const QDateTime wasOnline = QDateTime::fromMSecsSinceEpoch(was_online * 1000);
-        const QDate currentDate = QDate::currentDate();
+        const auto wasOnline = QDateTime::fromMSecsSinceEpoch(was_online * 1000);
+        const auto currentDate = QDate::currentDate();
 
         if (currentDate == wasOnline.date())  // TODAY
         {
@@ -444,25 +445,33 @@ void MessageModel::setChatId(const QString &value) noexcept
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    auto type = m_chat.value("type").toMap();
+    static const std::unordered_map<std::string,
+                                    std::function<QString(const QVariantMap &, const QVariantMap &, StorageManager *, Locale *)>>
+        chatTypeHandlers = {
+            {"chatTypeBasicGroup",
+             [](const QVariantMap &type, const QVariantMap &chat, StorageManager *store, Locale *locale) {
+                 return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()), chat, locale);
+             }},
+            {"chatTypePrivate",
+             [](const QVariantMap &type, const QVariantMap &, StorageManager *store, Locale *locale) {
+                 return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
+             }},
+            {"chatTypeSecret",
+             [](const QVariantMap &type, const QVariantMap &, StorageManager *store, Locale *locale) {
+                 return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
+             }},
+            {"chatTypeSupergroup", [](const QVariantMap &type, const QVariantMap &chat, StorageManager *store, Locale *locale) {
+                 const auto supergroup = store->getSupergroup(type.value("supergroup_id").toLongLong());
+                 return supergroup.value("is_channel").toBool() ? detail::getChannelStatus(supergroup, chat, store, locale)
+                                                                : detail::getSupergroupStatus(supergroup, chat, store, locale);
+             }}};
 
-    auto chatType = type.value("@type").toByteArray();
+    const auto type = m_chat.value("type").toMap();
+    const auto chatType = type.value("@type").toString();
 
-    switch (fnv::hashRuntime(chatType.constData()))
+    if (auto it = chatTypeHandlers.find(chatType.toStdString()); it != chatTypeHandlers.end())
     {
-        case fnv::hash("chatTypeBasicGroup"): {
-            return detail::getBasicGroupStatus(m_storageManager->getBasicGroup(type.value("basic_group_id").toLongLong()), m_chat,
-                                               m_locale);
-        }
-        case fnv::hash("chatTypePrivate"):
-        case fnv::hash("chatTypeSecret"): {
-            return detail::getUserStatus(m_storageManager->getUser(type.value("user_id").toLongLong()), m_locale);
-        }
-        case fnv::hash("chatTypeSupergroup"): {
-            const auto supergroup = m_storageManager->getSupergroup(type.value("supergroup_id").toLongLong());
-            return supergroup.value("is_channel").toBool() ? detail::getChannelStatus(supergroup, m_chat, m_storageManager, m_locale)
-                                                           : detail::getSupergroupStatus(supergroup, m_chat, m_storageManager, m_locale);
-        }
+        return it->second(type, m_chat, m_storageManager, m_locale);
     }
 
     return QString();

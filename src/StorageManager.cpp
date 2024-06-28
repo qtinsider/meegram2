@@ -329,10 +329,6 @@ void StorageManager::handleResult(const QVariantMap &object)
     {
         it->second(object);
     }
-    else
-    {
-        //   qWarning() << "Unhandled update type: " << QString::fromStdString(objectType);
-    }
 }
 
 void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positions) noexcept

@@ -3,8 +3,6 @@
 #include <QObject>
 #include <QVariant>
 
-#pragma once
-
 #include <array>
 #include <cstdint>
 

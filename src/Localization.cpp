@@ -433,19 +433,32 @@ QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))
     {
-        qDebug() << "LOC_ERR: " + key;
+        qDebug() << "LOC_ERR:" << key;
         return key;
     }
 
     auto result = m_languagePack.value(key);
+    result.reserve(result.size());  // Reserve memory in advance to avoid reallocations
 
-    result.remove(QRegExp("\\$[ds]"));
+    // Remove $d and $s
+    int index = 0;
+    while ((index = result.indexOf('$', index)) != -1)
+    {
+        if (index + 1 < result.length() && (result[index + 1] == 'd' || result[index + 1] == 's'))
+        {
+            result.remove(index, 2);
+        }
+        else
+        {
+            ++index;
+        }
+    }
 
-    result.replace(QString::fromUtf8("%%"), QString::fromUtf8("%"));
-    result.replace(QString::fromUtf8("%s"), QString::fromUtf8("%1"));
-
-    result.replace(QString::fromUtf8("EEEE"), QString::fromUtf8("dddd"));
-    result.replace(QString::fromUtf8("EEE"), QString::fromUtf8("ddd"));
+    // Perform replacements in place
+    result.replace("%%", "%");
+    result.replace("%s", "%1");
+    result.replace("EEEE", "dddd");
+    result.replace("EEE", "ddd");
 
     return result;
 }
@@ -462,7 +475,7 @@ QString Locale::formatCallDuration(int duration) const
     if (duration > 3600)
     {
         auto result = formatPluralString("CallDurationHours", std::floor(duration / 3600));
-        auto minutes = std::floor(duration % 3600 / 3600);
+        const auto minutes = std::floor(duration % 3600 / 3600);
         if (minutes > 0)
         {
             result.append(", ").append(formatPluralString("CallDurationMinutes", minutes));
@@ -494,7 +507,7 @@ QString Locale::formatTtl(int ttl) const
         return formatPluralString("TTLStringHours", std::floor(ttl / 60 / 60));
     }
 
-    auto days = ttl / 60 / 60 / 24;
+    const auto days = ttl / 60 / 60 / 24;
     if (ttl % 7 == 0)
     {
         return formatPluralString("TTLStringWeeks", std::floor(days / 7));
@@ -557,58 +570,41 @@ void Locale::addRules(const QStringList &languages, PluralRules *rules)
 
 void Locale::processStrings(const QVariantMap &languagePackStrings)
 {
-    for (auto strings = languagePackStrings.value("strings").toList(); const auto &value : strings)
-    {
-        auto valueType = value.toMap().value("value").toMap().value("@type").toByteArray();
+    static const std::unordered_map<std::string, std::function<void(const QVariantMap &, Locale *)>> stringTypeHandlers = {
+        {"languagePackStringValueOrdinary",
+         [](const QVariantMap &value, Locale *locale) {
+             locale->m_languagePack.insert(value.value("key").toString(), value.value("value").toMap().value("value").toString());
+         }},
+        {"languagePackStringValuePluralized",
+         [](const QVariantMap &value, Locale *locale) {
+             const auto &pluralValues = value.value("value").toMap();
+             if (!pluralValues.isEmpty())
+             {
+                 const QString keyBase = value.value("key").toString();
+                 for (const QString &suffix : {"zero_value", "one_value", "two_value", "few_value", "many_value", "other_value"})
+                 {
+                     const QString &stringValue = pluralValues.value(suffix).toString();
+                     if (!stringValue.isEmpty())
+                     {
+                         locale->m_languagePack.insert(keyBase + "_" + suffix, stringValue);
+                     }
+                 }
+             }
+         }},
+        {"languagePackStringValueDeleted", [](const QVariantMap &, Locale *) {
+             // No action needed for deleted strings
+         }}};
 
-        switch (fnv::hashRuntime(valueType.constData()))
+    const auto strings = languagePackStrings.value("strings").toList();
+    for (const auto &value : strings)
+    {
+        const auto valueType = value.toMap().value("value").toMap().value("@type").toString();
+
+        if (auto it = stringTypeHandlers.find(valueType.toStdString()); it != stringTypeHandlers.end())
         {
-            case fnv::hash("languagePackStringValueOrdinary"): {
-                m_languagePack.insert(value.toMap().value("key").toString(),
-                                      value.toMap().value("value").toMap().value("value").toString());
-                break;
-            }
-            case fnv::hash("languagePackStringValuePluralized"): {
-                if (!value.toMap().value("value").toMap().value("zero_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_zero"),
-                                          value.toMap().value("value").toMap().value("zero_value").toString());
-                }
-                if (!value.toMap().value("value").toMap().value("one_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_one"),
-                                          value.toMap().value("value").toMap().value("one_value").toString());
-                }
-                if (!value.toMap().value("value").toMap().value("two_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_two"),
-                                          value.toMap().value("value").toMap().value("two_value").toString());
-                }
-                if (!value.toMap().value("value").toMap().value("few_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_few"),
-                                          value.toMap().value("value").toMap().value("few_value").toString());
-                }
-                if (!value.toMap().value("value").toMap().value("many_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_many"),
-                                          value.toMap().value("value").toMap().value("many_value").toString());
-                }
-                if (!value.toMap().value("value").toMap().value("other_value").toString().isEmpty())
-                {
-                    m_languagePack.insert(value.toMap().value("key").toString().append("_other"),
-                                          value.toMap().value("value").toMap().value("other_value").toString());
-                }
-                break;
-            }
-            case fnv::hash("languagePackStringValueDeleted"): {
-                break;
-            }
+            it->second(value.toMap(), this);
         }
     }
-
-    // nlohmann::json json(languagePackStrings);
-    // qDebug() << json.dump(2).c_str();
 
     updatePluralRules();
 }

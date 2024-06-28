@@ -1,6 +1,5 @@
 #include "TdApi.hpp"
 
-#include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
 #include "Serialize.hpp"
@@ -133,11 +132,11 @@ void TdManager::initialLanguagePack()
 
     setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
     setOption("localization_target", "android");
-    setOption("language_pack_id", settings.value("languagePackId", "en"));
+    setOption("language_pack_id", settings.value("languagePackId", "fa"));
 
     QVariantMap request;
     request.insert("@type", "getLanguagePackStrings");
-    request.insert("language_pack_id", settings.value("languagePackId", "en"));
+    request.insert("language_pack_id", settings.value("languagePackId", "fa"));
 
     sendRequest(request, [this](const auto &r) {
         if (r.value("@type").toByteArray() == "languagePackStrings")

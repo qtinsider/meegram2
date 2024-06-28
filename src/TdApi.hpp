@@ -10,7 +10,6 @@
 #include <coroutine>
 #include <stdexcept>
 
-class Client;
 class Locale;
 class StorageManager;
 

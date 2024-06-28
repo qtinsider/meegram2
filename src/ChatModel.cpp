@@ -139,12 +139,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
 
             if (localPhoto.value("is_downloading_completed").toBool())
             {
-                return localPhoto.value("path").toString();
+                return "image://chatPhoto/" + localPhoto.value("path").toString();
             }
-            else
-            {
-                return QString();
-            }
+
+            return "image://theme/icon-l-content-avatar-placeholder";
         }
 
         case LastMessageSenderRole:
@@ -274,13 +272,13 @@ void ChatModel::toggleChatNotificationSettings(int index)
 {
     QModelIndex modelIndex = createIndex(index, 0);
 
-    auto chatId = data(modelIndex, IdRole).toLongLong();
-    auto isMuted = !data(modelIndex, IsMutedRole).toBool();
+    const auto chatId = data(modelIndex, IdRole).toLongLong();
+    const auto isMuted = !data(modelIndex, IsMutedRole).toBool();
 
-    if (auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
+    if (const auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
         return;
 
-    auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
+    const auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
     QVariantMap newNotificationSettings;
     newNotificationSettings.insert("use_default_mute_for", false);
     newNotificationSettings.insert("mute_for", muteFor);
