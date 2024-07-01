@@ -4,7 +4,6 @@
 #include "Localization.hpp"
 #include "Serialize.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
 
 #include <QApplication>
 #include <QBuffer>

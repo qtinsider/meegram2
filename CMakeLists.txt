@@ -29,7 +29,7 @@ set(src_files
     src/Settings.cpp
 #   src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
-    src/TdApi.cpp
+    src/TdManager.cpp
     src/Utils.cpp
 )
 
@@ -50,6 +50,7 @@ set(header_files
 #   src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/TdApi.hpp
+    src/TdManager.hpp
     src/Utils.hpp
 )
 

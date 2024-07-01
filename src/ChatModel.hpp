@@ -7,6 +7,9 @@
 #include <QTimer>
 #include <QVector>
 
+class Client;
+class Locale;
+class TdManager;
 class StorageManager;
 
 class ChatModel : public QAbstractListModel, public QDeclarativeParserStatus

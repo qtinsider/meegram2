@@ -3,7 +3,7 @@
 #include "Client.hpp"
 #include "Localization.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
+#include "TdManager.hpp"
 #include "qdebug.h"
 
 #include <QStringList>
@@ -193,7 +193,6 @@ void ChatFilterModel::componentComplete()
     endInsertRows();
 
     qDebug() << m_chatFilters;
-
 
     emit countChanged();
 }

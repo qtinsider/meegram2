@@ -3,7 +3,7 @@
 #include "Client.hpp"
 #include "Common.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
+#include "TdManager.hpp"
 #include "Utils.hpp"
 
 Authorization::Authorization(QObject *parent)

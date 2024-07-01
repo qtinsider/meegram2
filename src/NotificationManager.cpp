@@ -2,7 +2,7 @@
 
 #include "Client.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
+#include "TdManager.hpp"
 
 NotificationManager::NotificationManager(QObject *parent)
     : QObject(parent)

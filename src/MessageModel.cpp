@@ -5,7 +5,7 @@
 #include "Common.hpp"
 #include "Localization.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
+#include "TdManager.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>
