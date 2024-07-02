@@ -4,7 +4,6 @@
 #include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "TdManager.hpp"
-#include "qdebug.h"
 
 #include <QStringList>
 
@@ -108,7 +107,8 @@ int CountryModel::getDefaultIndex() const noexcept
     return {};
 }
 
-ChatFilterModel::ChatFilterModel(QObject *parent)
+ChatFolderModel::ChatFolderModel(QObject *parent)
+    : QAbstractListModel(parent)
 {
     QHash<int, QByteArray> roles;
     roles.insert(IdRole, "id");
@@ -118,81 +118,76 @@ ChatFilterModel::ChatFilterModel(QObject *parent)
     setRoleNames(roles);
 }
 
-TdManager *ChatFilterModel::manager() const
+TdManager *ChatFolderModel::manager() const
 {
     return m_manager;
 }
 
-void ChatFilterModel::setManager(TdManager *manager)
+void ChatFolderModel::setManager(TdManager *manager)
 {
-    m_manager = manager;
-    m_locale = m_manager->locale();
+    if (m_manager != manager)
+    {
+        m_manager = manager;
+        if (m_manager)
+        {
+            m_locale = m_manager->locale();
+        }
+    }
 }
 
-int ChatFilterModel::rowCount(const QModelIndex &index) const
+QVariantList ChatFolderModel::getChatFolders() const noexcept
 {
-    return m_chatFilters.count();
+    return m_chatFolders;
 }
 
-QVariant ChatFilterModel::data(const QModelIndex &index, int role) const
+void ChatFolderModel::setChatFolders(const QVariantList &value) noexcept
+{
+    if (m_chatFolders != value)
+    {
+        beginResetModel();
+        m_chatFolders = value;
+        endResetModel();
+
+        emit chatFoldersChanged();
+    }
+}
+
+int ChatFolderModel::rowCount(const QModelIndex &index) const
+{
+    Q_UNUSED(index);
+    return m_chatFolders.count();
+}
+
+QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return QVariant();
 
-    switch (auto chatFilter = m_chatFilters.value(index.row()).toMap(); role)
+    const auto chatFolder = m_chatFolders.value(index.row()).toMap();
+    switch (role)
     {
         case IdRole:
-            return chatFilter.value("id").toInt();
+            return chatFolder.value("id").toInt();
         case Qt::DisplayRole:
-            return chatFilter.value("title").toString();
+            return chatFolder.value("title").toString();
         case IconNameRole:
-            return chatFilter.value("icon_name").toString();
+            return chatFolder.value("icon_name").toString();
+        default:
+            return QVariant();
     }
-
-    return QVariant();
 }
 
-QVariantMap ChatFilterModel::get(int index) const noexcept
+QVariantMap ChatFolderModel::get(int index) const noexcept
 {
     QModelIndex modelIndex = createIndex(index, 0);
-
     QVariantMap result;
     result.insert("id", data(modelIndex, IdRole));
     result.insert("name", data(modelIndex, Qt::DisplayRole));  // title
     result.insert("iconName", data(modelIndex, IconNameRole));
-
     return result;
 }
 
-int ChatFilterModel::count() const noexcept
+int ChatFolderModel::count() const noexcept
 {
-    return m_chatFilters.count();
-}
-
-void ChatFilterModel::classBegin()
-{
-}
-
-void ChatFilterModel::componentComplete()
-{
-    QVariantMap chatFilter;
-    chatFilter.insert("id", 0);
-    chatFilter.insert("title", m_locale->getString("FilterAllChats"));
-
-    //    beginResetModel();
-    //    m_chatFilters.clear();
-    //    m_chatFilters.append(chatFilter);
-    //    std::ranges::copy(chatFilters, std::back_inserter(m_chatFilters));
-    //    endResetModel();
-
-    beginInsertRows(QModelIndex(), rowCount(), m_manager->storageManager()->getChatFilters().count());
-
-    m_chatFilters.append(chatFilter);
-    m_chatFilters.append(m_manager->storageManager()->getChatFilters());
-
-    endInsertRows();
-
-    qDebug() << m_chatFilters;
-
-    emit countChanged();
+    return m_chatFolders.count();
 }

@@ -4,8 +4,6 @@
 #include "Common.hpp"
 #include "Utils.hpp"
 
-#include <QDebug>
-
 #include <algorithm>
 
 StorageManager::StorageManager(QObject *parent)
@@ -13,12 +11,12 @@ StorageManager::StorageManager(QObject *parent)
 {
 }
 
-Client *StorageManager::client() const
+Client *StorageManager::client() const noexcept
 {
     return m_client;
 }
 
-void StorageManager::setClient(Client *client)
+void StorageManager::setClient(Client *client) noexcept
 {
     m_client = client;
 
@@ -123,12 +121,12 @@ QVariantMap StorageManager::getUserFullInfo(qint64 userId) const
     return {};
 }
 
-QVariantList StorageManager::getChatFilters() const noexcept
+QVariantList StorageManager::getChatFolders() const noexcept
 {
-    return m_chatFilters;
+    return m_chatFolders;
 }
 
-qint64 StorageManager::getMyId() const
+qint64 StorageManager::getMyId() const noexcept
 {
     if (const auto myId = getOption("my_id"); not myId.isNull())
         return myId.toLongLong();
@@ -279,10 +277,10 @@ void StorageManager::handleResult(const QVariantMap &object)
                  emit updateChatItem(chatId);
              }
          }},
-        {"updateChatFilters",
+        {"updateChatFolders",
          [this](const QVariantMap &object) {
-             m_chatFilters = object.value("chat_filters").toList();
-             qDebug() << m_chatFilters;
+             m_chatFolders = object.value("chat_folders").toList();
+             emit chatFoldersChanged();
          }},
         {"updateUser",
          [this](const QVariantMap &object) {

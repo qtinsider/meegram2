@@ -8,7 +8,6 @@
 #include "Utils.hpp"
 
 #include <QDateTime>
-#include <QDebug>
 #include <QStringList>
 
 #include <algorithm>
@@ -209,16 +208,16 @@ void ChatModel::setChatList(TdApi::ChatList value)
     }
 }
 
-int ChatModel::chatFilterId() const
+int ChatModel::chatFolderId() const
 {
-    return m_chatFilterId;
+    return m_chatFolderId;
 }
 
-void ChatModel::setChatFilterId(int value)
+void ChatModel::setChatFolderId(int value)
 {
-    if (m_chatList == TdApi::ChatListFilter && m_chatFilterId != value)
+    if (m_chatList == TdApi::ChatListFolder && m_chatFolderId != value)
     {
-        m_chatFilterId = value;
+        m_chatFolderId = value;
         emit chatListChanged();
     }
 }
@@ -293,15 +292,6 @@ void ChatModel::toggleChatNotificationSettings(int index)
         if (value.value("@type").toByteArray() == "ok")
             QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
     });
-}
-
-void ChatModel::classBegin()
-{
-}
-
-void ChatModel::componentComplete()
-{
-    refresh();
 }
 
 void ChatModel::populate()
@@ -442,9 +432,9 @@ void ChatModel::loadChats()
         case TdApi::ChatListArchive:
             m_list.insert("@type", "chatListArchive");
             break;
-        case TdApi::ChatListFilter:
-            m_list.insert("@type", "chatListFilter");
-            m_list.insert("chat_filter_id", m_chatFilterId);
+        case TdApi::ChatListFolder:
+            m_list.insert("@type", "chatListFolder");
+            m_list.insert("chat_folder_id", m_chatFolderId);
             break;
     }
 

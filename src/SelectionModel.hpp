@@ -52,25 +52,29 @@ private:
     QVariantList m_countries;
 };
 
-class ChatFilterModel : public QAbstractListModel, public QDeclarativeParserStatus
+class ChatFolderModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_INTERFACES(QDeclarativeParserStatus)
 
     Q_PROPERTY(TdManager *manager READ manager WRITE setManager)
+    Q_PROPERTY(TdManager *manager READ manager WRITE setManager)
+    Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
-    ChatFilterModel(QObject *parent = nullptr);
+    ChatFolderModel(QObject *parent = nullptr);
 
-    enum ChatFilterRole {
+    enum ChatFolderRole {
         IdRole = Qt::UserRole + 1,
         IconNameRole,
     };
 
     TdManager *manager() const;
     void setManager(TdManager *manager);
+
+    QVariantList getChatFolders() const noexcept;
+    void setChatFolders(const QVariantList &value) noexcept;
 
     int rowCount(const QModelIndex &index = QModelIndex()) const override;
 
@@ -80,16 +84,13 @@ public:
 
     int count() const noexcept;
 
-protected:
-    void classBegin() override;
-    void componentComplete() override;
-
 signals:
     void countChanged();
+    void chatFoldersChanged();
 
 private:
-    Locale *m_locale;
-    TdManager *m_manager;
+    Locale *m_locale{nullptr};
+    TdManager *m_manager{nullptr};
 
-    QVariantList m_chatFilters;
+    QVariantList m_chatFolders;
 };

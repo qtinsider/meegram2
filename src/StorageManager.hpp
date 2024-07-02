@@ -3,7 +3,6 @@
 #include <QObject>
 #include <QVariant>
 #include <QVector>
-
 #include <unordered_map>
 
 class Client;
@@ -11,13 +10,14 @@ class Client;
 class StorageManager : public QObject
 {
     Q_OBJECT
-
     Q_PROPERTY(Client *client READ client WRITE setClient)
+    Q_PROPERTY(QVariantList chatFolders READ getChatFolders NOTIFY chatFoldersChanged)
+
 public:
     explicit StorageManager(QObject *parent = nullptr);
 
-    Client *client() const;
-    void setClient(Client *client);
+    Client *client() const noexcept;
+    void setClient(Client *client) noexcept;
 
     QVector<qint64> getChatIds() const noexcept;
 
@@ -31,13 +31,15 @@ public:
     Q_INVOKABLE QVariantMap getUser(qint64 userId) const;
     Q_INVOKABLE QVariantMap getUserFullInfo(qint64 userId) const;
 
-    QVariantList getChatFilters() const noexcept;
+    QVariantList getChatFolders() const noexcept;
 
-    Q_INVOKABLE qint64 getMyId() const;
+    Q_INVOKABLE qint64 getMyId() const noexcept;
 
 signals:
     void updateChatItem(qint64 chatId);
     void updateChatPosition(qint64 chatId);
+
+    void chatFoldersChanged();
 
 private slots:
     void handleResult(const QVariantMap &object);
@@ -45,10 +47,10 @@ private slots:
 private:
     void setChatPositions(qint64 chatId, const QVariantList &positions) noexcept;
 
-    Client *m_client;
+    Client *m_client{nullptr};
 
     QVariantMap m_options;
-    QVariantList m_chatFilters;
+    QVariantList m_chatFolders;
 
     std::unordered_map<int, QVariantMap> m_files;
     std::unordered_map<qint64, QVariantMap> m_chats;

@@ -12,10 +12,9 @@ class Locale;
 class TdManager;
 class StorageManager;
 
-class ChatModel : public QAbstractListModel, public QDeclarativeParserStatus
+class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_INTERFACES(QDeclarativeParserStatus)
 
     Q_PROPERTY(TdManager *manager READ manager WRITE setManager)
 
@@ -23,7 +22,7 @@ class ChatModel : public QAbstractListModel, public QDeclarativeParserStatus
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
     Q_PROPERTY(TdApi::ChatList chatList READ chatList WRITE setChatList NOTIFY chatListChanged)
-    Q_PROPERTY(int chatFilterId READ chatFilterId WRITE setChatFilterId NOTIFY chatListChanged)
+    Q_PROPERTY(int chatFolderId READ chatFolderId WRITE setChatFolderId NOTIFY chatListChanged)
 
 public:
     explicit ChatModel(QObject *parent = nullptr);
@@ -61,8 +60,8 @@ public:
     TdApi::ChatList chatList() const;
     void setChatList(TdApi::ChatList value);
 
-    int chatFilterId() const;
-    void setChatFilterId(int value);
+    int chatFolderId() const;
+    void setChatFolderId(int value);
 
     Q_INVOKABLE QVariant get(int index) const noexcept;
 
@@ -71,10 +70,6 @@ public:
 
     Q_INVOKABLE void toggleChatIsPinned(int index);
     Q_INVOKABLE void toggleChatNotificationSettings(int index);
-
-protected:
-    void classBegin() override;
-    void componentComplete() override;
 
 signals:
     void countChanged();
@@ -107,7 +102,7 @@ private:
 
     int m_count{};
 
-    int m_chatFilterId{};
+    int m_chatFolderId{};
     TdApi::ChatList m_chatList{TdApi::ChatListMain};
 
     QTimer *m_sortTimer;

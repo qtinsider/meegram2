@@ -94,4 +94,6 @@ Page {
         repeat: false
         onTriggered: myChatModel.populate()
     }
+
+    Component.onCompleted: { myChatModel.refresh() }
 }

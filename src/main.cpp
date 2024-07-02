@@ -47,7 +47,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<NotificationManager>("com.strawberry.meegram", 1, 0, "NotificationManager");
     qmlRegisterType<StorageManager>("com.strawberry.meegram", 1, 0, "StorageManager");
     qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
-    qmlRegisterType<ChatFilterModel>("com.strawberry.meegram", 1, 0, "ChatFilterModel");
+    qmlRegisterType<ChatFolderModel>("com.strawberry.meegram", 1, 0, "ChatFolderModel");
     qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
     qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
     qmlRegisterType<LottieAnimation>("com.strawberry.meegram", 1, 0, "LottieAnimation");

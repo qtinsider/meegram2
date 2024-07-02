@@ -22,7 +22,7 @@ Page {
             source: "image://theme/meegotouch-combobox-indicator-inverted"
         }
 
-        onClicked: chatFilterDialog.open()
+        onClicked: chatFolderDialog.open()
     }
 
     Menu {
@@ -86,10 +86,10 @@ Page {
     }
 
     SelectionDialog {
-        id: chatFilterDialog
+        id: chatFolderDialog
         titleText: locale.getString("Filters") + locale.emptyString
         selectedIndex: 0
-        model: myChatFilterModel
+        model: mychatFolderModel
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {
@@ -97,14 +97,16 @@ Page {
                 return
             }
 
-            myChatModel.chatList = TdApi.ChatListFilter
-            myChatModel.chatFilterId = model.get(selectedIndex).id
+            myChatModel.chatList = TdApi.ChatListFolder
+            myChatModel.chatFolderId = model.get(selectedIndex).id
         }
     }
 
-    ChatFilterModel {
-        id: myChatFilterModel
+
+    ChatFolderModel {
+        id: mychatFolderModel
         manager: tdManager
+        chatFolders: storageManager.chatFolders
     }
 
     ChatModel {
@@ -162,4 +164,7 @@ Page {
             onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()
         }
     }
+
+
+    Component.onCompleted: { myChatModel.refresh() }
 }

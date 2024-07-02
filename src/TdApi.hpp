@@ -30,6 +30,6 @@ public:
     enum ChatList {
         ChatListMain,
         ChatListArchive,
-        ChatListFilter,
+        ChatListFolder,
     };
 };

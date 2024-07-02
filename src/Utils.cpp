@@ -198,6 +198,33 @@ bool isDeletedUser(qint64 userId, StorageManager *store)
 
 }  // namespace detail
 
+struct ChatMessage
+{
+    QVariantMap sender;
+    QVariantMap content;
+    QVariantMap chatDetails;
+    QString author;
+    Locale *locale = nullptr;
+    StorageManager *storageManager = nullptr;
+    bool isOutgoing = false;
+    bool isChannel = false;
+
+    ChatMessage() = default;
+
+    ChatMessage(QVariantMap sender_, QVariantMap content_, QVariantMap chatDetails_, QString author_, Locale *locale_ = nullptr,
+                StorageManager *storageManager_ = nullptr, bool isOutgoing_ = false, bool isChannel_ = false)
+        : sender(std::move(sender_))
+        , content(std::move(content_))
+        , chatDetails(std::move(chatDetails_))
+        , author(std::move(author_))
+        , locale(locale_)
+        , storageManager(storageManager_)
+        , isOutgoing(isOutgoing_)
+        , isChannel(isChannel_)
+    {
+    }
+};
+
 namespace Utils {
 
 QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
@@ -257,7 +284,7 @@ bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
         return false;
 
     static const std::unordered_map<std::string, QString> typeMap = {
-        {"chatListMain", "chatListMain"}, {"chatListArchive", "chatListArchive"}, {"chatListFilter", "chatListFilter"}};
+        {"chatListMain", "chatListMain"}, {"chatListArchive", "chatListArchive"}, {"chatListFolder", "chatListFolder"}};
 
     if (auto it = typeMap.find(type1.toStdString()); it != typeMap.end())
     {
@@ -266,9 +293,9 @@ bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
         {
             return true;
         }
-        else if (typeName == "chatListFilter")
+        else if (typeName == "chatListFolder")
         {
-            return list1.value("chat_filter_id") == list2.value("chat_filter_id");
+            return list1.value("chat_folder_id") == list2.value("chat_folder_id");
         }
     }
 
@@ -302,134 +329,143 @@ int getChatMuteFor(qint64 chatId, StorageManager *store)
     return notificationSettings.value("mute_for").toInt();
 }
 
+QString getUserName(auto userId, StorageManager *store, Locale *locale, bool openUser)
+{
+    const auto userName = getUserShortName(userId, store, locale);
+    if (userName.isEmpty())
+    {
+        return QString();
+    }
+
+    if (openUser)
+    {
+        return QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
+            .arg(userId)
+            .arg(userName);
+    }
+    else
+    {
+        return userName;
+    }
+}
+
 QString getServiceMessageContent(const QVariantMap &message, StorageManager *store, Locale *locale, bool openUser)
 {
-    const auto sender = message.value("sender_id").toMap();
-    const auto content = message.value("content").toMap();
-    const auto isOutgoing = message.value("is_outgoing").toBool();
     const auto chat = store->getChat(message.value("chat_id").toLongLong());
-    const auto isChannel = detail::isChannelChat(chat);
-    const auto author = detail::getMessageAuthor(message, store, locale, openUser);
 
-    const auto getUserName = [&](auto userId) {
-        const auto userName = getUserShortName(userId, store, locale);
-        if (userName.isEmpty())
-        {
-            return QString();  // Return an empty QString if userName is empty
-        }
+    ChatMessage messageDetail{message.value("sender_id").toMap(),
+                              message.value("content").toMap(),
+                              store->getChat(message.value("chat_id").toLongLong()),
+                              detail::getMessageAuthor(message, store, locale, openUser),
+                              locale,
+                              store,
+                              message.value("is_outgoing").toBool(),
+                              detail::isChannelChat(chat)};
 
-        if (openUser)
-        {
-            auto result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
-                              .arg(userId)
-                              .arg(userName);
-            return result;
-        }
-        else
-        {
-            return userName;
-        }
-    };
+    const auto contentType = messageDetail.content.value("@type").toString().toStdString();
 
-    const auto contentType = content.value("@type").toString().toStdString();
-    qDebug() << "Content type: " << QString::fromStdString(contentType);
-
-    static const std::unordered_map<std::string, std::function<QString()>> handlers = {
+    static const std::unordered_map<std::string, std::function<QString(const ChatMessage &)>> handlers = {
         {"messagePhoto",
-         [&]() {
-             return isOutgoing ? locale->getString("ActionYouSendTTLPhoto")
-                               : locale->getString("ActionSendTTLPhoto").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isOutgoing ? message.locale->getString("ActionYouSendTTLPhoto")
+                                       : message.locale->getString("ActionSendTTLPhoto").replace("un1", message.author);
          }},
         {"messageVideo",
-         [&]() {
-             return isOutgoing ? locale->getString("ActionYouSendTTLVideo")
-                               : locale->getString("ActionSendTTLVideo").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isOutgoing ? message.locale->getString("ActionYouSendTTLVideo")
+                                       : message.locale->getString("ActionSendTTLVideo").replace("un1", message.author);
          }},
-        {"messageExpiredPhoto", [&]() { return locale->getString("AttachPhotoExpired"); }},
-        {"messageExpiredVideo", [&]() { return locale->getString("AttachVideoExpired"); }},
+        {"messageExpiredPhoto", [](const ChatMessage &message) { return message.locale->getString("AttachPhotoExpired"); }},
+        {"messageExpiredVideo", [](const ChatMessage &message) { return message.locale->getString("AttachVideoExpired"); }},
         {"messageBasicGroupChatCreate",
-         [&]() {
-             return isOutgoing ? locale->getString("ActionYouCreateGroup") : locale->getString("ActionCreateGroup").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isOutgoing ? message.locale->getString("ActionYouCreateGroup")
+                                       : message.locale->getString("ActionCreateGroup").replace("un1", message.author);
          }},
         {"messageSupergroupChatCreate",
-         [&]() { return isChannel ? locale->getString("ActionCreateChannel") : locale->getString("ActionCreateMega"); }},
+         [](const ChatMessage &message) {
+             return message.isChannel ? message.locale->getString("ActionCreateChannel") : message.locale->getString("ActionCreateMega");
+         }},
         {"messageChatChangeTitle",
-         [&]() {
-             const auto title = content.value("title").toString();
-             return isChannel    ? locale->getString("ActionChannelChangedTitle").replace("un2", title)
-                    : isOutgoing ? locale->getString("ActionYouChangedTitle").replace("un2", title)
-                                 : locale->getString("ActionChangedTitle").replace("un1", author).replace("un2", title);
+         [](const ChatMessage &message) {
+             const auto title = message.content.value("title").toString();
+             return message.isChannel ? message.locale->getString("ActionChannelChangedTitle").replace("un2", title)
+                    : message.isOutgoing
+                        ? message.locale->getString("ActionYouChangedTitle").replace("un2", title)
+                        : message.locale->getString("ActionChangedTitle").replace("un1", message.author).replace("un2", title);
          }},
         {"messageChatChangePhoto",
-         [&]() {
-             return isChannel    ? locale->getString("ActionChannelChangedPhoto")
-                    : isOutgoing ? locale->getString("ActionYouChangedPhoto")
-                                 : locale->getString("ActionChangedPhoto").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isChannel    ? message.locale->getString("ActionChannelChangedPhoto")
+                    : message.isOutgoing ? message.locale->getString("ActionYouChangedPhoto")
+                                         : message.locale->getString("ActionChangedPhoto").replace("un1", message.author);
          }},
         {"messageChatDeletePhoto",
-         [&]() {
-             return isChannel    ? locale->getString("ActionChannelRemovedPhoto")
-                    : isOutgoing ? locale->getString("ActionYouRemovedPhoto")
-                                 : locale->getString("ActionRemovedPhoto").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isChannel    ? message.locale->getString("ActionChannelRemovedPhoto")
+                    : message.isOutgoing ? message.locale->getString("ActionYouRemovedPhoto")
+                                         : message.locale->getString("ActionRemovedPhoto").replace("un1", message.author);
          }},
         {"messageChatAddMembers",
-         [&]() {
-             const auto memberIds = content.value("member_user_ids").toList();
+         [&](const ChatMessage &message) {
+             const auto memberIds = message.content.value("member_user_ids").toList();
              const auto memberCount = memberIds.size();
              if (memberCount == 1)
              {
                  const auto memberUserId = memberIds.first().toLongLong();
-                 if (sender.value("user_id") == memberUserId)
+                 if (message.sender.value("user_id") == memberUserId)
                  {
-                     if (detail::isSupergroup(chat))
+                     if (detail::isSupergroup(message.chatDetails))
                      {
-                         if (isChannel)
+                         if (message.isChannel)
                          {
-                             return locale->getString("ChannelJoined");
+                             return message.locale->getString("ChannelJoined");
                          }
-                         else if (detail::isMeUser(memberUserId, store))
+                         else if (detail::isMeUser(memberUserId, message.storageManager))
                          {
-                             return locale->getString("ChannelMegaJoined");
+                             return message.locale->getString("ChannelMegaJoined");
                          }
-                         else if (isOutgoing)
+                         else if (message.isOutgoing)
                          {
-                             return locale->getString("ActionAddUserSelfYou");
+                             return message.locale->getString("ActionAddUserSelfYou");
                          }
                          else
                          {
-                             return locale->getString("ActionAddUserSelf").replace("un1", author);
+                             return message.locale->getString("ActionAddUserSelf").replace("un1", message.author);
                          }
                      }
-                     else if (isOutgoing)
+                     else if (message.isOutgoing)
                      {
-                         return locale->getString("ActionAddUserSelfYou");
+                         return message.locale->getString("ActionAddUserSelfYou");
                      }
                      else
                      {
-                         return locale->getString("ActionAddUserSelf").replace("un1", author);
+                         return message.locale->getString("ActionAddUserSelf").replace("un1", message.author);
                      }
                  }
                  else
                  {
-                     if (isOutgoing)
+                     if (message.isOutgoing)
                      {
-                         return locale->getString("ActionYouAddUser").replace("un2", getUserName(memberUserId));
+                         const auto userName = getUserName(memberUserId, message.storageManager, message.locale, openUser);
+                         return message.locale->getString("ActionYouAddUser").replace("un2", userName);
                      }
-                     else if (detail::isMeUser(memberUserId, store))
+                     else if (detail::isMeUser(memberUserId, message.storageManager))
                      {
-                         if (detail::isSupergroup(chat))
+                         if (detail::isSupergroup(message.chatDetails))
                          {
-                             return isChannel ? locale->getString("ChannelAddedBy").replace("un1", author)
-                                              : locale->getString("MegaAddedBy").replace("un1", author);
+                             return message.isChannel ? message.locale->getString("ChannelAddedBy").replace("un1", message.author)
+                                                      : message.locale->getString("MegaAddedBy").replace("un1", message.author);
                          }
                          else
                          {
-                             return locale->getString("ActionAddUserYou").replace("un1", author);
+                             return message.locale->getString("ActionAddUserYou").replace("un1", message.author);
                          }
                      }
                      else
                      {
-                         return locale->getString("ActionAddUser").replace("un1", author).replace("un2", getUserName(memberUserId));
+                         const auto userName = getUserName(memberUserId, message.storageManager, message.locale, openUser);
+                         return message.locale->getString("ActionAddUser").replace("un1", message.author).replace("un2", userName);
                      }
                  }
              }
@@ -439,80 +475,85 @@ QString getServiceMessageContent(const QVariantMap &message, StorageManager *sto
                  members.reserve(memberCount);
                  for (const auto &userId : memberIds)
                  {
-                     members << getUserName(userId.toLongLong());
+                     members << getUserName(userId.toLongLong(), message.storageManager, message.locale, openUser);
                  }
                  const auto users = members.join(", ");
 
-                 return isOutgoing ? locale->getString("ActionYouAddUser").arg(users)
-                                   : locale->getString("ActionAddUser").replace("un1", author).replace("un2", users);
+                 return message.isOutgoing
+                            ? message.locale->getString("ActionYouAddUser").arg(users)
+                            : message.locale->getString("ActionAddUser").replace("un1", message.author).replace("un2", users);
              }
          }},
         {"messageChatJoinByLink",
-         [&]() {
-             return isOutgoing ? locale->getString("ActionInviteYou") : locale->getString("ActionInviteUser").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isOutgoing ? message.locale->getString("ActionInviteYou")
+                                       : message.locale->getString("ActionInviteUser").replace("un1", message.author);
          }},
         {"messageChatDeleteMember",
-         [&]() {
-             const auto userId = content.value("user_id").toLongLong();
-             if (userId == sender.value("user_id").toLongLong())
+         [&](const ChatMessage &message) {
+             const auto userId = message.content.value("user_id").toLongLong();
+             const auto userName = getUserName(userId, message.storageManager, message.locale, openUser);
+
+             if (userId == message.sender.value("user_id").toLongLong())
              {
-                 return isOutgoing ? locale->getString("ActionYouLeftUser") : locale->getString("ActionLeftUser").replace("un1", author);
+                 return message.isOutgoing ? message.locale->getString("ActionYouLeftUser")
+                                           : message.locale->getString("ActionLeftUser").replace("un1", message.author);
              }
-             else if (isOutgoing)
+             else if (message.isOutgoing)
              {
-                 return locale->getString("ActionYouKickUser").replace("un2", getUserName(userId));
+                 return message.locale->getString("ActionYouKickUser").replace("un2", userName);
              }
-             else if (detail::isMeUser(userId, store))
+             else if (detail::isMeUser(userId, message.storageManager))
              {
-                 return locale->getString("ActionKickUserYou").replace("un1", author);
+                 return message.locale->getString("ActionKickUserYou").replace("un1", message.author);
              }
              else
              {
-                 return locale->getString("ActionKickUser").replace("un1", author).replace("un2", getUserName(userId));
+                 return message.locale->getString("ActionKickUser").replace("un1", message.author).replace("un2", userName);
              }
          }},
-        {"messageChatUpgradeTo", [&]() { return locale->getString("ActionMigrateFromGroup"); }},
-        {"messageChatUpgradeFrom", [&]() { return locale->getString("ActionMigrateFromGroup"); }},
-        {"messagePinMessage", [&]() { return locale->getString("ActionPinned").replace("un1", author); }},
+        {"messageChatUpgradeTo", [](const ChatMessage &message) { return message.locale->getString("ActionMigrateFromGroup"); }},
+        {"messageChatUpgradeFrom", [](const ChatMessage &message) { return message.locale->getString("ActionMigrateFromGroup"); }},
+        {"messagePinMessage",
+         [](const ChatMessage &message) { return message.locale->getString("ActionPinned").replace("un1", message.author); }},
         {"messageScreenshotTaken",
-         [&]() {
-             return isOutgoing ? locale->getString("ActionTakeScreenshootYou")
-                               : locale->getString("ActionTakeScreenshoot").replace("un1", author);
+         [](const ChatMessage &message) {
+             return message.isOutgoing ? message.locale->getString("ActionTakeScreenshootYou")
+                                       : message.locale->getString("ActionTakeScreenshoot").replace("un1", message.author);
          }},
         {"messageChatSetTtl",
-         [&]() {
-             const auto ttlValue = content.value("ttl").toInt();
-             const auto ttlString = locale->formatTtl(ttlValue);
+         [&](const ChatMessage &message) {
+             const auto ttlValue = message.content.value("ttl").toInt();
+             const auto ttlString = message.locale->formatTtl(ttlValue);
+
+             const auto userName =
+                 getUserName(message.sender.value("user_id").toLongLong(), message.storageManager, message.locale, openUser);
 
              if (ttlValue <= 0)
              {
-                 return isOutgoing ? locale->getString("MessageLifetimeYouRemoved")
-                                   : locale->getString("MessageLifetimeRemoved").arg(getUserName(sender.value("user_id").toLongLong()));
+                 return message.isOutgoing ? message.locale->getString("MessageLifetimeYouRemoved")
+                                           : message.locale->getString("MessageLifetimeRemoved").arg(userName);
              }
              else
              {
-                 return isOutgoing ? locale->getString("MessageLifetimeChangedOutgoing").arg(ttlString)
-                                   : locale->getString("MessageLifetimeChanged")
-                                         .arg(getUserName(sender.value("user_id").toLongLong()))
-                                         .arg(ttlString);
+                 return message.isOutgoing ? message.locale->getString("MessageLifetimeChangedOutgoing").arg(ttlString)
+                                           : message.locale->getString("MessageLifetimeChanged").arg(userName).arg(ttlString);
              }
          }},
-        {"messageCustomServiceAction", [&]() { return content.value("text").toString(); }},
+        {"messageCustomServiceAction", [](const ChatMessage &message) { return message.content.value("text").toString(); }},
         {"messageContactRegistered",
-         [&]() { return locale->getString("NotificationContactJoined").arg(getUserName(sender.value("user_id").toLongLong())); }},
-        {"messageWebsiteConnected", [&]() { return locale->getString("ActionBotAllowed"); }},
-        {"messageUnsupported", [&]() { return locale->getString("UnsupportedMedia"); }}};
+         [&](const ChatMessage &message) {
+             const auto userName =
+                 getUserName(message.sender.value("user_id").toLongLong(), message.storageManager, message.locale, openUser);
+             return message.locale->getString("NotificationContactJoined").arg(userName);
+         }},
+        {"messageWebsiteConnected", [](const ChatMessage &message) { return message.locale->getString("ActionBotAllowed"); }},
+        {"messageUnsupported", [](const ChatMessage &message) { return message.locale->getString("UnsupportedMedia"); }}};
 
-    // TODO (qtinsider): bug fixes
-    // if (const auto it = handlers.find(contentType); it != handlers.end())
-    // {
-    //     qDebug() << "Handler found for content type: " << QString::fromStdString(contentType);
-    //     return it->second();
-    // }
-    // else
-    // {
-    //     qDebug() << "Unsupported media type: " << QString::fromStdString(contentType);
-    // }
+    if (const auto it = handlers.find(contentType); it != handlers.end())
+    {
+        return it->second(messageDetail);
+    }
 
     return locale->getString("UnsupportedMedia");
 }

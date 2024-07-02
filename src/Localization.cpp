@@ -570,28 +570,28 @@ void Locale::addRules(const QStringList &languages, PluralRules *rules)
 
 void Locale::processStrings(const QVariantMap &languagePackStrings)
 {
-    static const std::unordered_map<std::string, std::function<void(const QVariantMap &, Locale *)>> stringTypeHandlers = {
+    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> stringTypeHandlers = {
         {"languagePackStringValueOrdinary",
-         [](const QVariantMap &value, Locale *locale) {
-             locale->m_languagePack.insert(value.value("key").toString(), value.value("value").toMap().value("value").toString());
+         [this](const QVariantMap &value) {
+             m_languagePack.insert(value.value("key").toString(), value.value("value").toMap().value("value").toString());
          }},
         {"languagePackStringValuePluralized",
-         [](const QVariantMap &value, Locale *locale) {
+         [this](const QVariantMap &value) {
              const auto &pluralValues = value.value("value").toMap();
              if (!pluralValues.isEmpty())
              {
                  const QString keyBase = value.value("key").toString();
-                 for (const QString &suffix : {"zero_value", "one_value", "two_value", "few_value", "many_value", "other_value"})
+                 for (const char *suffix : {"zero_value", "one_value", "two_value", "few_value", "many_value", "other_value"})
                  {
-                     const QString &stringValue = pluralValues.value(suffix).toString();
+                     const auto &stringValue = pluralValues.value(suffix).toString();
                      if (!stringValue.isEmpty())
                      {
-                         locale->m_languagePack.insert(keyBase + "_" + suffix, stringValue);
+                         m_languagePack.insert(keyBase + "_" + suffix, stringValue);
                      }
                  }
              }
          }},
-        {"languagePackStringValueDeleted", [](const QVariantMap &, Locale *) {
+        {"languagePackStringValueDeleted", [](const QVariantMap &) {
              // No action needed for deleted strings
          }}};
 
@@ -602,7 +602,7 @@ void Locale::processStrings(const QVariantMap &languagePackStrings)
 
         if (auto it = stringTypeHandlers.find(valueType.toStdString()); it != stringTypeHandlers.end())
         {
-            it->second(value.toMap(), this);
+            it->second(value.toMap());
         }
     }
 
