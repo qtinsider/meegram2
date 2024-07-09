@@ -1,52 +1,59 @@
 #include "Settings.hpp"
 
-#include "Serialize.hpp"
-#include "TdApi.hpp"
+#include "Common.hpp"
 
-#include <QDebug>
-#include <QLocale>
+#include <QSettings>
 
-Settings::Settings()
+Settings::Settings(QObject *parent)
+    : QObject(parent)
+    , m_settings(new QSettings(this))
 {
-    QVariantMap request;
-    request.insert("@type", "getLocalizationTargetInfo");
-
-    TdApi::getInstance().sendRequest(request, [](const auto &value) {
-        if (value.value("@type").toByteArray() == "localizationTargetInfo")
-        {
-        }
-    });
+    m_languagePackId = m_settings->value("languagePackId", DefaultLanguageCode).toString();
+    m_languagePluralId = m_settings->value("languagePluralId", DefaultLanguageCode).toString();
+    m_languageShownId = m_settings->value("languageShownId", DefaultLanguageCode).toString();
 }
 
-Settings &Settings::getInstance()
+QString Settings::languagePackId() const
 {
-    static Settings staticObject;
-    return staticObject;
+    return m_languagePackId;
 }
 
-void Settings::load()
+void Settings::setLanguagePackId(const QString &value)
 {
-    m_language = m_settings.value("language", QLocale::system().name().left(2)).toString();
+    if (m_languagePackId != value)
+    {
+        m_languagePackId = value;
+        m_settings->setValue("languagePackId", m_languagePackId);
+        emit languagePackIdChanged();
+    }
 }
 
-void Settings::setLanguage(QString language)
+QString Settings::languagePluralId() const
 {
-    if (language == m_language)
-        return;
-
-    m_language = language;
-    save();
-    emit languageChanged();
+    return m_languagePluralId;
 }
 
-QString Settings::language() const
+void Settings::setLanguagePluralId(const QString &value)
 {
-    return !m_language.isEmpty() ? m_language : QLocale::system().name().left(2);
+    if (m_languagePluralId != value)
+    {
+        m_languagePluralId = value;
+        m_settings->setValue("languagePluralId", m_languagePluralId);
+        emit languagePluralIdChanged();
+    }
 }
 
-void Settings::save()
+QString Settings::languageShownId() const
 {
-    m_settings.setValue("language", language());
+    return m_languageShownId;
+}
 
-    m_settings.sync();
+void Settings::setLanguageShownId(const QString &value)
+{
+    if (m_languageShownId != value)
+    {
+        m_languageShownId = value;
+        m_settings->setValue("languageShownId", m_languageShownId);
+        emit languageShownIdChanged();
+    }
 }

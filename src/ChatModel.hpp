@@ -6,15 +6,22 @@
 #include <QTimer>
 #include <QVector>
 
+class Client;
+class Locale;
+class StorageManager;
+
 class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
+
+    Q_PROPERTY(Locale *locale READ locale WRITE setLocale)
+    Q_PROPERTY(StorageManager *storageManager READ storageManager WRITE setStorageManager)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
     Q_PROPERTY(TdApi::ChatList chatList READ chatList WRITE setChatList NOTIFY chatListChanged)
-    Q_PROPERTY(int chatFilterId READ chatFilterId WRITE setChatFilterId NOTIFY chatListChanged)
+    Q_PROPERTY(int chatFolderId READ chatFolderId WRITE setChatFolderId NOTIFY chatListChanged)
 
 public:
     explicit ChatModel(QObject *parent = nullptr);
@@ -34,6 +41,12 @@ public:
         IsMutedRole,
     };
 
+    Locale *locale() const;
+    void setLocale(Locale *locale);
+
+    StorageManager *storageManager() const;
+    void setStorageManager(StorageManager *storageManager);
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const override;
@@ -49,13 +62,16 @@ public:
     TdApi::ChatList chatList() const;
     void setChatList(TdApi::ChatList value);
 
-    int chatFilterId() const;
-    void setChatFilterId(int value);
+    int chatFolderId() const;
+    void setChatFolderId(int value);
 
     Q_INVOKABLE QVariant get(int index) const noexcept;
 
-    Q_INVOKABLE void toggleChatIsPinned(qint64 chatId, bool isPinned);
-    Q_INVOKABLE void toggleChatNotificationSettings(qint64 chatId, bool isMuted);
+    Q_INVOKABLE bool isPinned(int index) const noexcept;
+    Q_INVOKABLE bool isMuted(int index) const noexcept;
+
+    Q_INVOKABLE void toggleChatIsPinned(int index);
+    Q_INVOKABLE void toggleChatNotificationSettings(int index);
 
 signals:
     void countChanged();
@@ -79,11 +95,15 @@ private slots:
 private:
     void clear();
 
+    Client *m_client;
+    Locale *m_locale;
+    StorageManager *m_storageManager;
+
     bool m_loading{true};
 
     int m_count{};
 
-    int m_chatFilterId{};
+    int m_chatFolderId{};
     TdApi::ChatList m_chatList{TdApi::ChatListMain};
 
     QTimer *m_sortTimer;

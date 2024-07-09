@@ -1,12 +1,13 @@
 #include "LottieAnimation.hpp"
 
-#include <zlib.h>
-
 #include <QFile>
 #include <QPainter>
 #include <QTimer>
 
-#include <sstream>
+#include <zlib.h>
+
+#include <string>
+#include <vector>
 
 namespace {
 
@@ -17,25 +18,29 @@ bool loadFileContent(const QString &path, std::string &out)
     if (!file.open(QIODevice::ReadOnly))
         return false;
 
-    // Handle gzipped files as well (also known as TGS format, for Telegram stickers)
-    char buf[BUFSIZ];
-    std::stringstream ss;
-    gzFile gzf = gzdopen(file.handle(), "r");
+    // Use a larger buffer size for potentially better performance
+    constexpr size_t bufferSize = 16 * 1024;
+    std::vector<char> buffer(bufferSize);
 
+    gzFile gzf = gzdopen(file.handle(), "r");
+    if (!gzf)
+        return false;
+
+    std::string result;
     while (true)
     {
-        int len = gzread(gzf, buf, sizeof(buf));
+        int len = gzread(gzf, buffer.data(), buffer.size());
 
         if (len < 0)
             return false;
 
-        ss.write(buf, len);
+        result.append(buffer.data(), len);
 
-        if (static_cast<size_t>(len) < sizeof(buf))
+        if (static_cast<size_t>(len) < buffer.size())
             break;
     }
 
-    out = ss.str();
+    out = std::move(result);
 
     return true;
 }
@@ -107,9 +112,7 @@ void LottieAnimation::paint(QPainter *painter, const QStyleOptionGraphicsItem *,
 
 void LottieAnimation::renderNextFrame()
 {
-    m_currentFrame += 1;
-
-    if (m_currentFrame >= 0 && m_currentFrame < m_frameCount)
+    if (++m_currentFrame < m_frameCount)
     {
         update();
     }
@@ -118,7 +121,6 @@ void LottieAnimation::renderNextFrame()
         m_frameTimer->stop();
         emit finished();
     }
-
 }
 
 void LottieAnimation::setStatus(Status status)
@@ -150,8 +152,8 @@ void LottieAnimation::load()
         return;
     }
 
-    auto width = size_t(0);
-    auto height = size_t(0);
+    size_t width = 0;
+    size_t height = 0;
     m_animation->size(width, height);
 
     setImplicitWidth(width);

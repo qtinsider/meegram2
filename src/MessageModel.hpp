@@ -4,15 +4,23 @@
 
 #include <unordered_set>
 
+class Chat;
+class Client;
+class Locale;
+class Message;
+class StorageManager;
+
 class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
+
+    Q_PROPERTY(Locale *locale READ locale WRITE setLocale)
+    Q_PROPERTY(StorageManager *storageManager READ storageManager WRITE setStorageManager)
 
     Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatPhoto READ getChatPhoto NOTIFY statusChanged)
-
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(bool loadingHistory READ loadingHistory NOTIFY loadingChanged)
@@ -40,11 +48,7 @@ public:
         EditDateRole,
         ForwardInfoRole,
         InteractionInfoRole,
-        ReplyInChatIdRole,
-        ReplyToMessageIdRole,
         MessageThreadIdRole,
-        TtlRole,
-        TtlExpiresInRole,
         ViaBotUserIdRole,
         AuthorSignatureRole,
         MediaAlbumIdRole,
@@ -57,6 +61,12 @@ public:
         SectionRole,
         ServiceMessageRole,
     };
+
+    StorageManager *storageManager() const;
+    void setStorageManager(StorageManager *storageManager);
+
+    Locale *locale() const;
+    void setLocale(Locale *locale);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -79,6 +89,8 @@ public:
     QString getChatTitle() const noexcept;
     QString getChatPhoto() const noexcept;
 
+    Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText, const QVariantMap &options = {}) noexcept;
+
     Q_INVOKABLE void loadHistory() noexcept;
 
     Q_INVOKABLE void openChat() noexcept;
@@ -91,17 +103,17 @@ public:
 
 signals:
     void chatIdChanged();
-
     void countChanged();
     void moreHistoriesLoaded(int modelIndex);
     void statusChanged();
-
     void loadingChanged();
 
 public slots:
     void refresh() noexcept;
 
 private slots:
+    void handleResult(const QVariantMap &object);
+
     void handleNewMessage(const QVariantMap &message);
     void handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId);
     void handleMessageSendFailed(const QVariantMap &message, qint64 oldMessageId, int errorCode, const QString &errorMessage);
@@ -124,13 +136,19 @@ private:
 
     void itemChanged(int64_t index);
 
-    QVariantMap m_chat;
-    QList<QVariantMap> m_messages;
+    Chat *m_chat;
+
+    Client *m_client;
+    Locale *m_locale;
+    StorageManager *m_storageManager;
+
+    QList<Message *> m_messages;
 
     QString m_chatId{};
 
     bool m_loading{true};
     bool m_loadingHistory{true};
+    bool m_firstMessages{true};
 
     std::unordered_set<int64_t> m_messageIds;
 };

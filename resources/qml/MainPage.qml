@@ -11,141 +11,124 @@ Page {
 
     TopBar {
         id: header
-        title: Localization.getString("Chats") + Localization.emptyString
-
-        Image {
-            anchors {
-                right: parent.right
-                rightMargin: 16
-                verticalCenter: parent.verticalCenter
-            }
-            source: "image://theme/meegotouch-combobox-indicator-inverted"
-        }
-
-        onClicked: chatFilterDialog.open()
+        title: "MeeGram"
     }
 
-    Menu {
-        id: myMenu
-        MenuLayout {
-            MenuItem {
-                text: Localization.getString("ArchivedChats") + Localization.emptyString
-                onClicked: {
-                    pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
+    Loader {
+        id: loader
+        anchors { fill: parent; topMargin: header.height; }
+        sourceComponent: Item {
+            anchors.fill: parent
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: true
+                platformStyle: BusyIndicatorStyle { size: "large" }
+            }
+        }
+    }
+
+    Component {
+        id: infoComponent
+        Item {
+            anchors.fill: parent
+
+            Column {
+                anchors{
+                    top: parent.top
+                    topMargin: 30
+                    left: parent.left
+                    right: parent.right
                 }
-            }
-            MenuItem {
-                text: Localization.getString("SETTINGS") + Localization.emptyString
-                onClicked: {
-                    pageStack.push(Qt.createComponent("SettingsPage.qml"))
+
+                spacing: 16
+
+                Text {
+                    anchors{
+                        left: parent.left
+                        right: parent.right
+                        leftMargin: 24
+                        rightMargin: 24
+                    }
+
+                    text: "Different, Handy, Powerful"
+                    wrapMode: Text.WordWrap
+
+                    font.pixelSize: 30
+                    color: "#777777"
+
+                    horizontalAlignment: Text.AlignHCenter
                 }
-            }
-            MenuItem {
-                text: "About"
-                onClicked: aboutDialog.open()
-            }
-        }
-    }
 
-    ListView {
-        id: listView
+                Column {
+                    anchors.horizontalCenter: parent.horizontalCenter
 
-        anchors {
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-            top: header.bottom
-        }
+                    spacing: 16
 
-        cacheBuffer: listView.height * 2
+                    Button {
+                        text: app.locale.getString("StartMessaging") + app.locale.emptyString
 
-        delegate: ChatItem {
-            onPressAndHold: {
-                listView.currentIndex = -1;
-                listView.currentIndex = index;
-                contextMenu.open();
-            }
-        }
+                        platformStyle: ButtonStyle { inverted: true }
 
-        model: myChatModel
-        snapMode: ListView.SnapToItem
-    }
-
-    Label {
-        anchors.centerIn: listView
-        font.pixelSize: 60
-        color: "gray"
-        text: Localization.getString("NoChats") + Localization.emptyString
-        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
-    }
-
-    BusyIndicator {
-        anchors.centerIn: listView
-        running: visible
-        visible: populateTimer.running || myChatModel.loading
-        platformStyle: BusyIndicatorStyle { size: "large" }
-    }
-
-    SelectionDialog {
-        id: chatFilterDialog
-        titleText: Localization.getString("Filters") + Localization.emptyString
-        selectedIndex: 0
-        model: ChatFilterModel { id: chatFilterModel }
-
-        onAccepted: {
-            if (model.get(selectedIndex).id === 0) {
-                myChatModel.chatList = TdApi.ChatListMain
-                return
-            }
-
-            myChatModel.chatList = TdApi.ChatListFilter
-            myChatModel.chatFilterId = model.get(selectedIndex).id
-        }
-    }
-
-    ChatModel {
-        id: myChatModel
-        chatList: TdApi.ChatListMain
-
-        onLoadingChanged: {
-            if (!loading)
-                populateTimer.restart()
-        }
-    }
-
-    ContextMenu {
-        id: contextMenu
-
-        MenuLayout {
-
-            MenuItem {
-                text: myChatModel.get(listView.currentIndex).isPinned ? Localization.getString("UnpinFromTop") + Localization.emptyString : Localization.getString("PinToTop") + Localization.emptyString
-                onClicked: {
-                    myChatModel.toggleChatIsPinned(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isPinned)
-                    populateTimer.restart()
-                }
-            }
-
-            MenuItem {
-                text: myChatModel.get(listView.currentIndex).isMuted ? Localization.getString("ChatsUnmute") + Localization.emptyString : Localization.getString("ChatsMute") + Localization.emptyString
-                onClicked: {
-                    myChatModel.toggleChatNotificationSettings(myChatModel.get(listView.currentIndex).id, !myChatModel.get(listView.currentIndex).isMuted);
-                    populateTimer.restart()
+                        onClicked: pageStack.push(signInPage)
+                    }
                 }
             }
         }
     }
 
-    Timer {
-        id: populateTimer
-
-        interval: 200
-        repeat: false
-        onTriggered: myChatModel.populate()
+    Component {
+        id: signInPage
+        SignInPage {
+            onCancelClicked: pageStack.pop()
+        }
     }
 
-    ScrollDecorator {
-        flickableItem: listView
+    Component {
+        id: codeEnterPage
+        CodeEnterPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Component {
+        id: passwordPage
+        PasswordPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Component {
+        id: signUpPage
+        SignUpPage {
+            onCancelClicked: pageStack.pop()
+        }
+    }
+
+    Connections {
+        target: authorization
+        onCodeRequested: {
+            internal.changePage(codeEnterPage, {
+                                    phoneNumber: phoneNumber,
+                                    type: type,
+                                    nextType: nextType,
+                                    timeout: timeout * 1000})
+        }
+
+        onPasswordRequested: {
+            internal.changePage(passwordPage, {
+                                    passwordHint: passwordHint,
+                                    hasRecoveryEmailAddress: hasRecoveryEmailAddress,
+                                    recoveryEmailAddressPattern: recoveryEmailAddressPattern})
+        }
+
+        onRegistrationRequested: {
+            internal.changePage(signUpPage, {
+                                    text: text,
+                                    minUserAge:minUserAge,
+                                    showPopup: showPopup})
+        }
+
+        onError: appWindow.showBanner(errorString)
     }
 
     AboutDialog {
@@ -154,11 +137,36 @@ Page {
 
     tools: ToolBarLayout {
         ToolIcon {
-            platformIconId: "toolbar-view-menu"
-            anchors.right: (parent === undefined) ? undefined : parent.right
-            onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()
+            platformIconId: "toolbar-back"
+            onClicked: Qt.quit()
+        }
+
+        ToolIcon {
+            anchors.right: parent.right
+            iconSource: "qrc:/images/help-icon.png"
+
+            onClicked: aboutDialog.open()
         }
     }
 
-    Component.onCompleted: myChatModel.refresh()
+    Connections {
+        target: app
+
+        onAppInitialized: {
+            loader.sourceComponent = infoComponent;
+        }
+    }
+
+
+    QtObject {
+        id:internal
+
+        function changePage(page, prop) {
+            if (pageStack.depth > 1)
+                pageStack.replace(page, prop)
+            else
+                pageStack.push(page, prop)
+        }
+    }
+
 }

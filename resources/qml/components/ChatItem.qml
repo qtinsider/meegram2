@@ -43,7 +43,7 @@ Item {
             smooth: true
             fillMode: Image.PreserveAspectCrop
             clip: true
-            source: model.photo ? "image://chatPhoto/" + model.photo : "image://theme/icon-l-content-avatar-placeholder"
+            source: model.photo
         }
     }
 
@@ -181,7 +181,7 @@ Item {
         anchors.fill: parent
 
         onClicked: {
-            appWindow.openChat(myChatModel.get(index).id);
+           appWindow.openChat(myChatModel.get(index).id);
         }
         onPressAndHold: root.pressAndHold()
     }

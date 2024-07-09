@@ -9,7 +9,7 @@ Page {
 
     TopBar {
         id: header
-        title: Localization.getString("SETTINGS") + Localization.emptyString
+        title: app.locale.getString("SETTINGS") + app.locale.emptyString
     }
 
     Flickable {

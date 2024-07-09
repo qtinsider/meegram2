@@ -3,11 +3,13 @@
 #include <QDeclarativeContext>
 #include <QDeclarativeEngine>
 #include <QDeclarativeView>
-#include <QFile>
 #include <QFontDatabase>
 #include <QTextCodec>
 
+#include "Application.hpp"
+#include "Authorization.hpp"
 #include "ChatModel.hpp"
+#include "Client.hpp"
 #include "Common.hpp"
 #include "DBusAdaptor.hpp"
 #include "ImageProviders.hpp"
@@ -19,12 +21,10 @@
 #include "Settings.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
-#include "Utils.hpp"
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
-    QScopedPointer<QApplication> app(new QApplication(argc, argv));
-    QScopedPointer<QDeclarativeView> viewer(new QDeclarativeView);
+    QApplication app(argc, argv);
 
     QCoreApplication::setApplicationName(AppName);
     QCoreApplication::setApplicationVersion(AppVersion);
@@ -35,36 +35,37 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 
+    qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
+    qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
+    qRegisterMetaType<QModelIndex>("QModelIndex");
+
+    qmlRegisterType<Authorization>("com.strawberry.meegram", 1, 0, "Authorization");
+    qmlRegisterType<Client>("com.strawberry.meegram", 1, 0, "Client");
+    qmlRegisterType<Locale>("com.strawberry.meegram", 1, 0, "Locale");
+    qmlRegisterType<Settings>("com.strawberry.meegram", 1, 0, "Settings");
+    qmlRegisterType<NotificationManager>("com.strawberry.meegram", 1, 0, "NotificationManager");
+    qmlRegisterType<StorageManager>("com.strawberry.meegram", 1, 0, "StorageManager");
     qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
-    qmlRegisterType<ChatFilterModel>("com.strawberry.meegram", 1, 0, "ChatFilterModel");
+    qmlRegisterType<ChatFolderModel>("com.strawberry.meegram", 1, 0, "ChatFolderModel");
     qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
     qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
-
     qmlRegisterType<LottieAnimation>("com.strawberry.meegram", 1, 0, "LottieAnimation");
-
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
-    QScopedPointer<Utils> utils(new Utils);
-    new DBusAdaptor(app.data(), viewer.data());
+    QDeclarativeView viewer;
+    Application application;
 
-    viewer->rootContext()->setContextProperty("AppVersion", AppVersion);
+    new DBusAdaptor(&app, &viewer);
 
-    viewer->rootContext()->setContextProperty("Api", &TdApi::getInstance());
-    viewer->rootContext()->setContextProperty("Localization", &Localization::getInstance());
-    viewer->rootContext()->setContextProperty("Notification", &NotificationManager::getInstance());
-    viewer->rootContext()->setContextProperty("Settings", &Settings::getInstance());
-    viewer->rootContext()->setContextProperty("Store", &StorageManager::getInstance());
-    viewer->rootContext()->setContextProperty("Utils", utils.data());
+    viewer.rootContext()->setContextProperty("app", &application);
+    viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
+    viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 
-    viewer->engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
+    QObject::connect(viewer.engine(), SIGNAL(quit()), &viewer, SLOT(close()));
 
-    QObject::connect(app.data(), SIGNAL(aboutToQuit()), &TdApi::getInstance(), SLOT(close()));
-    QObject::connect(viewer->engine(), SIGNAL(quit()), viewer.data(), SLOT(close()));
+    viewer.setResizeMode(QDeclarativeView::SizeRootObjectToView);
+    viewer.setSource(QUrl("qrc:/qml/main.qml"));
+    viewer.showFullScreen();
 
-    viewer->setResizeMode(QDeclarativeView::SizeRootObjectToView);
-    viewer->setSource(QUrl("qrc:/qml/main.qml"));
-
-    viewer->showFullScreen();
-
-    return app->exec();
+    return app.exec();
 }

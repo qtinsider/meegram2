@@ -1,34 +1,36 @@
 #include "ChatModel.hpp"
 
+#include "Chat.hpp"
+#include "Client.hpp"
 #include "Common.hpp"
+#include "Localization.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
 
+#include <QDateTime>
+#include <QStringList>
+
 #include <algorithm>
+#include <cstring>
 
 namespace detail {
 
-QString getChatType(qint64 chatId)
+QString getChatType(const QVariantMap &type)
 {
-    auto chat = StorageManager::getInstance().getChat(chatId);
+    static const std::unordered_map<const char *, QString> chatTypeMap = {{"chatTypePrivate", "private"},
+                                                                          {"chatTypeSecret", "secret"},
+                                                                          {"chatTypeBasicGroup", "group"},
+                                                                          {"chatTypeSupergroup", "supergroup"}};
 
-    auto type = chat.value("type").toMap();
-    auto chatType = type.value("@type").toByteArray();
+    const auto chatType = type.value("@type").toByteArray().constData();
 
-    switch (fnv::hashRuntime(chatType.constData()))
+    if (auto it = chatTypeMap.find(chatType); it != chatTypeMap.end())
     {
-        case fnv::hash("chatTypePrivate"):
-            return "private";
-        case fnv::hash("chatTypeSecret"):
-            return "secret";
-        case fnv::hash("chatTypeBasicGroup"):
-            return "group";
-        case fnv::hash("chatTypeSupergroup"): {
-            if (type.value("is_channel").toBool())
-                return "channel";
-
-            return "supergroup";
+        if (std::strcmp(chatType, "chatTypeSupergroup") == 0 && type.value("is_channel").toBool())
+        {
+            return "channel";
         }
+        return it->second;
     }
 
     return {};
@@ -41,11 +43,6 @@ ChatModel::ChatModel(QObject *parent)
     , m_sortTimer(new QTimer(this))
     , m_loadingTimer(new QTimer(this))
 {
-    connect(&StorageManager::getInstance(), SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
-    connect(&StorageManager::getInstance(), SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
-
-    connect(&TdApi::getInstance(), SIGNAL(updateFile(const QVariantMap &)), SLOT(handleChatPhoto(const QVariantMap &)));
-
     connect(this, SIGNAL(chatListChanged()), this, SLOT(refresh()));
 
     connect(m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
@@ -63,6 +60,30 @@ ChatModel::~ChatModel()
 {
     delete m_sortTimer;
     delete m_loadingTimer;
+}
+
+Locale *ChatModel::locale() const
+{
+    return m_locale;
+}
+
+void ChatModel::setLocale(Locale *locale)
+{
+    m_locale = locale;
+}
+
+StorageManager *ChatModel::storageManager() const
+{
+    return m_storageManager;
+}
+
+void ChatModel::setStorageManager(StorageManager *storageManager)
+{
+    m_storageManager = storageManager;
+    m_client = m_storageManager->client();
+
+    connect(m_storageManager, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
+    connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -105,49 +126,50 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return {};
 
-    const auto chatId = m_chatIds.at(index.row());
+    if (!m_locale && !m_storageManager)
+        return {};
 
-    switch (auto chat = StorageManager::getInstance().getChat(chatId); role)
+    const auto chatId = m_chatIds.at(index.row());
+    const auto chat = m_storageManager->getChat(chatId);
+
+    switch (role)
     {
         case IdRole:
             return QString::number(chatId);
         case TypeRole:
-            return detail::getChatType(chatId);
+            return detail::getChatType(chat->type());
         case TitleRole:
-            return Utils::getChatTitle(chatId, true);
+            return Utils::getChatTitle(chatId, m_storageManager, m_locale, true);
         case PhotoRole: {
-            if (auto chatPhoto = chat.value("photo").toMap();
-                chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+            const auto smallPhoto = chat->photo().value("small").toMap();
+            const auto localPhoto = smallPhoto.value("local").toMap();
+
+            if (localPhoto.value("is_downloading_completed").toBool())
             {
-                return chatPhoto.value("small").toMap().value("local").toMap().value("path").toString();
+                return "image://chatPhoto/" + localPhoto.value("path").toString();
             }
 
-            return {};
+            return "image://theme/icon-l-content-avatar-placeholder";
         }
-        case LastMessageSenderRole: {
-            return Utils::getMessageSenderName(chat.value("last_message").toMap());
-        }
-        case LastMessageContentRole: {
-            return Utils::getContent(chat.value("last_message").toMap());
-        }
-        case LastMessageDateRole: {
-            return Utils::getMessageDate(chat.value("last_message").toMap());
-        }
-        case IsPinnedRole: {
-            return Utils::isChatPinned(chatId, m_list);
-        }
-        case UnreadCountRole: {
-            return chat.value("unread_count").toInt();
-        }
-        case UnreadMentionCountRole: {
-            return chat.value("unread_mention_count").toInt();
-        }
-        case IsMutedRole: {
-            return Utils::isChatMuted(chatId);
-        }
-    }
 
-    return {};
+        case LastMessageSenderRole:
+            return Utils::getMessageSenderName(chat->lastMessage(), m_storageManager, m_locale);
+        case LastMessageContentRole:
+            return Utils::getContent(chat->lastMessage(), m_storageManager, m_locale);
+        case LastMessageDateRole: {
+            return Utils::getMessageDate(chat->lastMessage(), m_locale);
+        }
+        case IsPinnedRole:
+            return Utils::isChatPinned(chatId, m_list, m_storageManager);
+        case UnreadCountRole:
+            return chat->unreadCount();
+        case UnreadMentionCountRole:
+            return chat->unreadMentionCount();
+        case IsMutedRole:
+            return Utils::isChatMuted(chatId, m_storageManager);
+        default:
+            return {};
+    }
 }
 
 QHash<int, QByteArray> ChatModel::roleNames() const
@@ -193,16 +215,16 @@ void ChatModel::setChatList(TdApi::ChatList value)
     }
 }
 
-int ChatModel::chatFilterId() const
+int ChatModel::chatFolderId() const
 {
-    return m_chatFilterId;
+    return m_chatFolderId;
 }
 
-void ChatModel::setChatFilterId(int value)
+void ChatModel::setChatFolderId(int value)
 {
-    if (m_chatList == TdApi::ChatListFilter && m_chatFilterId != value)
+    if (m_chatList == TdApi::ChatListFolder && m_chatFolderId != value)
     {
-        m_chatFilterId = value;
+        m_chatFolderId = value;
         emit chatListChanged();
     }
 }
@@ -227,26 +249,49 @@ QVariant ChatModel::get(int index) const noexcept
     return result;
 }
 
-void ChatModel::toggleChatIsPinned(qint64 chatId, bool isPinned)
+bool ChatModel::isPinned(int index) const noexcept
 {
+    return data(createIndex(index, 0), IsPinnedRole).toBool();
+}
+
+bool ChatModel::isMuted(int index) const noexcept
+{
+    return data(createIndex(index, 0), IsMutedRole).toBool();
+}
+
+void ChatModel::toggleChatIsPinned(int index)
+{
+    if (!m_client)
+        return;
+
+    QModelIndex modelIndex = createIndex(index, 0);
+
     QVariantMap result;
     result.insert("@type", "toggleChatIsPinned");
     result.insert("chat_list", m_list);
-    result.insert("chat_id", chatId);
-    result.insert("is_pinned", isPinned);
+    result.insert("chat_id", data(modelIndex, IdRole).toLongLong());
+    result.insert("is_pinned", !data(modelIndex, IsPinnedRole).toBool());
 
-    TdApi::getInstance().sendRequest(result);
+    m_client->send(result, [this](const auto &value) {
+        if (value.value("@type").toByteArray() == "ok")
+            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    });
 }
 
-void ChatModel::toggleChatNotificationSettings(qint64 chatId, bool isMuted)
+void ChatModel::toggleChatNotificationSettings(int index)
 {
-    auto chat = StorageManager::getInstance().getChat(chatId);
-
-    auto isMutedPrev = Utils::isChatMuted(chatId);
-    if (isMutedPrev == isMuted)
+    if (!m_client)
         return;
 
-    auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
+    QModelIndex modelIndex = createIndex(index, 0);
+
+    const auto chatId = data(modelIndex, IdRole).toLongLong();
+    const auto isMuted = !data(modelIndex, IsMutedRole).toBool();
+
+    if (const auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
+        return;
+
+    const auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
     QVariantMap newNotificationSettings;
     newNotificationSettings.insert("use_default_mute_for", false);
     newNotificationSettings.insert("mute_for", muteFor);
@@ -256,30 +301,48 @@ void ChatModel::toggleChatNotificationSettings(qint64 chatId, bool isMuted)
     result.insert("chat_id", chatId);
     result.insert("notification_settings", newNotificationSettings);
 
-    TdApi::getInstance().sendRequest(result);
+    m_client->send(result, [this](const auto &value) {
+        if (value.value("@type").toByteArray() == "ok")
+            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    });
 }
 
 void ChatModel::populate()
 {
+    if (!m_client)
+        return;
+
     m_chatIds.clear();
 
-    for (auto id : StorageManager::getInstance().getChatIds())
+    const auto chatIds = m_storageManager->getChatIds();
+    for (const auto &id : chatIds)
     {
-        for (auto chat = StorageManager::getInstance().getChat(id); const auto &position : chat.value("positions").toList())
+        const auto chat = m_storageManager->getChat(id);
+        const auto positions = chat->positions();
+
+        for (const auto &pos : positions)
         {
-            if (Utils::chatListEquals(position.toMap().value("list").toMap(), m_list))
-                m_chatIds.append(id);
-
-            auto chatPhoto = chat.value("photo").toMap();
-            if (!chat.value("photo").isNull() &&
-                !chatPhoto.value("small").toMap().value("local").toMap().value("is_downloading_completed").toBool())
+            const auto positionMap = pos.toMap();
+            if (Utils::chatListEquals(positionMap.value("list").toMap(), m_list))
             {
-                QVariantMap result;
-                result.insert("@type", "downloadFile");
-                result.insert("file_id", chatPhoto.value("small").toMap().value("id").toInt());
-                result.insert("priority", 1);
+                m_chatIds.append(id);
+                break;  // No need to check further positions for this chat
+            }
+        }
 
-                TdApi::getInstance().sendRequest(result);
+        if (const auto chatPhoto = chat->photo(); !chatPhoto.isEmpty())
+        {
+            const auto smallPhoto = chatPhoto.value("small").toMap();
+            const auto localPhoto = smallPhoto.value("local").toMap();
+
+            if (!localPhoto.value("is_downloading_completed").toBool())
+            {
+                QVariantMap request;
+                request.insert("@type", "downloadFile");
+                request.insert("file_id", smallPhoto.value("id").toInt());
+                request.insert("priority", 1);
+
+                m_client->send(request);
             }
         }
     }
@@ -287,7 +350,9 @@ void ChatModel::populate()
     sortChats();
 
     if (!m_chatIds.isEmpty())
+    {
         fetchMore();
+    }
 }
 
 void ChatModel::clear()
@@ -314,9 +379,14 @@ void ChatModel::refresh()
 
 void ChatModel::sortChats()
 {
+    if (!m_client)
+        return;
+
     emit layoutAboutToBeChanged();
 
-    std::ranges::sort(m_chatIds, [&](auto a, auto b) { return Utils::getChatOrder(a, m_list) > Utils::getChatOrder(b, m_list); });
+    std::ranges::sort(m_chatIds, [&](auto a, auto b) {
+        return Utils::getChatOrder(a, m_list, m_storageManager) > Utils::getChatOrder(b, m_list, m_storageManager);
+    });
 
     emit layoutChanged();
 }
@@ -350,9 +420,9 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
 {
     if (file.value("local").toMap().value("is_downloading_completed").toBool())
     {
-        auto it = std::ranges::find_if(m_chatIds, [file](qint64 chatId) {
-            auto chat = StorageManager::getInstance().getChat(chatId);
-            return chat.value("photo").toMap().value("small").toMap().value("id").toInt() == file.value("id").toInt();
+        auto it = std::ranges::find_if(m_chatIds, [file, this](qint64 chatId) {
+            auto chat = m_storageManager->getChat(chatId);
+            return chat->photo().value("small").toMap().value("id").toInt() == file.value("id").toInt();
         });
 
         if (it != m_chatIds.end())
@@ -360,10 +430,7 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
             QVariantMap chatPhoto;
             chatPhoto.insert("small", file);
 
-            auto chat = StorageManager::getInstance().getChat(*it);
-            chat.insert("photo", chatPhoto);
-
-            StorageManager::getInstance().setChat(chat);
+            m_storageManager->getChat(*it)->setPhoto(chatPhoto);
 
             auto index = std::distance(m_chatIds.begin(), it);
             QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
@@ -375,6 +442,9 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
 
 void ChatModel::loadChats()
 {
+    if (!m_client)
+        return;
+
     switch (m_chatList)
     {
         case TdApi::ChatListMain:
@@ -383,9 +453,9 @@ void ChatModel::loadChats()
         case TdApi::ChatListArchive:
             m_list.insert("@type", "chatListArchive");
             break;
-        case TdApi::ChatListFilter:
-            m_list.insert("@type", "chatListFilter");
-            m_list.insert("chat_filter_id", m_chatFilterId);
+        case TdApi::ChatListFolder:
+            m_list.insert("@type", "chatListFolder");
+            m_list.insert("chat_folder_id", m_chatFolderId);
             break;
     }
 
@@ -394,7 +464,7 @@ void ChatModel::loadChats()
     request.insert("chat_list", m_list);
     request.insert("limit", ChatSliceLimit);
 
-    TdApi::getInstance().sendRequest(request, [this](const auto &value) {
+    m_client->send(request, [this](const auto &value) {
         if (value.value("code").toInt() == 404)
         {
             m_loading = false;

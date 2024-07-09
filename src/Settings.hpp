@@ -1,31 +1,38 @@
 #pragma once
 
-#include <QSettings>
+#include <QObject>
+#include <QStringList>
+
+class QSettings;
 
 class Settings : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY(QString languagePackId READ languagePackId WRITE setLanguagePackId NOTIFY languagePackIdChanged)
+    Q_PROPERTY(QString languagePluralId READ languagePluralId WRITE setLanguagePluralId NOTIFY languagePluralIdChanged)
+    Q_PROPERTY(QString languageShownId READ languageShownId WRITE setLanguageShownId NOTIFY languageShownIdChanged)
 
-    Q_PROPERTY(QString language READ language WRITE setLanguage NOTIFY languageChanged)
 public:
-    Settings(const Settings &) = delete;
-    Settings &operator=(const Settings &) = delete;
+    explicit Settings(QObject *parent = nullptr);
 
-    static Settings &getInstance();
+    QString languagePackId() const;
+    void setLanguagePackId(const QString &value);
 
-    void save();
-    void load();
+    QString languagePluralId() const;
+    void setLanguagePluralId(const QString &value);
 
-    QString language() const;
-    void setLanguage(QString language);
+    QString languageShownId() const;
+    void setLanguageShownId(const QString &value);
 
 signals:
-    void languageChanged();
+    void languagePackIdChanged();
+    void languagePluralIdChanged();
+    void languageShownIdChanged();
 
 private:
-    Settings();
+    QSettings *m_settings;
 
-    QString m_language;
-
-    QSettings m_settings;
+    QString m_languagePackId;
+    QString m_languagePluralId;
+    QString m_languageShownId;
 };

@@ -137,7 +137,7 @@
     </message>
 </context>
 <context>
-    <name>ChatFilterModel</name>
+    <name>chatFolderModel</name>
     <message>
         <location filename="../../src/SelectionModel.cpp" line="338"/>
         <source>FilterAllChats</source>

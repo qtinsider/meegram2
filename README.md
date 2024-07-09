@@ -7,7 +7,7 @@ MeeGram is an unofficial Telegram client designed for Nokia N9 devices.
 Contributions to this project are welcome! If you'd like to improve MeeGram, please open pull requests. Any contribution is greatly appreciated.
 
 ## Contact
-For inquiries or suggestions, it's preferred if you open an issue on [GitHub](https://github.com/qtinsider/meegram2)). Alternatively, you can contact me via email at nwutobo@outlook.com.
+For inquiries or suggestions, it's preferred if you open an issue on [GitHub](https://github.com/qtinsider/meegram2/issues). Alternatively, you can contact me via email at nwutobo@outlook.com.
 
 ## Support
 If you find MeeGram useful and would like to support my work, consider donating or becoming a sponsor. Your support will enable me to dedicate more time to projects you love.

@@ -1,60 +1,74 @@
-cmake_minimum_required(VERSION 3.18.0)
-project(MeeGram VERSION 0.1.4 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.20)
+project(MeeGram VERSION 0.1.6 LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+find_package(Td REQUIRED)
+find_package(rlottie REQUIRED)
 find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtDeclarative REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(boostable QUIET qdeclarative-boostable)
 
-set(QML_IMPORT_PATH "/opt/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
-
-include(FetchContent)
-
-# nlohmann json
-message(STATUS "Fetching dependency nlohmann json...")
-FetchContent_Declare(json
-    URL https://github.com/nlohmann/json/releases/download/v3.10.5/json.tar.xz
-    )
-
-FetchContent_GetProperties(json)
-if (NOT json_POPULATED)
-    FetchContent_Populate(json)
-    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif()
+set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
 set(src_files
+    src/Application.cpp
+    src/Authorization.cpp
+    src/BasicGroup.cpp
+    src/BasicGroupFullInfo.cpp
+    src/Chat.cpp
     src/ChatModel.cpp
+    src/Client.cpp
     src/DBusAdaptor.cpp
+    src/File.cpp
     src/ImageProviders.cpp
     src/Localization.cpp
     src/LottieAnimation.cpp
     src/main.cpp
+    src/Message.cpp
     src/MessageModel.cpp
     src/NotificationManager.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
-#   src/SortFilterProxyModel.cpp
+    src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
-    src/TdApi.cpp
+    src/SupergroupFullInfo.cpp
+    src/Supergroup.cpp
+    src/User.cpp
+    src/UserFullInfo.cpp
     src/Utils.cpp
 )
 
 set(header_files
+    src/Application.hpp
+    src/Authorization.hpp
+    src/BasicGroup.hpp
+    src/BasicGroupFullInfo.hpp
+    src/Chat.hpp
     src/ChatModel.hpp
+    src/Client.hpp
     src/Common.hpp
     src/DBusAdaptor.hpp
+    src/File.hpp
     src/ImageProviders.hpp
     src/Localization.hpp
     src/LottieAnimation.hpp
+    src/Message.hpp
     src/MessageModel.hpp
     src/NotificationManager.hpp
     src/SelectionModel.hpp
     src/Serialize.hpp
     src/Settings.hpp
-#   src/SortFilterProxyModel.hpp
+    src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
+    src/Supergroup.hpp
+    src/SupergroupFullInfo.hpp
     src/TdApi.hpp
+    src/User.hpp
+    src/UserFullInfo.hpp
     src/Utils.hpp
 )
 
@@ -64,10 +78,9 @@ add_executable(meegram ${src_files} ${header_files} ${qrc_files})
 
 set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
-target_compile_features(meegram PRIVATE cxx_std_20)
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
-target_link_libraries(meegram PRIVATE nlohmann_json::nlohmann_json #[[rlottie::rlottie Td::TdJsonStatic]] Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtDeclarative Threads::Threads)
+target_link_libraries(meegram PRIVATE rlottie::rlottie Td::TdJsonStatic Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtDeclarative Threads::Threads)
 
 if (boostable_FOUND)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})

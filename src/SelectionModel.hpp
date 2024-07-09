@@ -6,6 +6,7 @@ class CountryModel : public QAbstractListModel
 {
     Q_OBJECT
 
+    Q_PROPERTY(QVariantList countries READ countries WRITE setCountries NOTIFY countriesChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged)
 
@@ -17,6 +18,9 @@ public:
         CodeRole,
     };
 
+    const QVariantList &countries() const noexcept;
+    void setCountries(QVariantList countries);
+
     int rowCount(const QModelIndex &index = QModelIndex()) const override;
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -26,6 +30,7 @@ public:
     int count() const noexcept;
 
 signals:
+    void countriesChanged();
     void countChanged();
 
 private:
@@ -34,19 +39,23 @@ private:
     QVariantList m_countries;
 };
 
-class ChatFilterModel : public QAbstractListModel
+class ChatFolderModel : public QAbstractListModel
 {
     Q_OBJECT
 
+    Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
-    ChatFilterModel(QObject *parent = nullptr);
+    ChatFolderModel(QObject *parent = nullptr);
 
-    enum ChatFilterRole {
+    enum ChatFolderRole {
         IdRole = Qt::UserRole + 1,
         IconNameRole,
     };
+
+    QVariantList getChatFolders() const noexcept;
+    void setChatFolders(QVariantList value) noexcept;
 
     int rowCount(const QModelIndex &index = QModelIndex()) const override;
 
@@ -58,12 +67,8 @@ public:
 
 signals:
     void countChanged();
-
-private slots:
-    void handleChatFilters(const QVariantList &chatFilters);
+    void chatFoldersChanged();
 
 private:
-    Q_DISABLE_COPY(ChatFilterModel)
-
-    QVariantList m_chatFilters;
+    QVariantList m_chatFolders;
 };

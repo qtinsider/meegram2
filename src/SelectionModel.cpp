@@ -1,10 +1,6 @@
 #include "SelectionModel.hpp"
 
-#include "Localization.hpp"
-#include "Serialize.hpp"
-#include "TdApi.hpp"
-
-#include <QDebug>
+#include <QStringList>
 
 #include <algorithm>
 
@@ -17,20 +13,24 @@ CountryModel::CountryModel(QObject *parent)
     roles.insert(CodeRole, "code");
 
     setRoleNames(roles);
+}
 
-    QVariantMap request;
-    request.insert("@type", "getCountries");
+const QVariantList &CountryModel::countries() const noexcept
+{
+    return m_countries;
+}
 
-    TdApi::getInstance().sendRequest(request, [this](const auto &value) {
-        if (value.value("@type").toByteArray() == "countries")
-        {
-            beginInsertRows(QModelIndex(), rowCount(), value.count() - 1);
-            std::ranges::copy(value.value("countries").toList(), std::back_inserter(m_countries));
-            endInsertRows();
+void CountryModel::setCountries(QVariantList countries)
+{
+    if (m_countries != countries)
+    {
+        beginResetModel();
+        m_countries = std::move(countries);
+        endResetModel();
 
-            emit countChanged();
-        }
-    });
+        emit countChanged();
+        emit countriesChanged();
+    }
 }
 
 int CountryModel::rowCount(const QModelIndex &) const
@@ -43,7 +43,8 @@ QVariant CountryModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || m_countries.isEmpty())
         return QVariant();
 
-    switch (const auto &countryInfo = m_countries.at(index.row()).toMap(); role)
+    const auto &countryInfo = m_countries.at(index.row()).toMap();
+    switch (role)
     {
         case Qt::DisplayRole:
             return countryInfo.value("name").toString();
@@ -88,7 +89,8 @@ int CountryModel::getDefaultIndex() const noexcept
     return {};
 }
 
-ChatFilterModel::ChatFilterModel(QObject *parent)
+ChatFolderModel::ChatFolderModel(QObject *parent)
+    : QAbstractListModel(parent)
 {
     QHash<int, QByteArray> roles;
     roles.insert(IdRole, "id");
@@ -96,61 +98,61 @@ ChatFilterModel::ChatFilterModel(QObject *parent)
     roles.insert(IconNameRole, "iconName");
 
     setRoleNames(roles);
-
-    connect(&TdApi::getInstance(), SIGNAL(updateChatFilters(const QVariantList &)), SLOT(handleChatFilters(const QVariantList &)));
 }
 
-int ChatFilterModel::rowCount(const QModelIndex &index) const
+QVariantList ChatFolderModel::getChatFolders() const noexcept
 {
-    return m_chatFilters.count();
+    return m_chatFolders;
 }
 
-QVariant ChatFilterModel::data(const QModelIndex &index, int role) const
+void ChatFolderModel::setChatFolders(QVariantList value) noexcept
+{
+    if (m_chatFolders != value)
+    {
+        beginResetModel();
+        m_chatFolders = std::move(value);
+        endResetModel();
+
+        emit chatFoldersChanged();
+    }
+}
+
+int ChatFolderModel::rowCount(const QModelIndex &index) const
+{
+    Q_UNUSED(index);
+    return m_chatFolders.count();
+}
+
+QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
         return QVariant();
 
-    switch (auto chatFilter = m_chatFilters.value(index.row()).toMap(); role)
+    const auto chatFolder = m_chatFolders.value(index.row()).toMap();
+    switch (role)
     {
         case IdRole:
-            return chatFilter.value("id").toInt();
+            return chatFolder.value("id").toInt();
         case Qt::DisplayRole:
-            return chatFilter.value("title").toString();
+            return chatFolder.value("title").toString();
         case IconNameRole:
-            return chatFilter.value("icon_name").toString();
+            return chatFolder.value("icon_name").toString();
+        default:
+            return QVariant();
     }
-
-    return QVariant();
 }
 
-QVariantMap ChatFilterModel::get(int index) const noexcept
+QVariantMap ChatFolderModel::get(int index) const noexcept
 {
     QModelIndex modelIndex = createIndex(index, 0);
-
     QVariantMap result;
     result.insert("id", data(modelIndex, IdRole));
     result.insert("name", data(modelIndex, Qt::DisplayRole));  // title
     result.insert("iconName", data(modelIndex, IconNameRole));
-
     return result;
 }
 
-int ChatFilterModel::count() const noexcept
+int ChatFolderModel::count() const noexcept
 {
-    return m_chatFilters.count();
-}
-
-void ChatFilterModel::handleChatFilters(const QVariantList &chatFilters)
-{
-    QVariantMap chatFilter;
-    chatFilter.insert("id", 0);
-    chatFilter.insert("title", Localization::getInstance().getString("FilterAllChats"));
-
-    beginResetModel();
-    m_chatFilters.clear();
-    m_chatFilters.append(chatFilter);
-    std::ranges::copy(chatFilters, std::back_inserter(m_chatFilters));
-    endResetModel();
-
-    emit countChanged();
+    return m_chatFolders.count();
 }
