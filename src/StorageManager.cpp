@@ -144,7 +144,7 @@ void StorageManager::handleResult(const QVariantMap &object)
     static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
         {"updateNewChat",
          [this](const QVariantMap &object) {
-             Chat *chat = new Chat();
+             Chat *chat = new Chat(this);
 
              chat->setFromVariantMap(object.value("chat").toMap());
 
@@ -187,11 +187,11 @@ void StorageManager::handleResult(const QVariantMap &object)
 
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
-                 Message *lastMessage = new Message(this);
+                 Message *message = new Message(this);
 
-                 lastMessage->setFromVariantMap(object.value("last_message").toMap());
+                 message->setFromVariantMap(object.value("last_message").toMap());
 
-                 it->second->setLastMessage(lastMessage);
+                 it->second->setLastMessage(message);
                  if (!positions.isEmpty())
                      emit updateChatPosition(chatId);
                  emit updateChatItem(chatId);
@@ -300,49 +300,49 @@ void StorageManager::handleResult(const QVariantMap &object)
          }},
         {"updateUser",
          [this](const QVariantMap &object) {
-             User *user = new User();
+             User *user = new User(this);
              user->setFromVariantMap(object.value("user").toMap());
 
              m_users.emplace(user->id(), user);
          }},
         {"updateBasicGroup",
          [this](const QVariantMap &object) {
-             BasicGroup *basicGroup = new BasicGroup();
+             BasicGroup *basicGroup = new BasicGroup(this);
              basicGroup->setFromVariantMap(object.value("basic_group").toMap());
 
              m_basicGroup.emplace(basicGroup->id(), basicGroup);
          }},
         {"updateSupergroup",
          [this](const QVariantMap &object) {
-             Supergroup *supergroup = new Supergroup();
+             Supergroup *supergroup = new Supergroup(this);
              supergroup->setFromVariantMap(object.value("supergroup").toMap());
 
              m_supergroup.emplace(supergroup->id(), supergroup);
          }},
         {"updateUserFullInfo",
          [this](const QVariantMap &object) {
-             UserFullInfo *userFullInfo = new UserFullInfo();
+             UserFullInfo *userFullInfo = new UserFullInfo(this);
              userFullInfo->setFromVariantMap(object.value("user_full_info").toMap());
 
              m_userFullInfo.emplace(object.value("user_id").toLongLong(), userFullInfo);
          }},
         {"updateBasicGroupFullInfo",
          [this](const QVariantMap &object) {
-             BasicGroupFullInfo *basicGroupFullInfo = new BasicGroupFullInfo();
+             BasicGroupFullInfo *basicGroupFullInfo = new BasicGroupFullInfo(this);
              basicGroupFullInfo->setFromVariantMap(object.value("basic_group_full_info").toMap());
 
              m_basicGroupFullInfo.emplace(object.value("basic_group_id").toLongLong(), basicGroupFullInfo);
          }},
         {"updateSupergroupFullInfo",
          [this](const QVariantMap &object) {
-             SupergroupFullInfo *supergroupFullInfo = new SupergroupFullInfo();
+             SupergroupFullInfo *supergroupFullInfo = new SupergroupFullInfo(this);
              supergroupFullInfo->setFromVariantMap(object.value("supergroup_full_info").toMap());
 
              m_supergroupFullInfo.emplace(object.value("supergroup_id").toLongLong(), supergroupFullInfo);
          }},
         {"updateFile",
          [this](const QVariantMap &object) {
-             File *file = new File();
+             File *file = new File(this);
              file->setFromVariantMap(object.value("file").toMap());
 
              m_files.emplace(file->id(), file);

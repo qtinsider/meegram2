@@ -8,13 +8,13 @@ class Client;
 class Authorization : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(Client *client READ client WRITE setClient)
+    Q_PROPERTY(QObject *client READ client WRITE setClient)
     Q_PROPERTY(bool loading READ loading WRITE setLoading NOTIFY loadingChanged)
 public:
     explicit Authorization(QObject *parent = nullptr);
 
-    Client *client() const noexcept;
-    void setClient(Client *client) noexcept;
+    QObject *client() const noexcept;
+    void setClient(QObject *client) noexcept;
 
     bool loading() const;
 

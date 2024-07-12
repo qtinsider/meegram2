@@ -154,6 +154,7 @@ Page {
 
         onAppInitialized: {
             loader.sourceComponent = infoComponent;
+            console.log("App has been initialized");
         }
     }
 

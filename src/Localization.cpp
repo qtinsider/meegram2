@@ -8,6 +8,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <ranges>
+#include <regex>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 class PluralRules
 {
@@ -389,6 +394,20 @@ class PluralRules_Arabic : public PluralRules
     }
 };
 
+namespace {
+void replaceAll(std::string &str, const std::string &from, const std::string &to)
+{
+    if (from.empty())
+        return;
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();  // Handles case where 'to' is a substring of 'from'
+    }
+}
+}  // namespace
+
 Locale::Locale(QObject *parent)
     : QObject(parent)
 {
@@ -433,30 +452,44 @@ QString Locale::getString(const QString &key) const
         return key;
     }
 
-    auto result = m_languagePack.value(key);
-    result.reserve(result.size());  // Reserve memory in advance to avoid reallocations
+    const std::string &original = m_languagePack.value(key).toStdString();
 
-    // Remove $d and $s
-    int index = 0;
-    while ((index = result.indexOf('$', index)) != -1)
+    std::string result;
+    result.reserve(original.size());  // Reserve space for potential expansion
+
+    auto view = std::string_view(original);
+    size_t pos = 0, last_pos = 0;
+
+    // Remove $d placeholders
+    while ((pos = view.find("$d", last_pos)) != std::string_view::npos)
     {
-        if (index + 1 < result.length() && (result[index + 1] == 'd' || result[index + 1] == 's'))
-        {
-            result.remove(index, 2);
-        }
-        else
-        {
-            ++index;
-        }
+        result.append(view.substr(last_pos, pos - last_pos));
+        last_pos = pos + 2;
+    }
+    result.append(view.substr(last_pos));
+
+    last_pos = 0;
+    while ((pos = result.find("$s", last_pos)) != std::string::npos)
+    {
+        result.erase(pos, 2);
     }
 
-    // Perform replacements in place
-    result.replace("%%", "%");
-    result.replace("%s", "%1");
-    result.replace("EEEE", "dddd");
-    result.replace("EEE", "ddd");
+    static const std::unordered_map<std::string, std::string> replacements = {{"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
 
-    return result;
+    for (const auto &[from, to] : replacements)
+    {
+        replaceAll(result, from, to);
+    }
+
+    static std::regex boldRegex(R"(\*\*(.*?)\*\*)");
+    result = std::regex_replace(result, boldRegex, "<b>$1</b>");
+
+    static std::regex italicRegex(R"(\*(.*?)\*)");
+    result = std::regex_replace(result, italicRegex, "<i>$1</i>");
+
+    qDebug() << QString::fromStdString(result);
+
+    return QString::fromStdString(result);
 }
 
 QString Locale::formatPluralString(const QString &key, int plural) const

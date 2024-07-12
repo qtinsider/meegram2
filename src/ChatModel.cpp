@@ -62,25 +62,25 @@ ChatModel::~ChatModel()
     delete m_loadingTimer;
 }
 
-Locale *ChatModel::locale() const
+QObject *ChatModel::locale() const
 {
     return m_locale;
 }
 
-void ChatModel::setLocale(Locale *locale)
+void ChatModel::setLocale(QObject *locale)
 {
-    m_locale = locale;
+    m_locale = qobject_cast<Locale *>(locale);
 }
 
-StorageManager *ChatModel::storageManager() const
+QObject *ChatModel::storageManager() const
 {
     return m_storageManager;
 }
 
-void ChatModel::setStorageManager(StorageManager *storageManager)
+void ChatModel::setStorageManager(QObject *storageManager)
 {
-    m_storageManager = storageManager;
-    m_client = m_storageManager->client();
+    m_storageManager = qobject_cast<StorageManager *>(storageManager);
+    m_client = qobject_cast<Client *>(m_storageManager->client());
 
     connect(m_storageManager, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
     connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
@@ -318,12 +318,10 @@ void ChatModel::populate()
     for (const auto &id : chatIds)
     {
         const auto chat = m_storageManager->getChat(id);
-        const auto positions = chat->positions();
 
-        for (const auto &pos : positions)
+        for (const auto &position : chat->positions())
         {
-            const auto positionMap = pos.toMap();
-            if (Utils::chatListEquals(positionMap.value("list").toMap(), m_list))
+            if (Utils::chatListEquals(position.toMap().value("list").toMap(), m_list))
             {
                 m_chatIds.append(id);
                 break;  // No need to check further positions for this chat

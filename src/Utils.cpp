@@ -180,19 +180,19 @@ struct ChatMessage
 {
     QVariantMap sender;
     QVariantMap content;
-    Chat *chatDetails;
     QString author;
+    Chat *chatDetails;
     Locale *locale = nullptr;
     StorageManager *storageManager = nullptr;
     bool isOutgoing = false;
     bool isChannel = false;
 
-    ChatMessage(QVariantMap sender_, QVariantMap content_, Chat *chatDetails_, QString author_, Locale *locale_ = nullptr,
+    ChatMessage(QVariantMap sender_, QVariantMap content_, QString author_, Chat *chatDetails_ = nullptr, Locale *locale_ = nullptr,
                 StorageManager *storageManager_ = nullptr, bool isOutgoing_ = false, bool isChannel_ = false)
         : sender(std::move(sender_))
         , content(std::move(content_))
-        , chatDetails(chatDetails_)
         , author(std::move(author_))
+        , chatDetails(chatDetails_)
         , locale(locale_)
         , storageManager(storageManager_)
         , isOutgoing(isOutgoing_)
@@ -253,14 +253,12 @@ QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList, StorageM
 
 bool isChatPinned(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
 {
-    const auto position = getChatPosition(chatId, chatList, store);
-    return position.value("is_pinned").toBool();
+    return getChatPosition(chatId, chatList, store).value("is_pinned").toBool();
 }
 
 qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
 {
-    const auto position = getChatPosition(chatId, chatList, store);
-    return position.value("order").toLongLong();
+    return getChatPosition(chatId, chatList, store).value("order").toLongLong();
 }
 
 bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
@@ -324,17 +322,19 @@ QString getUserName(auto userId, StorageManager *store, Locale *locale, bool ope
         return QString();
     }
 
+    QString result;
     if (openUser)
     {
-        return QString("<a style=\"text-decoration: none; font-weight: bold; "
-                       "color: grey\" href=\"userId://%1\">%2</a>")
-            .arg(userId)
-            .arg(userName);
+        result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
+                     .arg(userId)
+                     .arg(userName);
     }
     else
     {
-        return userName;
+        result = QString("<span style=\"color: grey\">%1</span>").arg(userName);
     }
+
+    return result;
 }
 
 QString getServiceMessageContent(const Message *message, StorageManager *store, Locale *locale, bool openUser)
@@ -342,7 +342,7 @@ QString getServiceMessageContent(const Message *message, StorageManager *store, 
     const auto chat = store->getChat(message->chatId());
 
     ChatMessage messageDetail{
-        message->senderId(),   message->content(),         chat, detail::getMessageAuthor(message, store, locale, openUser), locale, store,
+        message->senderId(),   message->content(),         detail::getMessageAuthor(message, store, locale, openUser), chat, locale, store,
         message->isOutgoing(), detail::isChannelChat(chat)};
 
     const auto contentType = messageDetail.content.value("@type").toString().toStdString();
@@ -504,25 +504,6 @@ QString getServiceMessageContent(const Message *message, StorageManager *store, 
              return message.isOutgoing ? message.locale->getString("ActionTakeScreenshootYou")
                                        : message.locale->getString("ActionTakeScreenshoot").replace("un1", message.author);
          }},
-        {"messageChatSetTtl",
-         [&](const ChatMessage &message) {
-             const auto ttlValue = message.content.value("ttl").toInt();
-             const auto ttlString = message.locale->formatTtl(ttlValue);
-
-             const auto userName =
-                 getUserName(message.sender.value("user_id").toLongLong(), message.storageManager, message.locale, openUser);
-
-             if (ttlValue <= 0)
-             {
-                 return message.isOutgoing ? message.locale->getString("MessageLifetimeYouRemoved")
-                                           : message.locale->getString("MessageLifetimeRemoved").arg(userName);
-             }
-             else
-             {
-                 return message.isOutgoing ? message.locale->getString("MessageLifetimeChangedOutgoing").arg(ttlString)
-                                           : message.locale->getString("MessageLifetimeChanged").arg(userName).arg(ttlString);
-             }
-         }},
         {"messageCustomServiceAction", [](const ChatMessage &message) { return message.content.value("text").toString(); }},
         {"messageContactRegistered",
          [&](const ChatMessage &message) {
@@ -576,7 +557,6 @@ bool isServiceMessage(const Message *message)
         {"messageChatUpgradeFrom", true},
         {"messagePinMessage", true},
         {"messageScreenshotTaken", true},
-        {"messageChatSetTtl", true},
         {"messageCustomServiceAction", true},
         {"messageGameScore", true},
         {"messagePaymentSuccessful", true},
@@ -745,14 +725,14 @@ QString getContent(const Message *message, StorageManager *store, Locale *locale
 
     // Service messages that require getServiceMessageContent
     const std::unordered_set<std::string> serviceMessageTypes = {
-        "messageBasicGroupChatCreate", "messageChatAddMembers",    "messageChatChangePhoto",
-        "messageChatChangeTitle",      "messageChatDeleteMember",  "messageChatDeletePhoto",
-        "messageChatJoinByLink",       "messageChatSetTtl",        "messageChatUpgradeFrom",
-        "messageChatUpgradeTo",        "messageContactRegistered", "messageCustomServiceAction",
-        "messageExpiredPhoto",         "messageExpiredVideo",      "messageGameScore",
-        "messagePassportDataReceived", "messagePassportDataSent",  "messagePaymentSuccessful",
-        "messagePaymentSuccessfulBot", "messagePinMessage",        "messageScreenshotTaken",
-        "messageSupergroupChatCreate", "messageUnsupported",       "messageWebsiteConnected"};
+        "messageBasicGroupChatCreate", "messageChatAddMembers",      "messageChatChangePhoto",
+        "messageChatChangeTitle",      "messageChatDeleteMember",    "messageChatDeletePhoto",
+        "messageChatJoinByLink",       "messageChatUpgradeFrom",     "messageChatUpgradeTo",
+        "messageContactRegistered",    "messageCustomServiceAction", "messageExpiredPhoto",
+        "messageExpiredVideo",         "messageGameScore",           "messagePassportDataReceived",
+        "messagePassportDataSent",     "messagePaymentSuccessful",   "messagePaymentSuccessfulBot",
+        "messagePinMessage",           "messageScreenshotTaken",     "messageSupergroupChatCreate",
+        "messageUnsupported",          "messageWebsiteConnected"};
 
     // Check if contentType is a service message type
     if (serviceMessageTypes.contains(contentType))
@@ -781,8 +761,6 @@ QString getMessageSenderName(const Message *message, StorageManager *store, Loca
 
     static const std::unordered_map<std::string, std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
         chatTypeHandlers = {
-            {"chatTypePrivate", [](const QVariantMap &, const Chat *, StorageManager *, Locale *) { return QString(); }},
-            {"chatTypeSecret", [](const QVariantMap &, const Chat *, StorageManager *, Locale *) { return QString(); }},
             {"chatTypeBasicGroup",
              [](const QVariantMap &sender, const Chat *chat, StorageManager *store, Locale *locale) {
                  if (detail::isChannelChat(chat))

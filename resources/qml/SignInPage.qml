@@ -95,9 +95,7 @@ Page {
                 text: app.locale.getString("Next") + app.locale.emptyString
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
-                        authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text)
-                    } else {
-                        authorization.setPhoneNumber("")
+                        authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text);
                     }
                 }
             }

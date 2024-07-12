@@ -2,87 +2,91 @@
 
 File::File(QObject *parent)
     : QObject(parent)
+    , m_remoteId("")
+    , m_remoteUniqueId("")
+    , m_localPath("")
     , m_id(0)
-    , m_size(0)
     , m_expectedSize(0)
+    , m_downloadedSize(0)
+    , m_uploadedSize(0)
+    , m_hasDownloaded(false)
+    , m_isDownloading(false)
+    , m_hasUploaded(false)
+    , m_isUploading(false)
 {
 }
 
-qint32 File::id() const
+QString File::remoteId() const
+{
+    return m_remoteId;
+}
+
+QString File::remoteUniqueId() const
+{
+    return m_remoteUniqueId;
+}
+
+QString File::localPath() const
+{
+    return m_localPath;
+}
+
+int File::id() const
 {
     return m_id;
 }
 
-void File::setId(qint32 id)
-{
-    if (m_id != id)
-    {
-        m_id = id;
-        emit idChanged();
-    }
-}
-
-qint64 File::size() const
-{
-    return m_size;
-}
-
-void File::setSize(qint64 size)
-{
-    if (m_size != size)
-    {
-        m_size = size;
-        emit sizeChanged();
-    }
-}
-
-qint64 File::expectedSize() const
+int File::expectedSize() const
 {
     return m_expectedSize;
 }
 
-void File::setExpectedSize(qint64 expectedSize)
+int File::downloadedSize() const
 {
-    if (m_expectedSize != expectedSize)
-    {
-        m_expectedSize = expectedSize;
-        emit expectedSizeChanged();
-    }
+    return m_downloadedSize;
 }
 
-QVariantMap File::local() const
+int File::uploadedSize() const
 {
-    return m_local;
+    return m_uploadedSize;
 }
 
-void File::setLocal(const QVariantMap &local)
+bool File::hasDownloaded() const
 {
-    if (m_local != local)
-    {
-        m_local = local;
-        emit localChanged();
-    }
+    return m_hasDownloaded;
 }
 
-QVariantMap File::remote() const
+bool File::isDownloading() const
 {
-    return m_remote;
+    return m_isDownloading;
 }
 
-void File::setRemote(const QVariantMap &remote)
+bool File::hasUploaded() const
 {
-    if (m_remote != remote)
-    {
-        m_remote = remote;
-        emit remoteChanged();
-    }
+    return m_hasUploaded;
+}
+
+bool File::isUploading() const
+{
+    return m_isUploading;
+}
+
+void File::startDownload()
+{
+
+}
+
+void File::stopDownload()
+{
+
+}
+
+void File::stopUpload()
+{
+
 }
 
 void File::setFromVariantMap(const QVariantMap &map)
 {
-    setId(map.value("id").toInt());
-    setSize(map.value("size").toLongLong());
-    setExpectedSize(map.value("expected_size").toLongLong());
-    setLocal(map.value("local").toMap());
-    setRemote(map.value("remote").toMap());
+
 }

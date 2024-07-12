@@ -18,10 +18,10 @@ class Application : public QObject
     Q_OBJECT
     Q_PROPERTY(bool authorized READ isAuthorized NOTIFY authorizedChanged)
 
-    Q_PROPERTY(Client *client READ client NOTIFY clientChanged)
-    Q_PROPERTY(Locale *locale READ locale NOTIFY localeChanged)
-    Q_PROPERTY(Settings *settings READ settings NOTIFY settingsChanged)
-    Q_PROPERTY(StorageManager *storageManager READ storageManager NOTIFY storageManagerChanged)
+    Q_PROPERTY(QObject *client READ client NOTIFY clientChanged)
+    Q_PROPERTY(QObject *locale READ locale NOTIFY localeChanged)
+    Q_PROPERTY(QObject *settings READ settings NOTIFY settingsChanged)
+    Q_PROPERTY(QObject *storageManager READ storageManager NOTIFY storageManagerChanged)
 
     Q_PROPERTY(QVariantList countries READ countries NOTIFY countriesChanged)
 public:
@@ -29,12 +29,15 @@ public:
 
     bool isAuthorized() const noexcept;
 
-    Client *client() const noexcept;
-    Locale *locale() const noexcept;
-    Settings *settings() const noexcept;
-    StorageManager *storageManager() const noexcept;
+    QObject *client() const noexcept;
+    QObject *locale() const noexcept;
+    QObject *settings() const noexcept;
+    QObject *storageManager() const noexcept;
 
     const QVariantList &countries() const noexcept;
+
+    Q_INVOKABLE void initialize();
+    Q_INVOKABLE const QString &getFormattedText(const QVariantMap &formattedText) const noexcept;
 
 signals:
     void authorizedChanged();

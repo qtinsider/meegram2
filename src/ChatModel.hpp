@@ -14,8 +14,8 @@ class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(Locale *locale READ locale WRITE setLocale)
-    Q_PROPERTY(StorageManager *storageManager READ storageManager WRITE setStorageManager)
+    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
+    Q_PROPERTY(QObject *storageManager READ storageManager WRITE setStorageManager)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
@@ -41,11 +41,11 @@ public:
         IsMutedRole,
     };
 
-    Locale *locale() const;
-    void setLocale(Locale *locale);
+    QObject *locale() const;
+    void setLocale(QObject *locale);
 
-    StorageManager *storageManager() const;
-    void setStorageManager(StorageManager *storageManager);
+    QObject *storageManager() const;
+    void setStorageManager(QObject *storageManager);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 

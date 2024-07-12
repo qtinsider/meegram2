@@ -6,7 +6,7 @@
 
 Settings::Settings(QObject *parent)
     : QObject(parent)
-    , m_settings(new QSettings(this))
+    , m_settings(new QSettings("/home/insider/settings.ini", QSettings::IniFormat))
 {
     m_languagePackId = m_settings->value("languagePackId", DefaultLanguageCode).toString();
     m_languagePluralId = m_settings->value("languagePluralId", DefaultLanguageCode).toString();

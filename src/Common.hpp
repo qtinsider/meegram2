@@ -11,7 +11,7 @@ constexpr auto AppVersion = "0.1.6";
 constexpr auto ApiId = 142713;
 constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
 
-constexpr auto DatabaseDirectory = "/.meegram/tdlib";
+constexpr auto DatabaseDirectory = "/.meegram/tdlib3";
 
 static auto DefaultLanguageCode = QLocale::system().name().left(2);
 

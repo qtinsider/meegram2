@@ -14,8 +14,8 @@ class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(Locale *locale READ locale WRITE setLocale)
-    Q_PROPERTY(StorageManager *storageManager READ storageManager WRITE setStorageManager)
+    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
+    Q_PROPERTY(QObject *storageManager READ storageManager WRITE setStorageManager)
 
     Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
@@ -62,11 +62,11 @@ public:
         ServiceMessageRole,
     };
 
-    StorageManager *storageManager() const;
-    void setStorageManager(StorageManager *storageManager);
+    QObject *storageManager() const;
+    void setStorageManager(QObject *storageManager);
 
-    Locale *locale() const;
-    void setLocale(Locale *locale);
+    QObject *locale() const;
+    void setLocale(QObject *locale);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 

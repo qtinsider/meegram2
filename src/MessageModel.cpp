@@ -209,15 +209,15 @@ MessageModel::MessageModel(QObject *parent)
     setRoleNames(roleNames());
 }
 
-StorageManager *MessageModel::storageManager() const
+QObject *MessageModel::storageManager() const
 {
     return m_storageManager;
 }
 
-void MessageModel::setStorageManager(StorageManager *storageManager)
+void MessageModel::setStorageManager(QObject *storageManager)
 {
-    m_storageManager = storageManager;
-    m_client = m_storageManager->client();
+    m_storageManager = qobject_cast<StorageManager *>(storageManager);
+    m_client = qobject_cast<Client *>(m_storageManager->client());
 
     connect(m_client, SIGNAL(result(const QVariantMap &)), SLOT(handleResult(const QVariantMap &)));
 
@@ -229,14 +229,14 @@ void MessageModel::setStorageManager(StorageManager *storageManager)
     loadMessages();
 }
 
-Locale *MessageModel::locale() const
+QObject *MessageModel::locale() const
 {
     return m_locale;
 }
 
-void MessageModel::setLocale(Locale *locale)
+void MessageModel::setLocale(QObject *locale)
 {
-    m_locale = locale;
+    m_locale = qobject_cast<Locale *>(locale);
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
