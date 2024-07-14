@@ -24,6 +24,7 @@ class Application : public QObject
     Q_PROPERTY(QObject *storageManager READ storageManager NOTIFY storageManagerChanged)
 
     Q_PROPERTY(QVariantList countries READ countries NOTIFY countriesChanged)
+    Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
 public:
     explicit Application(QObject *parent = nullptr);
 
@@ -35,9 +36,10 @@ public:
     QObject *storageManager() const noexcept;
 
     const QVariantList &countries() const noexcept;
+    const QString &connectionStateString() const noexcept;
 
     Q_INVOKABLE void initialize();
-    Q_INVOKABLE const QString &getFormattedText(const QVariantMap &formattedText) const noexcept;
+    Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText) const noexcept;
 
 signals:
     void authorizedChanged();
@@ -47,6 +49,7 @@ signals:
     void settingsChanged();
     void storageManagerChanged();
     void countriesChanged();
+    void connectionStateChanged();
 
     void appInitialized();
 
@@ -63,7 +66,8 @@ private:
     void initializeCountries() noexcept;
     void checkInitializationStatus() noexcept;
 
-    void handleAuthorizationState(const QVariantMap &data);
+    void handleAuthorizationState(const QVariantMap &authorizationState);
+    void handleConnectionState(const QVariantMap &connectionState);
 
     Client *m_client;
     Locale *m_locale;
@@ -71,6 +75,8 @@ private:
     StorageManager *m_storageManager;
 
     QVariantList m_countries;
+    QString m_connectionStateString;
+
 
     bool m_isAuthorized{false};
 

@@ -82,8 +82,8 @@ void ChatModel::setStorageManager(QObject *storageManager)
     m_storageManager = qobject_cast<StorageManager *>(storageManager);
     m_client = qobject_cast<Client *>(m_storageManager->client());
 
-    connect(m_storageManager, SIGNAL(updateChatItem(qint64)), SLOT(handleChatItem(qint64)));
-    connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), SLOT(handleChatPosition(qint64)));
+    connect(m_storageManager, SIGNAL(updateChatItem(qint64)),this, SLOT(handleChatItem(qint64)));
+    connect(m_storageManager, SIGNAL(updateChatPosition(qint64)),this, SLOT(handleChatPosition(qint64)));
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const

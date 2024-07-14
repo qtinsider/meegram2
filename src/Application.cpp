@@ -81,6 +81,11 @@ const QVariantList &Application::countries() const noexcept
     return m_countries;
 }
 
+const QString &Application::connectionStateString() const noexcept
+{
+    return m_connectionStateString;
+}
+
 void Application::initialize()
 {
     initializeParameters();
@@ -88,7 +93,7 @@ void Application::initialize()
     initializeCountries();
 }
 
-const QString &Application::getFormattedText(const QVariantMap &formattedText) const noexcept
+QString Application::getFormattedText(const QVariantMap &formattedText) const noexcept
 {
     static const std::unordered_map<std::string, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> formatters =
         {{"textEntityTypeBold", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontWeight(QFont::Bold); }},
@@ -151,18 +156,18 @@ const QString &Application::getFormattedText(const QVariantMap &formattedText) c
     font.setPixelSize(23);
     font.setWeight(QFont::Light);
 
-    QScopedPointer<QTextDocument> doc(new QTextDocument);
+    QTextDocument *doc = new QTextDocument();
+
     doc->setDefaultFont(font);
     doc->setPlainText(text);
 
-    QTextCursor cursor(doc.data());
+    QTextCursor cursor(doc);
 
-    for (const auto &entityVariant : entities)
+    for (const auto &entity : entities)
     {
-        const auto entity = entityVariant.toMap();
-        const auto offset = entity.value("offset").toInt();
-        const auto length = entity.value("length").toInt();
-        const auto type = entity.value("type").toMap();
+        const auto offset = entity.toMap().value("offset").toInt();
+        const auto length = entity.toMap().value("length").toInt();
+        const auto type = entity.toMap().value("type").toMap();
         const auto entityType = type.value("@type").toString().toStdString();
         const auto entityText = text.mid(offset, length);
 
@@ -178,8 +183,9 @@ const QString &Application::getFormattedText(const QVariantMap &formattedText) c
         }
     }
 
-    // Return the formatted text as HTML
-    return doc->toHtml();
+    QString result = doc->toHtml();
+    delete doc;  // Clean up if you allocated doc dynamically
+    return result;
 }
 
 void Application::close() noexcept
@@ -251,9 +257,6 @@ void Application::initializeLanguagePack() noexcept
 {
     QVariantMap request;
 
-    m_settings->setLanguagePackId("fr");
-    m_settings->setLanguagePluralId("fr");
-
     setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
     setOption("localization_target", "android");
     setOption("language_pack_id", m_settings->languagePluralId());
@@ -283,6 +286,8 @@ void Application::initializeCountries() noexcept
             m_countries = std::move(value.value("countries").toList());
             m_initializationStatus[2] = true;
             checkInitializationStatus();
+
+
         }
     });
 }
@@ -303,10 +308,16 @@ void Application::handleResult(const QVariantMap &object)
     {
         handleAuthorizationState(object.value("authorization_state").toMap());
     }
+    if (type == QLatin1String("updateConnectionState"))
+    {
+        handleConnectionState(object.value("state").toMap());
+    }
 }
 
 void Application::handleAuthorizationState(const QVariantMap &authorizationState)
 {
+    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
+
     static const std::unordered_map<std::string, std::function<void()>> handlers = {
         {"authorizationStateWaitEncryptionKey",
          [this]() {
@@ -328,9 +339,47 @@ void Application::handleAuthorizationState(const QVariantMap &authorizationState
          }},
     };
 
-    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
 
     if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
+    {
+        it->second();
+    }
+}
+
+void Application::handleConnectionState(const QVariantMap &connectionState)
+{
+    const auto connectionStateType = connectionState.value("@type").toString().toStdString();
+
+    static const std::unordered_map<std::string, std::function<void()>> handlers = {
+        {"connectionStateWaitingForNetwork",
+         [this]() {
+             m_connectionStateString = "waiting_for_network";
+             emit connectionStateChanged();
+         }},
+        {"connectionStateConnectingToProxy",
+         [this]() {
+             m_connectionStateString = "connecting_to_proxy";
+             emit connectionStateChanged();
+         }},
+        {"connectionStateConnecting",
+         [this]() {
+             m_connectionStateString = "connecting";
+             emit connectionStateChanged();
+         }},
+        {"connectionStateUpdating",
+         [this]() {
+             m_connectionStateString = "updating";
+             emit connectionStateChanged();
+         }},
+        {"connectionStateReady",
+         [this]() {
+             m_connectionStateString = "ready";
+             emit connectionStateChanged();
+         }},
+    };
+
+
+    if (const auto it = handlers.find(connectionStateType); it != handlers.end())
     {
         it->second();
     }
