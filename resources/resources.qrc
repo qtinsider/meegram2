@@ -11,6 +11,11 @@
         <file>images/notification.png</file>
         <file>images/outgoing-normal.png</file>
         <file>images/outgoing-pressed.png</file>
+        <file>i18n/en.json</file>
+        <file>i18n/es.json</file>
+        <file>i18n/it.json</file>
+        <file>i18n/pl.json</file>
+        <file>i18n/ru.json</file>
         <file>qml/components/AboutDialog.qml</file>
         <file>qml/components/ChatItem.qml</file>
         <file>qml/components/Icons.qml</file>

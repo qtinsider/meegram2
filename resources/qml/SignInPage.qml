@@ -22,7 +22,6 @@ Page {
 
             spacing: 16
 
-
             Label {
                 id: title
                 text: app.locale.getString("YourPhone") + app.locale.emptyString
@@ -43,7 +42,7 @@ Page {
 
                 Label {
                     id: countryNameLabel
-                    text: myCountryModel.get(selectionDialog.selectedIndex).name || ""
+                    text: countryModel.get(selectionDialog.selectedIndex).name
                     width: parent.width
                     font.pixelSize: 48
                     platformSelectable: true
@@ -51,7 +50,7 @@ Page {
                     wrapMode: Text.WordWrap
 
                     MouseArea {
-                        anchors.fill:  parent
+                        anchors.fill: parent
                         onClicked: selectionDialog.open()
                     }
                 }
@@ -63,7 +62,7 @@ Page {
                     TumblerButton {
                         id: countryCodeButton
                         width: 160
-                        text: "+" + myCountryModel.get(selectionDialog.selectedIndex).code
+                        text: "+" + countryModel.get(selectionDialog.selectedIndex).calling_codes
                         onClicked: selectionDialog.open()
                     }
 
@@ -83,7 +82,6 @@ Page {
                 Row {
                     width: parent.width
                     spacing: 16
-
                 }
             }
         }
@@ -106,15 +104,17 @@ Page {
         }
     }
 
-    CountryModel {
-        id: myCountryModel
-        countries:  app.countries
+    MyListModel {
+        id: countryModel
+        values: app.countries
     }
 
     SelectionDialog {
         id: selectionDialog
+        selectedIndex: countryModel.defaultIndex
         titleText: app.locale.getString("ChooseCountry") + app.locale.emptyString
-        selectedIndex: myCountryModel.defaultIndex
-        model: myCountryModel
+        model: countryModel
     }
+
+    Component.onCompleted: { countryModel.setDefaultIndex({ "country_code": "NG"}) }
 }

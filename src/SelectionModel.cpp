@@ -1,158 +1,214 @@
 #include "SelectionModel.hpp"
 
-#include <QStringList>
+#include "Serialize.hpp"
 
-#include <algorithm>
+#include <QDebug>
 
-CountryModel::CountryModel(QObject *parent)
+FlexibleListModel::FlexibleListModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    QHash<int, QByteArray> roles;
-    roles.insert(Qt::DisplayRole, "name");
-    roles.insert(Iso2Role, "iso2");
-    roles.insert(CodeRole, "code");
-
-    setRoleNames(roles);
 }
 
-const QVariantList &CountryModel::countries() const noexcept
+int FlexibleListModel::rowCount(const QModelIndex &parent) const
 {
-    return m_countries;
+    if (parent.isValid())
+        return 0;
+
+    return m_values.size();
 }
 
-void CountryModel::setCountries(QVariantList countries)
+QVariant FlexibleListModel::data(const QModelIndex &index, int role) const
 {
-    if (m_countries != countries)
-    {
-        beginResetModel();
-        m_countries = std::move(countries);
-        endResetModel();
-
-        emit countChanged();
-        emit countriesChanged();
-    }
-}
-
-int CountryModel::rowCount(const QModelIndex &) const
-{
-    return m_countries.count();
-}
-
-QVariant CountryModel::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid() || m_countries.isEmpty())
+    if (!index.isValid() || index.row() >= m_values.size())
         return QVariant();
 
-    const auto &countryInfo = m_countries.at(index.row()).toMap();
-    switch (role)
+    if (const auto value = m_values.at(index.row()); value.canConvert<QVariantMap>())
     {
-        case Qt::DisplayRole:
-            return countryInfo.value("name").toString();
-        case Iso2Role:
-            return countryInfo.value("country_code").toString();
-        case CodeRole:
-            return countryInfo.value("calling_codes").toStringList();
+        const auto valueMap = value.toMap();
+
+        if (auto roleName = m_roleNames.value(role); !roleName.isEmpty())
+            return valueMap.value(QString::fromUtf8(roleName));
+
+        return QVariant();
+    }
+    else
+    {
+        return value;
+    }
+}
+
+int FlexibleListModel::count() const noexcept
+{
+    return m_values.size();
+}
+
+int FlexibleListModel::defaultIndex() const noexcept
+{
+    return m_defaultIndex;
+}
+
+void FlexibleListModel::setDefaultIndex(const QVariant &criteria) noexcept
+{
+    int index = calculateDefaultIndex(criteria.toMap());
+    if (index != m_defaultIndex)
+    {
+        m_defaultIndex = index;
+        emit defaultIndexChanged();
+    }
+}
+
+QVariantList FlexibleListModel::values() const noexcept
+{
+    return m_values;
+}
+
+void FlexibleListModel::setValues(const QVariantList &values) noexcept
+{
+    beginResetModel();
+    m_values = values;
+
+    // Update role names if values are QVariantMap
+    if (!m_values.isEmpty() && m_values.first().canConvert<QVariantMap>())
+    {
+        const auto firstItem = m_values.first().toMap();
+        m_roleNames.clear();
+        int role = Qt::UserRole + 1;
+        for (const auto &key : firstItem.keys())
+        {
+            m_roleNames[role++] = key.toUtf8();
+        }
+
+        setRoleNames(m_roleNames);
     }
 
-    return QVariant();
+    endResetModel();
+    emit valuesChanged();
+    emit countChanged();
 }
 
-QVariantMap CountryModel::get(int index) const noexcept
+void FlexibleListModel::append(const QVariant &value) noexcept
 {
-    QModelIndex modelIndex = createIndex(index, 0);
+    beginInsertRows(QModelIndex(), m_values.size(), m_values.size());
+    m_values.append(value);
 
-    QVariantMap result;
-    result.insert("name", data(modelIndex, Qt::DisplayRole));
-    result.insert("iso2", data(modelIndex, Iso2Role));
-    result.insert("code", data(modelIndex, CodeRole));
+    // Update role names if the first item is QVariantMap
+    if (m_values.size() == 1 && value.canConvert<QVariantMap>())
+    {
+        const auto firstItem = value.toMap();
+        m_roleNames.clear();
+        int role = Qt::UserRole + 1;
+        for (const auto &key : firstItem.keys())
+        {
+            m_roleNames[role++] = key.toUtf8();
+        }
 
-    return result;
+        setRoleNames(m_roleNames);
+    }
+
+    endInsertRows();
+    emit valuesChanged();
+    emit countChanged();
 }
 
-int CountryModel::count() const noexcept
+void FlexibleListModel::remove(int index) noexcept
 {
-    return m_countries.count();
+    if (index < 0 || index >= m_values.size())
+        return;
+
+    beginRemoveRows(QModelIndex(), index, index);
+    m_values.removeAt(index);
+    endRemoveRows();
+    emit valuesChanged();
+    emit countChanged();
 }
 
-int CountryModel::getDefaultIndex() const noexcept
+QVariant FlexibleListModel::get(int index) const noexcept
 {
-    // TODO(strawberry): refactor
-    auto it = std::ranges::find_if(m_countries, [](const auto &value) {
-        return value.toMap().value("country_code").toString().compare("NG", Qt::CaseInsensitive) == 0;
+    if (index < 0 || index >= m_values.size())
+        return QVariant();
+
+    return m_values.at(index);
+}
+
+void FlexibleListModel::clear() noexcept
+{
+    beginResetModel();
+    m_values.clear();
+    m_roleNames.clear();
+    endResetModel();
+    emit valuesChanged();
+    emit countChanged();
+}
+
+void FlexibleListModel::replace(const QString &key, const QVariant &value) noexcept
+{
+    if (!value.canConvert<QVariantMap>())
+    {
+        qWarning() << "Invalid value: not a QVariantMap";
+        return;
+    }
+
+    for (int i = 0; i < m_values.size(); ++i)
+    {
+        if (m_values[i].toMap().value(key).toString() == value.toMap().value(key).toString())
+        {
+            m_values[i] = value.toMap();
+            emit dataChanged(index(i), index(i));
+            emit valuesChanged();
+            emit countChanged();
+            return;
+        }
+    }
+    append(value);
+}
+
+void FlexibleListModel::insert(int index, const QVariant &value) noexcept
+{
+    if (index < 0 || index > m_values.size())
+    {
+        qWarning() << "Invalid index";
+        return;
+    }
+
+    beginInsertRows(QModelIndex(), index, index);
+    m_values.insert(index, value);
+
+    // Update role names if the first insertion is QVariantMap
+    if (m_values.size() == 1 && value.canConvert<QVariantMap>())
+    {
+        const auto firstItem = value.toMap();
+        m_roleNames.clear();
+        int role = Qt::UserRole + 1;
+        for (const auto &key : firstItem.keys())
+        {
+            m_roleNames[role++] = key.toUtf8();
+        }
+
+        setRoleNames(m_roleNames);
+    }
+
+    endInsertRows();
+    emit valuesChanged();
+    emit countChanged();
+}
+
+int FlexibleListModel::calculateDefaultIndex(const QVariantMap &criteria) const noexcept
+{
+    auto it = std::ranges::find_if(m_values, [&criteria](const auto &value) {
+        for (auto it = criteria.constBegin(); it != criteria.constEnd(); ++it)
+        {
+            if (value.toMap().value(it.key()).toString().compare(it.value().toString(), Qt::CaseInsensitive) != 0)
+            {
+                return false;
+            }
+        }
+        return true;
     });
 
-    if (it != m_countries.end())
+    if (it != m_values.end())
     {
-        return int(std::distance(m_countries.begin(), it));
+        return int(std::distance(m_values.begin(), it));
     }
 
-    return {};
-}
-
-ChatFolderModel::ChatFolderModel(QObject *parent)
-    : QAbstractListModel(parent)
-{
-    QHash<int, QByteArray> roles;
-    roles.insert(IdRole, "id");
-    roles.insert(Qt::DisplayRole, "name");
-    roles.insert(IconNameRole, "iconName");
-
-    setRoleNames(roles);
-}
-
-QVariantList ChatFolderModel::getChatFolders() const noexcept
-{
-    return m_chatFolders;
-}
-
-void ChatFolderModel::setChatFolders(QVariantList value) noexcept
-{
-    if (m_chatFolders != value)
-    {
-        beginResetModel();
-        m_chatFolders = std::move(value);
-        endResetModel();
-
-        emit chatFoldersChanged();
-    }
-}
-
-int ChatFolderModel::rowCount(const QModelIndex &index) const
-{
-    Q_UNUSED(index);
-    return m_chatFolders.count();
-}
-
-QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
-{
-    if (!index.isValid())
-        return QVariant();
-
-    const auto chatFolder = m_chatFolders.value(index.row()).toMap();
-    switch (role)
-    {
-        case IdRole:
-            return chatFolder.value("id").toInt();
-        case Qt::DisplayRole:
-            return chatFolder.value("title").toString();
-        case IconNameRole:
-            return chatFolder.value("icon_name").toString();
-        default:
-            return QVariant();
-    }
-}
-
-QVariantMap ChatFolderModel::get(int index) const noexcept
-{
-    QModelIndex modelIndex = createIndex(index, 0);
-    QVariantMap result;
-    result.insert("id", data(modelIndex, IdRole));
-    result.insert("name", data(modelIndex, Qt::DisplayRole));  // title
-    result.insert("iconName", data(modelIndex, IconNameRole));
-    return result;
-}
-
-int ChatFolderModel::count() const noexcept
-{
-    return m_chatFolders.count();
+    return -1;
 }

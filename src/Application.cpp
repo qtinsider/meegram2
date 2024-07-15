@@ -2,10 +2,12 @@
 #include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
+#include "Serialize.hpp"
 #include "Settings.hpp"
 #include "StorageManager.hpp"
 #include "User.hpp"
 
+#include <QDebug>
 #include <QDir>
 #include <QLocale>
 #include <QPainter>
@@ -35,6 +37,7 @@ QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) no
 
     return QString();
 }
+
 }  // namespace
 
 Application::Application(QObject *parent)
@@ -286,8 +289,6 @@ void Application::initializeCountries() noexcept
             m_countries = std::move(value.value("countries").toList());
             m_initializationStatus[2] = true;
             checkInitializationStatus();
-
-
         }
     });
 }
@@ -339,7 +340,6 @@ void Application::handleAuthorizationState(const QVariantMap &authorizationState
          }},
     };
 
-
     if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
     {
         it->second();
@@ -377,7 +377,6 @@ void Application::handleConnectionState(const QVariantMap &connectionState)
              emit connectionStateChanged();
          }},
     };
-
 
     if (const auto it = handlers.find(connectionStateType); it != handlers.end())
     {
