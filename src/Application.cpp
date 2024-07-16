@@ -275,6 +275,11 @@ void Application::initializeLanguagePack() noexcept
             m_initializationStatus[1] = true;
             checkInitializationStatus();
         }
+        else
+        {
+            nlohmann::json json(value);
+            qDebug() << QString::fromStdString(json.dump());
+        }
     });
 }
 

@@ -6,19 +6,21 @@ import com.strawberry.meegram 1.0
 Page {
     id: root
 
+    anchors.margins: 16
+
     signal cancelClicked
 
     Flickable {
         id: flickable
         anchors.fill: parent
-        anchors.margins: 16
         contentHeight: contentColumn.height
+        contentWidth: contentColumn.width
+        flickableDirection: Flickable.VerticalFlick
 
         Column {
             id: contentColumn
 
             width: flickable.width
-            height: childrenRect.height
 
             spacing: 16
 
@@ -29,15 +31,14 @@ Page {
             }
             Rectangle {
                 color: "#b2b2b4"
+                width: parent.width
                 height: 1
-                width: flickable.width
             }
 
             // Phone
             Column {
                 id: signInColumn
 
-                width: parent.width
                 spacing: 16
 
                 Label {
@@ -47,7 +48,6 @@ Page {
                     font.pixelSize: 48
                     platformSelectable: true
                     color: "#0088cc"
-                    wrapMode: Text.WordWrap
 
                     MouseArea {
                         anchors.fill: parent
@@ -56,7 +56,6 @@ Page {
                 }
 
                 Row {
-                    width: parent.width
                     spacing: 16
 
                     TumblerButton {
@@ -75,12 +74,10 @@ Page {
 
                 Label {
                     font.pixelSize: 24
-                    width: parent.width
                     text: app.locale.getString("StartText") + app.locale.emptyString
                 }
 
                 Row {
-                    width: parent.width
                     spacing: 16
                 }
             }

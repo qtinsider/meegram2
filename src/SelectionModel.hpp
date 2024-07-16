@@ -30,6 +30,8 @@ public:
     Q_INVOKABLE void replace(const QString &key, const QVariant &value) noexcept;
     Q_INVOKABLE void insert(int index, const QVariant &value) noexcept;
 
+    Q_INVOKABLE void sort(const QString &criteria, bool ascending);
+
     Q_INVOKABLE void setDefaultIndex(const QVariant &criteria) noexcept;
 
 signals:

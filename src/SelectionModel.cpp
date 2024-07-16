@@ -4,6 +4,8 @@
 
 #include <QDebug>
 
+#include <algorithm>
+
 FlexibleListModel::FlexibleListModel(QObject *parent)
     : QAbstractListModel(parent)
 {
@@ -190,6 +192,24 @@ void FlexibleListModel::insert(int index, const QVariant &value) noexcept
     endInsertRows();
     emit valuesChanged();
     emit countChanged();
+}
+
+void FlexibleListModel::sort(const QString &criteria, bool ascending)
+{
+    emit layoutAboutToBeChanged();
+
+    std::sort(m_values.begin(), m_values.end(), [&criteria, ascending](const auto &a, const auto &b) {
+        if (ascending)
+        {
+            return a.toMap().value(criteria).toString() < b.toMap().value(criteria).toString();
+        }
+        else
+        {
+            return a.toMap().value(criteria).toString() > b.toMap().value(criteria).toString();
+        }
+    });
+
+    emit layoutChanged();
 }
 
 int FlexibleListModel::calculateDefaultIndex(const QVariantMap &criteria) const noexcept
