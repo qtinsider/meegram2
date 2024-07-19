@@ -40,10 +40,15 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qRegisterMetaType<QModelIndex>("QModelIndex");
 
     qmlRegisterType<Authorization>("com.strawberry.meegram", 1, 0, "Authorization");
+
     qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
-    qmlRegisterType<FlexibleListModel>("com.strawberry.meegram", 1, 0, "MyListModel");
+    qmlRegisterType<ChatFolderModel>("com.strawberry.meegram", 1, 0, "ChatFolderModel");
+    qmlRegisterType<CountryModel>("com.strawberry.meegram", 1, 0, "CountryModel");
+    qmlRegisterType<FlexibleListModel>("com.strawberry.meegram", 1, 0, "FlexibleListModel");
     qmlRegisterType<MessageModel>("com.strawberry.meegram", 1, 0, "MessageModel");
+
     qmlRegisterType<LottieAnimation>("com.strawberry.meegram", 1, 0, "LottieAnimation");
+
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
     QDeclarativeView viewer;

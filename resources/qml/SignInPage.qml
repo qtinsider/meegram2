@@ -22,6 +22,8 @@ Page {
 
             width: flickable.width
 
+
+
             spacing: 16
 
             Label {
@@ -61,7 +63,7 @@ Page {
                     TumblerButton {
                         id: countryCodeButton
                         width: 160
-                        text: "+" + countryModel.get(selectionDialog.selectedIndex).calling_codes
+                        text: "+" + countryModel.get(selectionDialog.selectedIndex).code
                         onClicked: selectionDialog.open()
                     }
 
@@ -101,17 +103,15 @@ Page {
         }
     }
 
-    MyListModel {
-        id: countryModel
-        values: app.countries
+    CountryModel {
+        id: myCountryModel
+        countries:  app.countries
     }
 
     SelectionDialog {
         id: selectionDialog
-        selectedIndex: countryModel.defaultIndex
         titleText: app.locale.getString("ChooseCountry") + app.locale.emptyString
-        model: countryModel
+        selectedIndex: myCountryModel.defaultIndex
+        model: myCountryModel
     }
-
-    Component.onCompleted: { countryModel.setDefaultIndex({ "country_code": "NG"}) }
 }

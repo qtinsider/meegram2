@@ -487,7 +487,7 @@ QString Locale::getString(const QString &key) const
     static std::regex italicRegex(R"(\*(.*?)\*)");
     result = std::regex_replace(result, italicRegex, "<i>$1</i>");
 
-    qDebug() << QString::fromStdString(result);
+    // qDebug() << QString::fromStdString(result);
 
     return QString::fromStdString(result);
 }
@@ -543,20 +543,6 @@ QString Locale::formatTtl(int ttl) const
     }
 
     return formatPluralString("TTLStringWeeks", std::floor(days / 7)) + formatPluralString("TTLStringDays", std::floor(days % 7));
-}
-
-QString Locale::languageCode() const
-{
-    return m_languageCode;
-}
-
-void Locale::setLanguageCode(const QString &value)
-{
-    if (m_languageCode != value)
-    {
-        m_languageCode = value;
-        emit languageChanged();
-    }
 }
 
 QString Locale::languagePlural() const

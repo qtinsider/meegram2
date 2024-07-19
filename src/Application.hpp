@@ -2,7 +2,6 @@
 
 #include "TdApi.hpp"
 
-#include <QApplication>
 #include <QObject>
 #include <QVariant>
 
@@ -38,7 +37,6 @@ public:
     const QVariantList &countries() const noexcept;
     const QString &connectionStateString() const noexcept;
 
-    Q_INVOKABLE void initialize();
     Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText) const noexcept;
 
 signals:
@@ -61,6 +59,8 @@ private slots:
     void handleResult(const QVariantMap &object);
 
 private:
+    void initialize() noexcept;
+
     void initializeParameters() noexcept;
     void initializeLanguagePack() noexcept;
     void initializeCountries() noexcept;
@@ -69,14 +69,13 @@ private:
     void handleAuthorizationState(const QVariantMap &authorizationState);
     void handleConnectionState(const QVariantMap &connectionState);
 
-    Client *m_client;
-    Locale *m_locale;
-    Settings *m_settings;
-    StorageManager *m_storageManager;
+    Client *m_client{};
+    Locale *m_locale{};
+    Settings *m_settings{};
+    StorageManager *m_storageManager{};
 
     QVariantList m_countries;
     QString m_connectionStateString;
-
 
     bool m_isAuthorized{false};
 

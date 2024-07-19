@@ -36,8 +36,8 @@ class Message : public QObject
     Q_PROPERTY(bool isChannelPost READ isChannelPost WRITE setIsChannelPost NOTIFY isChannelPostChanged)
     Q_PROPERTY(bool isTopicMessage READ isTopicMessage WRITE setIsTopicMessage NOTIFY isTopicMessageChanged)
     Q_PROPERTY(bool containsUnreadMention READ containsUnreadMention WRITE setContainsUnreadMention NOTIFY containsUnreadMentionChanged)
-    Q_PROPERTY(int date READ date WRITE setDate NOTIFY dateChanged)
-    Q_PROPERTY(int editDate READ editDate WRITE setEditDate NOTIFY editDateChanged)
+    Q_PROPERTY(qint64 date READ date WRITE setDate NOTIFY dateChanged)
+    Q_PROPERTY(qint64 editDate READ editDate WRITE setEditDate NOTIFY editDateChanged)
     Q_PROPERTY(QVariantMap forwardInfo READ forwardInfo WRITE setForwardInfo NOTIFY forwardInfoChanged)
     Q_PROPERTY(QVariantMap importInfo READ importInfo WRITE setImportInfo NOTIFY importInfoChanged)
     Q_PROPERTY(QVariantMap interactionInfo READ interactionInfo WRITE setInteractionInfo NOTIFY interactionInfoChanged)
@@ -138,8 +138,8 @@ public:
     bool containsUnreadMention() const;
     void setContainsUnreadMention(bool containsUnreadMention);
 
-    int date() const;
-    void setDate(int date);
+    qint64 date() const;
+    void setDate(qint64 date);
 
     int editDate() const;
     void setEditDate(int editDate);
@@ -281,8 +281,8 @@ private:
     bool m_isChannelPost;
     bool m_isTopicMessage;
     bool m_containsUnreadMention;
-    int m_date;
-    int m_editDate;
+    qint64 m_date;
+    qint64 m_editDate;
     QVariantMap m_forwardInfo;
     QVariantMap m_importInfo;
     QVariantMap m_interactionInfo;

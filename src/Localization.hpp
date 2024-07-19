@@ -7,7 +7,6 @@ class PluralRules;
 class Locale : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString languageCode READ languageCode WRITE setLanguageCode NOTIFY languageChanged)
     Q_PROPERTY(QString languagePlural READ languagePlural WRITE setLanguagePlural NOTIFY languageChanged)
     Q_PROPERTY(QString emptyString READ getEmptyString NOTIFY languageChanged)
 public:
@@ -30,9 +29,6 @@ public:
     QString formatCallDuration(int duration) const;
     QString formatTtl(int ttl) const;
 
-    QString languageCode() const;
-    void setLanguageCode(const QString &value);
-
     QString languagePlural() const;
     void setLanguagePlural(const QString &value);
 
@@ -49,7 +45,6 @@ private:
 
     void updatePluralRules();
 
-    QString m_languageCode;
     QString m_languagePlural;
 
     QMap<QString, QString> m_languagePack;

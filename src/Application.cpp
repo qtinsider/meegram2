@@ -7,11 +7,11 @@
 #include "StorageManager.hpp"
 #include "User.hpp"
 
+#include <QApplication>
 #include <QDebug>
 #include <QDir>
 #include <QLocale>
 #include <QPainter>
-#include <QScopedPointer>
 #include <QSettings>
 #include <QStringList>
 #include <QTextCharFormat>
@@ -42,16 +42,18 @@ QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) no
 
 Application::Application(QObject *parent)
     : QObject(parent)
-    , m_client(new Client())
-    , m_locale(new Locale())
-    , m_settings(new Settings())
-    , m_storageManager(new StorageManager())
+    , m_client(new Client(this))
+    , m_locale(new Locale(this))
+    , m_settings(new Settings(this))
+    , m_storageManager(new StorageManager(this))
 {
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
     connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
     connect(m_client, SIGNAL(result(const QVariantMap &)), m_storageManager, SLOT(handleResult(const QVariantMap &)));
 
     m_storageManager->setClient(m_client);
+
+    initialize();
 }
 
 bool Application::isAuthorized() const noexcept
@@ -87,13 +89,6 @@ const QVariantList &Application::countries() const noexcept
 const QString &Application::connectionStateString() const noexcept
 {
     return m_connectionStateString;
-}
-
-void Application::initialize()
-{
-    initializeParameters();
-    initializeLanguagePack();
-    initializeCountries();
 }
 
 QString Application::getFormattedText(const QVariantMap &formattedText) const noexcept
@@ -191,6 +186,18 @@ QString Application::getFormattedText(const QVariantMap &formattedText) const no
     return result;
 }
 
+void Application::initialize() noexcept
+{
+    QVariantMap request;
+    request.insert("@type", "getOption");
+    request.insert("name", "version");
+    m_client->send(request);
+
+    initializeParameters();
+    initializeLanguagePack();
+    initializeCountries();
+}
+
 void Application::close() noexcept
 {
     QVariantMap request;
@@ -274,11 +281,6 @@ void Application::initializeLanguagePack() noexcept
 
             m_initializationStatus[1] = true;
             checkInitializationStatus();
-        }
-        else
-        {
-            nlohmann::json json(value);
-            qDebug() << QString::fromStdString(json.dump());
         }
     });
 }

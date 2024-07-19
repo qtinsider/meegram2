@@ -1,10 +1,184 @@
 #include "SelectionModel.hpp"
 
+#include "Localization.hpp"
 #include "Serialize.hpp"
 
 #include <QDebug>
 
 #include <algorithm>
+
+CountryModel::CountryModel(QObject *parent)
+    : QAbstractListModel(parent)
+{
+    QHash<int, QByteArray> roles;
+    roles.insert(Qt::DisplayRole, "name");
+    roles.insert(Iso2Role, "iso2");
+    roles.insert(CodeRole, "code");
+
+    setRoleNames(roles);
+}
+
+const QVariantList &CountryModel::countries() const noexcept
+{
+    return m_countries;
+}
+
+void CountryModel::setCountries(QVariantList countries)
+{
+    if (m_countries != countries)
+    {
+        beginResetModel();
+        m_countries = std::move(countries);
+        endResetModel();
+
+        emit countChanged();
+        emit countriesChanged();
+    }
+}
+
+int CountryModel::rowCount(const QModelIndex &) const
+{
+    return m_countries.count();
+}
+
+QVariant CountryModel::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid() || m_countries.isEmpty())
+        return QVariant();
+
+    const auto &countryInfo = m_countries.at(index.row()).toMap();
+    switch (role)
+    {
+        case Qt::DisplayRole:
+            return countryInfo.value("name").toString();
+        case Iso2Role:
+            return countryInfo.value("country_code").toString();
+        case CodeRole:
+            return countryInfo.value("calling_codes").toStringList();
+    }
+
+    return QVariant();
+}
+
+QVariantMap CountryModel::get(int index) const noexcept
+{
+    QModelIndex modelIndex = createIndex(index, 0);
+
+    QVariantMap result;
+    result.insert("name", data(modelIndex, Qt::DisplayRole));
+    result.insert("iso2", data(modelIndex, Iso2Role));
+    result.insert("code", data(modelIndex, CodeRole));
+
+    return result;
+}
+
+int CountryModel::count() const noexcept
+{
+    return m_countries.count();
+}
+
+int CountryModel::getDefaultIndex() const noexcept
+{
+    // TODO(strawberry): refactor
+    auto it = std::ranges::find_if(m_countries, [](const auto &value) {
+        return value.toMap().value("country_code").toString().compare("NG", Qt::CaseInsensitive) == 0;
+    });
+
+    if (it != m_countries.end())
+    {
+        return int(std::distance(m_countries.begin(), it));
+    }
+
+    return {};
+}
+
+ChatFolderModel::ChatFolderModel(QObject *parent)
+    : QAbstractListModel(parent)
+{
+    QHash<int, QByteArray> roles;
+    roles.insert(IdRole, "id");
+    roles.insert(Qt::DisplayRole, "name");
+    roles.insert(IconNameRole, "iconName");
+
+    setRoleNames(roles);
+}
+
+QObject *ChatFolderModel::locale() const
+{
+    return m_locale;
+}
+
+void ChatFolderModel::setLocale(QObject *locale)
+{
+    m_locale = qobject_cast<Locale *>(locale);
+
+    QVariantMap chatFolder;
+    chatFolder.insert("id", 0);
+    chatFolder.insert("title", m_locale->getString("FilterAllChats"));
+
+    beginInsertRows(QModelIndex(), 0, 0);
+    m_chatFolders.insert(0, chatFolder);
+    endInsertRows();
+
+    emit countChanged();
+}
+
+QVariantList ChatFolderModel::getChatFolders() const noexcept
+{
+    return m_chatFolders;
+}
+
+void ChatFolderModel::setChatFolders(QVariantList value) noexcept
+{
+    if (m_chatFolders != value)
+    {
+        beginResetModel();
+        m_chatFolders.append(std::move(value));
+        endResetModel();
+
+        emit chatFoldersChanged();
+    }
+}
+
+int ChatFolderModel::rowCount(const QModelIndex &index) const
+{
+    Q_UNUSED(index);
+    return m_chatFolders.count();
+}
+
+QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
+{
+    if (!index.isValid())
+        return QVariant();
+
+    const auto chatFolder = m_chatFolders.value(index.row()).toMap();
+    switch (role)
+    {
+        case IdRole:
+            return chatFolder.value("id").toInt();
+        case Qt::DisplayRole:
+            return chatFolder.value("title").toString();
+        case IconNameRole:
+            return chatFolder.value("icon_name").toString();
+        default:
+            return QVariant();
+    }
+}
+
+QVariantMap ChatFolderModel::get(int index) const noexcept
+{
+    QModelIndex modelIndex = createIndex(index, 0);
+    QVariantMap result;
+    result.insert("id", data(modelIndex, IdRole));
+    result.insert("name", data(modelIndex, Qt::DisplayRole));  // title
+    result.insert("iconName", data(modelIndex, IconNameRole));
+    return result;
+}
+
+int ChatFolderModel::count() const noexcept
+{
+    return m_chatFolders.count();
+}
 
 FlexibleListModel::FlexibleListModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -42,21 +216,6 @@ QVariant FlexibleListModel::data(const QModelIndex &index, int role) const
 int FlexibleListModel::count() const noexcept
 {
     return m_values.size();
-}
-
-int FlexibleListModel::defaultIndex() const noexcept
-{
-    return m_defaultIndex;
-}
-
-void FlexibleListModel::setDefaultIndex(const QVariant &criteria) noexcept
-{
-    int index = calculateDefaultIndex(criteria.toMap());
-    if (index != m_defaultIndex)
-    {
-        m_defaultIndex = index;
-        emit defaultIndexChanged();
-    }
 }
 
 QVariantList FlexibleListModel::values() const noexcept
@@ -210,25 +369,4 @@ void FlexibleListModel::sort(const QString &criteria, bool ascending)
     });
 
     emit layoutChanged();
-}
-
-int FlexibleListModel::calculateDefaultIndex(const QVariantMap &criteria) const noexcept
-{
-    auto it = std::ranges::find_if(m_values, [&criteria](const auto &value) {
-        for (auto it = criteria.constBegin(); it != criteria.constEnd(); ++it)
-        {
-            if (value.toMap().value(it.key()).toString().compare(it.value().toString(), Qt::CaseInsensitive) != 0)
-            {
-                return false;
-            }
-        }
-        return true;
-    });
-
-    if (it != m_values.end())
-    {
-        return int(std::distance(m_values.begin(), it));
-    }
-
-    return -1;
 }

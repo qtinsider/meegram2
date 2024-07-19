@@ -104,9 +104,9 @@ Page {
         }
     }
 
-
     ChatFolderModel {
         id: mychatFolderModel
+        locale: app.locale
         chatFolders: app.storageManager.chatFolders
     }
 

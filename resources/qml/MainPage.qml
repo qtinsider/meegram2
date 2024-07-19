@@ -169,5 +169,4 @@ Page {
                 pageStack.push(page, prop)
         }
     }
-
 }

@@ -2,12 +2,91 @@
 
 #include <QAbstractListModel>
 
+class Locale;
+
+class CountryModel : public QAbstractListModel
+{
+    Q_OBJECT
+
+    Q_PROPERTY(QVariantList countries READ countries WRITE setCountries NOTIFY countriesChanged)
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
+    Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged)
+
+public:
+    CountryModel(QObject *parent = nullptr);
+
+    enum CountryRoles {
+        Iso2Role = Qt::UserRole + 1,
+        CodeRole,
+    };
+
+    const QVariantList &countries() const noexcept;
+    void setCountries(QVariantList countries);
+
+    int rowCount(const QModelIndex &index = QModelIndex()) const override;
+
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+    Q_INVOKABLE QVariantMap get(int index) const noexcept;
+
+    int count() const noexcept;
+
+signals:
+    void countriesChanged();
+    void countChanged();
+
+private:
+    int getDefaultIndex() const noexcept;
+
+    QVariantList m_countries;
+};
+
+class ChatFolderModel : public QAbstractListModel
+{
+    Q_OBJECT
+
+    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
+
+    Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
+
+public:
+    ChatFolderModel(QObject *parent = nullptr);
+
+    enum ChatFolderRole {
+        IdRole = Qt::UserRole + 1,
+        IconNameRole,
+    };
+
+    QObject *locale() const;
+    void setLocale(QObject *locale);
+
+    QVariantList getChatFolders() const noexcept;
+    void setChatFolders(QVariantList value) noexcept;
+
+    int rowCount(const QModelIndex &index = QModelIndex()) const override;
+
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+
+    Q_INVOKABLE QVariantMap get(int index) const noexcept;
+
+    int count() const noexcept;
+
+signals:
+    void countChanged();
+    void chatFoldersChanged();
+
+private:
+    Locale *m_locale;
+
+    QVariantList m_chatFolders;
+};
+
 class FlexibleListModel : public QAbstractListModel
 {
     Q_OBJECT
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int defaultIndex READ defaultIndex NOTIFY defaultIndexChanged)
     Q_PROPERTY(QVariantList values READ values WRITE setValues NOTIFY valuesChanged)
 
 public:
@@ -17,8 +96,6 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
     int count() const noexcept;
-
-    int defaultIndex() const noexcept;
 
     QVariantList values() const noexcept;
     void setValues(const QVariantList &values) noexcept;
@@ -32,18 +109,11 @@ public:
 
     Q_INVOKABLE void sort(const QString &criteria, bool ascending);
 
-    Q_INVOKABLE void setDefaultIndex(const QVariant &criteria) noexcept;
-
 signals:
     void countChanged();
-    void defaultIndexChanged();
     void valuesChanged();
 
 private:
-    int calculateDefaultIndex(const QVariantMap &criteria) const noexcept;
-
-    int m_defaultIndex;
-
     QVariantList m_values;
     QHash<int, QByteArray> m_roleNames;
 };

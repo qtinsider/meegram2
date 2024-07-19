@@ -42,8 +42,6 @@ QVariantMap Client::execute(const QVariantMap &request)
 
 void Client::initialize()
 {
-    td_send(m_clientId, R"({"@type":"getOption", "name":"version"})");
-
     // A worker thread using std::jthread for automatic joining
     m_worker = std::jthread([this](std::stop_token token) {
         while (!token.stop_requested())

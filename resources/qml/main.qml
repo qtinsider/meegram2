@@ -47,6 +47,4 @@ PageStackWindow {
         else
             console.debug("Error loading component:", component.errorString());
     }
-
-    Component.onCompleted: { app.initialize(); }
 }

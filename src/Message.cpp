@@ -365,11 +365,11 @@ void Message::setContainsUnreadMention(bool containsUnreadMention)
     }
 }
 
-int Message::date() const
+qint64 Message::date() const
 {
     return m_date;
 }
-void Message::setDate(int date)
+void Message::setDate(qint64 date)
 {
     if (m_date != date)
     {
@@ -704,9 +704,9 @@ void Message::setFromVariantMap(const QVariantMap &map)
     if (map.contains("contains_unread_mention"))
         setContainsUnreadMention(map["contains_unread_mention"].toBool());
     if (map.contains("date"))
-        setDate(map["date"].toInt());
+        setDate(map["date"].toLongLong());
     if (map.contains("edit_date"))
-        setEditDate(map["edit_date"].toInt());
+        setEditDate(map["edit_date"].toLongLong());
     if (map.contains("forward_info"))
         setForwardInfo(map["forward_info"].toMap());
     if (map.contains("import_info"))
