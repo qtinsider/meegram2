@@ -20,14 +20,12 @@ class Client;
 class StorageManager : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(Client *client READ client WRITE setClient)
     Q_PROPERTY(QVariantList chatFolders READ getChatFolders NOTIFY chatFoldersChanged)
 
 public:
     explicit StorageManager(QObject *parent = nullptr);
 
     Client *client() const noexcept;
-    void setClient(Client *client) noexcept;
 
     std::vector<qint64> getChatIds() const noexcept;
 

@@ -42,18 +42,14 @@ QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) no
 
 Application::Application(QObject *parent)
     : QObject(parent)
-    , m_client(new Client(this))
     , m_locale(new Locale(this))
     , m_settings(new Settings(this))
     , m_storageManager(new StorageManager(this))
 {
+    m_client = qobject_cast<Client *>(m_storageManager->client());
+
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
     connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
-    connect(m_client, SIGNAL(result(const QVariantMap &)), m_storageManager, SLOT(handleResult(const QVariantMap &)));
-
-    m_storageManager->setClient(m_client);
-
-    initialize();
 }
 
 bool Application::isAuthorized() const noexcept
@@ -84,6 +80,11 @@ QObject *Application::storageManager() const noexcept
 const QVariantList &Application::countries() const noexcept
 {
     return m_countries;
+}
+
+const QVariantList &Application::languagePackInfo() const noexcept
+{
+    return m_languagePackInfo;
 }
 
 const QString &Application::connectionStateString() const noexcept
@@ -186,18 +187,6 @@ QString Application::getFormattedText(const QVariantMap &formattedText) const no
     return result;
 }
 
-void Application::initialize() noexcept
-{
-    QVariantMap request;
-    request.insert("@type", "getOption");
-    request.insert("name", "version");
-    m_client->send(request);
-
-    initializeParameters();
-    initializeLanguagePack();
-    initializeCountries();
-}
-
 void Application::close() noexcept
 {
     QVariantMap request;
@@ -238,6 +227,19 @@ void Application::setOption(const QString &name, const QVariant &value)
     m_client->send(request);
 }
 
+void Application::initialize() noexcept
+{
+    QVariantMap request;
+    request.insert("@type", "getOption");
+    request.insert("name", "version");
+    m_client->send(request);
+
+    initializeParameters();
+    initializeLanguagePack();
+    initializeCountries();
+    initializeLanguagePackInfo();
+}
+
 void Application::initializeParameters() noexcept
 {
     QVariantMap request;
@@ -269,14 +271,15 @@ void Application::initializeLanguagePack() noexcept
 
     setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
     setOption("localization_target", "android");
-    setOption("language_pack_id", m_settings->languagePluralId());
+    setOption("language_pack_id", m_settings->languagePackId());
 
     request.insert("@type", "getLanguagePackStrings");
-    request.insert("language_pack_id", m_settings->languagePluralId());
+    request.insert("language_pack_id", m_settings->languagePackId());
 
     m_client->send(request, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "languagePackStrings")
         {
+            m_locale->setLanguagePlural(m_settings->languagePluralId());
             m_locale->processStrings(value);
 
             m_initializationStatus[1] = true;
@@ -320,6 +323,23 @@ void Application::handleResult(const QVariantMap &object)
     {
         handleConnectionState(object.value("state").toMap());
     }
+}
+
+void Application::initializeLanguagePackInfo()
+{
+    QVariantMap request;
+    request.insert("@type", "getLocalizationTargetInfo");
+    request.insert("only_local", true);
+
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toByteArray() == "localizationTargetInfo")
+        {
+            m_languagePackInfo = std::move(value.value("language_packs").toList());
+
+            m_initializationStatus[3] = true;
+            checkInitializationStatus();
+        }
+    });
 }
 
 void Application::handleAuthorizationState(const QVariantMap &authorizationState)

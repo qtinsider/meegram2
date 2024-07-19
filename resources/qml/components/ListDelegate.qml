@@ -1,6 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
-import "../constants.js" as UI
+import "../Constants.js" as UI
 
 Item {
     id: listItem

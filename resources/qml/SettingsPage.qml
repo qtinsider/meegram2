@@ -1,5 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
+import com.strawberry.meegram 1.0
 import "components"
 
 Page {
@@ -12,16 +13,39 @@ Page {
         title: app.locale.getString("SETTINGS") + app.locale.emptyString
     }
 
-    Flickable {
-        flickableDirection: Flickable.VerticalFlick
-        anchors.fill: parent
-        contentHeight: contentItem.childrenRect.height + 50
+    ListView {
+        id: listView
+
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+            top: header.bottom
+        }
+
+        model: [app.locale.getString("Language") + app.locale.emptyString]
+        delegate: DrillDownDelegate {
+            text: modelData
+            onClicked: {
+                switch (index) {
+                case 0:
+                    appWindow.pageStack.push(Qt.createComponent("LanguageSettingsPage.qml"));
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+    }
+
+    ScrollDecorator {
+        flickableItem: listView
     }
 
     tools: ToolBarLayout {
         ToolIcon {
             platformIconId: "toolbar-back"
-            onClicked: pageStack.pop()
+            onClicked: appWindow.pageStack.pop()
         }
     }
 }

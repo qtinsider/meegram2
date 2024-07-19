@@ -18,17 +18,14 @@
 
 StorageManager::StorageManager(QObject *parent)
     : QObject(parent)
+    , m_client(new Client(this))
 {
+    connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
 }
 
 Client *StorageManager::client() const noexcept
 {
     return m_client;
-}
-
-void StorageManager::setClient(Client *client) noexcept
-{
-    m_client = client;
 }
 
 std::vector<qint64> StorageManager::getChatIds() const noexcept

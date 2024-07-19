@@ -48,7 +48,7 @@ ChatModel::ChatModel(QObject *parent)
     connect(m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
     connect(m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
 
-    m_sortTimer->setInterval(1000);
+    m_sortTimer->setInterval(500);
     m_sortTimer->setSingleShot(true);
 
     m_loadingTimer->setInterval(500);

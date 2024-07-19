@@ -153,11 +153,12 @@ Page {
         target: app
 
         onAppInitialized: {
-            loader.sourceComponent = infoComponent;
-            console.log("App has been initialized");
+            if (app.authorized)
+                pageStack.push(Qt.resolvedUrl("ChatsPage.qml"));
+            else
+                loader.sourceComponent = infoComponent;
         }
     }
-
 
     QtObject {
         id:internal

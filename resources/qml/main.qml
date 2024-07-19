@@ -24,14 +24,6 @@ PageStackWindow {
     Authorization {
         id: authorization
         client: app.client
-
-        onReady: { pageStack.push(Qt.resolvedUrl("ChatsPage.qml")) }
-    }
-
-    Connections {
-        target: app
-
-        onAuthorizedChanged: { pageStack.push(Qt.resolvedUrl("ChatsPage.qml")) }
     }
 
     function showInfoBanner(message) {
@@ -47,4 +39,6 @@ PageStackWindow {
         else
             console.debug("Error loading component:", component.errorString());
     }
+
+    Component.onCompleted: { app.initialize(); }
 }
