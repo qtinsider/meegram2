@@ -54,7 +54,7 @@ Page {
                             buttonHeight: 42
                         }
 
-                        text: app.locale.getString("Chats") + app.locale.emptyString
+                        text: app.getString("Chats") + app.emptyString
 
                         onClicked: pageStack.pop()
                     }

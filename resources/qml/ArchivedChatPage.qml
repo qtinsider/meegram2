@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.locale.getString("ArchivedChats") + app.locale.emptyString
+        title: app.getString("ArchivedChats") + app.emptyString
         isArchived: true
     }
 
@@ -41,7 +41,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: app.locale.getString("NoChats") + app.locale.emptyString
+        text: app.getString("NoChats") + app.emptyString
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -72,8 +72,8 @@ Page {
         MenuLayout {
             MenuItem {
                 text: myChatModel.isPinned(listView.currentIndex)
-                      ? app.locale.getString("UnpinFromTop") + app.locale.emptyString
-                      : app.locale.getString("PinToTop") + app.locale.emptyString
+                      ? app.getString("UnpinFromTop") + app.emptyString
+                      : app.getString("PinToTop") + app.emptyString
                 onClicked: {
                     myChatModel.toggleChatIsPinned(listView.currentIndex)
                 }

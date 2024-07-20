@@ -439,11 +439,6 @@ Locale::Locale(QObject *parent)
     // clang-format on
 }
 
-QString Locale::getEmptyString() const
-{
-    return {};
-}
-
 QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))
@@ -555,7 +550,6 @@ void Locale::setLanguagePlural(const QString &value)
     if (m_languagePlural != value)
     {
         m_languagePlural = value;
-        emit languageChanged();
     }
 }
 
@@ -629,6 +623,4 @@ void Locale::updatePluralRules()
         m_currentPluralRules = m_allRules.value(m_languagePlural);
     else
         m_currentPluralRules = m_allRules.value("en");
-
-    emit languageChanged();
 }

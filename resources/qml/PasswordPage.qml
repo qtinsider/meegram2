@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: app.locale.getString("TwoStepVerification") + app.locale.emptyString
+                text: app.getString("TwoStepVerification") + app.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -47,7 +47,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: app.locale.getString("LoginPasswordText") + app.locale.emptyString
+                    text: app.getString("LoginPasswordText") + app.emptyString
                 }
 
                 Item {
@@ -55,21 +55,21 @@ Page {
                 }
 
                 Label {
-                    text: app.locale.getString("YourPassword") + app.locale.emptyString
+                    text: app.getString("YourPassword") + app.emptyString
                 }
 
                 TextField {
                     id: password
                     width: parent.width
                     echoMode: TextInput.Password
-                    placeholderText: app.locale.getString("Password") + app.locale.emptyString
+                    placeholderText: app.getString("Password") + app.emptyString
                 }
 
                 Label {
                     id: hint
                     width: parent.width
                     font.pixelSize: 24
-                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(app.locale.getString("PasswordHint")).arg(passwordHint)
+                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(app.getString("PasswordHint")).arg(passwordHint)
                     visible: passwordHint !== ""
                 }
             }
@@ -79,11 +79,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.locale.getString("Next") + app.locale.emptyString
+                text: app.getString("Next") + app.emptyString
                 onClicked: authorization.checkPassword(password.text)
             }
             ToolButton {
-                text: app.locale.getString("Cancel") + app.locale.emptyString
+                text: app.getString("Cancel") + app.emptyString
                 onClicked: root.cancelClicked()
             }
         }

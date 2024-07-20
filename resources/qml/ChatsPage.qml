@@ -11,7 +11,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.locale.getString("Chats") + app.locale.emptyString
+        title: app.getString("Chats") + app.emptyString
 
         Image {
             anchors {
@@ -29,13 +29,13 @@ Page {
         id: myMenu
         MenuLayout {
             MenuItem {
-                text: app.locale.getString("ArchivedChats") + app.locale.emptyString
+                text: app.getString("ArchivedChats") + app.emptyString
                 onClicked: {
                     pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
                 }
             }
             MenuItem {
-                text: app.locale.getString("SETTINGS") + app.locale.emptyString
+                text: app.getString("SETTINGS") + app.emptyString
                 onClicked: {
                     pageStack.push(Qt.createComponent("SettingsPage.qml"))
                 }
@@ -74,7 +74,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: app.locale.getString("NoChats") + app.locale.emptyString
+        text: app.getString("NoChats") + app.emptyString
         visible: myChatModel.count === 0
                  && !populateTimer.running
                  && !myChatModel.loading
@@ -90,7 +90,7 @@ Page {
 
     SelectionDialog {
         id: chatFolderDialog
-        titleText: app.locale.getString("Filters") + app.locale.emptyString
+        titleText: app.getString("Filters") + app.emptyString
         selectedIndex: 0
         model: mychatFolderModel
 
@@ -130,8 +130,8 @@ Page {
         MenuLayout {
             MenuItem {
                 text: myChatModel.isPinned(listView.currentIndex)
-                    ? app.locale.getString("UnpinFromTop") + app.locale.emptyString
-                    : app.locale.getString("PinToTop") + app.locale.emptyString
+                    ? app.getString("UnpinFromTop") + app.emptyString
+                    : app.getString("PinToTop") + app.emptyString
                 onClicked: {
                     myChatModel.toggleChatIsPinned(listView.currentIndex)
                 }
@@ -139,8 +139,8 @@ Page {
 
             MenuItem {
                 text: myChatModel.isMuted(listView.currentIndex)
-                    ? app.locale.getString("ChatsUnmute") + app.locale.emptyString
-                    : app.locale.getString("ChatsMute") + app.locale.emptyString
+                    ? app.getString("ChatsUnmute") + app.emptyString
+                    : app.getString("ChatsMute") + app.emptyString
                 onClicked: {
                     myChatModel.toggleChatNotificationSettings(listView.currentIndex)
                 }

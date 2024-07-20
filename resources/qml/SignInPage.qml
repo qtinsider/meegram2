@@ -28,7 +28,7 @@ Page {
 
             Label {
                 id: title
-                text: app.locale.getString("YourPhone") + app.locale.emptyString
+                text: app.getString("YourPhone") + app.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -70,13 +70,13 @@ Page {
                     TextField {
                         id: phoneNumber
                         inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
-                        placeholderText: app.locale.getString("PhoneNumberSearch") + app.locale.emptyString
+                        placeholderText: app.getString("PhoneNumberSearch") + app.emptyString
                     }
                 }
 
                 Label {
                     font.pixelSize: 24
-                    text: app.locale.getString("StartText") + app.locale.emptyString
+                    text: app.getString("StartText") + app.emptyString
                 }
 
                 Row {
@@ -89,7 +89,7 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.locale.getString("Next") + app.locale.emptyString
+                text: app.getString("Next") + app.emptyString
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
                         authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text);
@@ -97,7 +97,7 @@ Page {
                 }
             }
             ToolButton {
-                text: app.locale.getString("Cancel") + app.locale.emptyString
+                text: app.getString("Cancel") + app.emptyString
                 onClicked: root.cancelClicked()
             }
         }
@@ -110,7 +110,7 @@ Page {
 
     SelectionDialog {
         id: selectionDialog
-        titleText: app.locale.getString("ChooseCountry") + app.locale.emptyString
+        titleText: app.getString("ChooseCountry") + app.emptyString
         selectedIndex: myCountryModel.defaultIndex
         model: myCountryModel
     }

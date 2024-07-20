@@ -25,10 +25,15 @@ class Application : public QObject
     Q_PROPERTY(QVariantList countries READ countries NOTIFY countriesChanged)
     Q_PROPERTY(QVariantList languagePackInfo READ languagePackInfo NOTIFY languagePackInfoChanged)
     Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
+
+    Q_PROPERTY(QString emptyString READ getEmptyString NOTIFY languageChanged)
+
 public:
     explicit Application(QObject *parent = nullptr);
 
     bool isAuthorized() const noexcept;
+
+    QString getEmptyString() const;
 
     QObject *client() const noexcept;
     QObject *locale() const noexcept;
@@ -39,6 +44,7 @@ public:
     const QVariantList &languagePackInfo() const noexcept;
     const QString &connectionStateString() const noexcept;
 
+    Q_INVOKABLE QString getString(const QString &key) const noexcept;
     Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText) const noexcept;
 
 signals:
@@ -51,6 +57,7 @@ signals:
     void countriesChanged();
     void languagePackInfoChanged();
     void connectionStateChanged();
+    void languageChanged();
 
     void appInitialized();
 
@@ -62,11 +69,13 @@ public slots:
 private slots:
     void handleResult(const QVariantMap &object);
 
+    void initializeLanguagePack() noexcept;
+
 private:
     void initializeParameters() noexcept;
-    void initializeLanguagePack() noexcept;
     void initializeCountries() noexcept;
     void initializeLanguagePackInfo();
+
     void checkInitializationStatus() noexcept;
 
     void handleAuthorizationState(const QVariantMap &authorizationState);

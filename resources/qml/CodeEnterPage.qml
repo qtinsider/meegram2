@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: app.locale.getString("YourCode") + app.locale.emptyString
+                text: app.getString("YourCode") + app.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -58,7 +58,7 @@ Page {
                         id: code
                         width: parent.width
                         inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
-                        placeholderText: app.locale.getString("Code") + app.locale.emptyString
+                        placeholderText: app.getString("Code") + app.emptyString
 
                         onTextChanged: {
                             if(text.length >= getCodeLength()) {
@@ -83,7 +83,7 @@ Page {
                         font.underline: true
 
                         color: "#0088cc"
-                        text: app.locale.getString("DidNotGetTheCodeSms") + app.locale.emptyString
+                        text: app.getString("DidNotGetTheCodeSms") + app.emptyString
 
                         visible: nextType.type === "authenticationCodeTypeSms"
 
@@ -134,11 +134,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.locale.getString("Next") + app.locale.emptyString
+                text: app.getString("Next") + app.emptyString
                 onClicked: authorization.checkCode(code.text)
             }
             ToolButton {
-                text: app.locale.getString("Cancel") + app.locale.emptyString
+                text: app.getString("Cancel") + app.emptyString
                 onClicked: root.cancelClicked()
             }
         }
@@ -146,27 +146,27 @@ Page {
 
     function getCodeTitle() {
         if (type.type === "authenticationCodeTypeTelegramMessage") {
-            return app.locale.getString("SentAppCodeTitle");
+            return app.getString("SentAppCodeTitle");
         }
         if (type.type === "authenticationCodeTypeCall" || type.type === "authenticationCodeTypeSms") {
-            return app.locale.getString("SentSmsCodeTitle");
+            return app.getString("SentSmsCodeTitle");
         }
 
-        return app.locale.getString("Title");
+        return app.getString("Title");
     }
 
     function getCodeSubtitle() {
         if (type.type === "authenticationCodeTypeCall") {
-            return app.locale.getString("SentCallCode").arg(phoneNumber);
+            return app.getString("SentCallCode").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeFlashCall") {
-            return app.locale.getString("SentCallOnly").arg(phoneNumber);
+            return app.getString("SentCallOnly").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeSms") {
-            return app.locale.getString("SentSmsCode").arg(phoneNumber);
+            return app.getString("SentSmsCode").arg(phoneNumber);
         }
         if (type.type === "authenticationCodeTypeTelegramMessage") {
-            return app.locale.getString("SentAppCode");
+            return app.getString("SentAppCode");
         }
 
         return "";
@@ -174,10 +174,10 @@ Page {
 
     function getCodeNextTypeString() {
         if (nextType.type === "authenticationCodeTypeCall") {
-            return app.locale.getString("CallText");
+            return app.getString("CallText");
         }
         if (nextType.type === "authenticationCodeTypeSms") {
-            return app.locale.getString("SmsText");
+            return app.getString("SmsText");
         }
 
         return "";

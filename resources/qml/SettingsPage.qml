@@ -10,7 +10,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.locale.getString("SETTINGS") + app.locale.emptyString
+        title: app.getString("SETTINGS") + app.emptyString
     }
 
     ListView {
@@ -23,7 +23,7 @@ Page {
             top: header.bottom
         }
 
-        model: [app.locale.getString("Language") + app.locale.emptyString]
+        model: [app.getString("Language") + app.emptyString]
         delegate: DrillDownDelegate {
             text: modelData
             onClicked: {

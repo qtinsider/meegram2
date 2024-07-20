@@ -65,7 +65,7 @@ Page {
                     spacing: 16
 
                     Button {
-                        text: app.locale.getString("StartMessaging") + app.locale.emptyString
+                        text: app.getString("StartMessaging") + app.emptyString
 
                         platformStyle: ButtonStyle { inverted: true }
 

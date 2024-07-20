@@ -49,12 +49,19 @@ Application::Application(QObject *parent)
     m_client = qobject_cast<Client *>(m_storageManager->client());
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
+    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
+    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(initializeLanguagePack()));
     connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
 }
 
 bool Application::isAuthorized() const noexcept
 {
     return m_isAuthorized;
+}
+
+QString Application::getEmptyString() const
+{
+    return {};
 }
 
 QObject *Application::client() const noexcept
@@ -90,6 +97,11 @@ const QVariantList &Application::languagePackInfo() const noexcept
 const QString &Application::connectionStateString() const noexcept
 {
     return m_connectionStateString;
+}
+
+QString Application::getString(const QString &key) const noexcept
+{
+    return m_locale->getString(key);
 }
 
 QString Application::getFormattedText(const QVariantMap &formattedText) const noexcept
@@ -234,6 +246,10 @@ void Application::initialize() noexcept
     request.insert("name", "version");
     m_client->send(request);
 
+    setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
+    setOption("localization_target", "android");
+    setOption("language_pack_id", m_settings->languagePackId());
+
     initializeParameters();
     initializeLanguagePack();
     initializeCountries();
@@ -268,10 +284,6 @@ void Application::initializeParameters() noexcept
 void Application::initializeLanguagePack() noexcept
 {
     QVariantMap request;
-
-    setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
-    setOption("localization_target", "android");
-    setOption("language_pack_id", m_settings->languagePackId());
 
     request.insert("@type", "getLanguagePackStrings");
     request.insert("language_pack_id", m_settings->languagePackId());

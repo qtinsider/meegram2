@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: app.locale.getString("YourName") + app.locale.emptyString
+                text: app.getString("YourName") + app.emptyString
                 font.pixelSize: 40
             }
             Rectangle {
@@ -46,7 +46,7 @@ Page {
                 spacing: 10
 
                 Label {
-                    text: app.locale.getString("RegisterText2") + app.locale.emptyString
+                    text: app.getString("RegisterText2") + app.emptyString
                 }
 
                 Column {
@@ -57,13 +57,13 @@ Page {
                         id: firstName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: app.locale.getString("FirstName") + app.locale.emptyString
+                        placeholderText: app.getString("FirstName") + app.emptyString
                     }
                     TextField {
                         id: lastName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: app.locale.getString("LastName") + app.locale.emptyString
+                        placeholderText: app.getString("LastName") + app.emptyString
                     }
                 }
 
@@ -82,11 +82,11 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.locale.getString("Next") + app.locale.emptyString
+                text: app.getString("Next") + app.emptyString
                 onClicked: authorization.registerUser(firstName.text, lastName.text)
             }
             ToolButton {
-                text: app.locale.getString("Cancel") + app.locale.emptyString
+                text: app.getString("Cancel") + app.emptyString
                 onClicked: root.cancelClicked()
             }
         }
@@ -94,8 +94,8 @@ Page {
 
     QueryDialog {
         id: dialog
-        titleText: app.locale.getString("TermsOfService") + app.locale.emptyString
-        message: app.locale.getString("TermsOfServiceLogin") + app.locale.emptyString
-        rejectButtonText: app.locale.getString("Close") + app.locale.emptyString
+        titleText: app.getString("TermsOfService") + app.emptyString
+        message: app.getString("TermsOfServiceLogin") + app.emptyString
+        rejectButtonText: app.getString("Close") + app.emptyString
     }
 }
