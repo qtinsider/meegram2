@@ -40,11 +40,11 @@ QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) no
 
 }  // namespace
 
-Application::Application(QObject *parent)
+Application::Application(StorageManager *storageManager, QObject *parent)
     : QObject(parent)
     , m_locale(new Locale(this))
     , m_settings(new Settings(this))
-    , m_storageManager(new StorageManager(this))
+    , m_storageManager(storageManager)
 {
     m_client = qobject_cast<Client *>(m_storageManager->client());
 

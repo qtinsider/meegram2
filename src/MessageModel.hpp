@@ -17,10 +17,12 @@ class MessageModel : public QAbstractListModel
     Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
     Q_PROPERTY(QObject *storageManager READ storageManager WRITE setStorageManager)
 
-    Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY chatIdChanged)
+    Q_PROPERTY(Chat *selectedChat READ selectedChat WRITE setSelectedChat NOTIFY selectedChatChanged)
+
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
     Q_PROPERTY(QString chatPhoto READ getChatPhoto NOTIFY statusChanged)
+
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(bool loadingHistory READ loadingHistory NOTIFY loadingChanged)
@@ -68,6 +70,9 @@ public:
     QObject *locale() const;
     void setLocale(QObject *locale);
 
+    Chat *selectedChat() const;
+    void setSelectedChat(Chat *value);
+
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const override;
@@ -102,11 +107,11 @@ public:
     Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
 
 signals:
-    void chatIdChanged();
     void countChanged();
     void moreHistoriesLoaded(int modelIndex);
     void statusChanged();
     void loadingChanged();
+    void selectedChatChanged();
 
 public slots:
     void refresh() noexcept;
@@ -136,19 +141,17 @@ private:
 
     void itemChanged(int64_t index);
 
-    Chat *m_chat;
+    Chat *m_selectedChat{};
 
-    Client *m_client;
-    Locale *m_locale;
-    StorageManager *m_storageManager;
+    Client *m_client{};
+    Locale *m_locale{};
+    StorageManager *m_storageManager{};
 
     QList<Message *> m_messages;
 
-    QString m_chatId{};
-
-    bool m_loading{true};
-    bool m_loadingHistory{true};
-    bool m_firstMessages{true};
+    bool m_loading = true;
+    bool m_loadingHistory = true;
+    bool m_firstMessages = true;
 
     std::unordered_set<int64_t> m_messageIds;
 };

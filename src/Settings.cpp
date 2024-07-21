@@ -2,11 +2,13 @@
 
 #include "Common.hpp"
 
+#include <QCoreApplication>
 #include <QSettings>
 
 Settings::Settings(QObject *parent)
     : QObject(parent)
-    , m_settings(new QSettings("/home/insider/settings.ini", QSettings::IniFormat))
+    , m_settings(new QSettings(QSettings::IniFormat, QSettings::UserScope, QCoreApplication::organizationName(),
+                               QCoreApplication::applicationName(), parent))
 {
     m_languagePackId = m_settings->value("languagePackId", DefaultLanguageCode).toString();
     m_languagePluralId = m_settings->value("languagePluralId", DefaultLanguageCode).toString();
@@ -41,4 +43,3 @@ void Settings::setLanguagePluralId(const QString &value)
         emit languagePluralIdChanged();
     }
 }
-

@@ -8,6 +8,7 @@
 
 #include "Application.hpp"
 #include "Authorization.hpp"
+#include "Chat.hpp"
 #include "ChatModel.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
@@ -40,6 +41,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qRegisterMetaType<QModelIndex>("QModelIndex");
 
     qmlRegisterType<Authorization>("com.strawberry.meegram", 1, 0, "Authorization");
+    qmlRegisterType<Chat>("com.strawberry.meegram", 1, 0, "Chat");
 
     qmlRegisterType<ChatModel>("com.strawberry.meegram", 1, 0, "ChatModel");
     qmlRegisterType<ChatFolderModel>("com.strawberry.meegram", 1, 0, "ChatFolderModel");
@@ -51,12 +53,14 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterUncreatableType<TdApi>("com.strawberry.meegram", 1, 0, "TdApi", "TdApi should not be created in QML");
 
-    QDeclarativeView viewer;
-    Application application;
+    StorageManager storageManager;
+    Application application(&storageManager);
 
+    QDeclarativeView viewer;
     new DBusAdaptor(&app, &viewer);
 
     viewer.rootContext()->setContextProperty("app", &application);
+    viewer.rootContext()->setContextProperty("store", &storageManager);
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 

@@ -15,6 +15,7 @@
 #include "Utils.hpp"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QLocale>
 #include <QTimer>
 
@@ -58,6 +59,9 @@ QString getChannelStatus(const Supergroup *supergroup, const QVariantMap &chat, 
     auto count = supergroup->memberCount();
     const auto username = supergroup->usernames();  // ???
 
+    nlohmann::json json(username);
+    qDebug() << QString::fromStdString(json.dump());
+
     if (count == 0)
     {
         const auto fullInfo = store->getSupergroupFullInfo(supergroup->id());
@@ -89,6 +93,9 @@ QString getSupergroupStatus(const Supergroup *supergroup, const QVariantMap &cha
     const auto statusType = supergroup->status().value("@type").toByteArray();
     const auto username = supergroup->usernames();
     const auto hasLocation = supergroup->hasLocation();
+
+    nlohmann::json json(username);
+    qDebug() << QString::fromStdString(json.dump());
 
     auto count = supergroup->memberCount();
 
@@ -221,9 +228,8 @@ void MessageModel::setStorageManager(QObject *storageManager)
 
     connect(m_client, SIGNAL(result(const QVariantMap &)), SLOT(handleResult(const QVariantMap &)));
 
-    m_chat = m_storageManager->getChat(m_chatId.toLongLong());
+    qDebug() << __PRETTY_FUNCTION__;
 
-    chatIdChanged();
     statusChanged();
 
     loadMessages();
@@ -237,6 +243,19 @@ QObject *MessageModel::locale() const
 void MessageModel::setLocale(QObject *locale)
 {
     m_locale = qobject_cast<Locale *>(locale);
+}
+
+Chat *MessageModel::selectedChat() const
+{
+    return m_selectedChat;
+}
+
+void MessageModel::setSelectedChat(Chat *value)
+{
+    if (m_selectedChat != value)
+    {
+        m_selectedChat = value;
+    }
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -253,7 +272,7 @@ bool MessageModel::canFetchMore(const QModelIndex &parent) const
         return false;
 
     if (m_messages.size() > 0)
-        return !m_loading && m_chat->lastMessage()->id() != *std::ranges::max_element(m_messageIds);
+        return !m_loading && m_selectedChat->lastMessage()->id() != *std::ranges::max_element(m_messageIds);
 
     return false;
 }
@@ -426,21 +445,6 @@ bool MessageModel::loadingHistory() const noexcept
     return m_loadingHistory;
 }
 
-QString MessageModel::getChatId() const noexcept
-{
-    return m_chatId;
-}
-
-void MessageModel::setChatId(const QString &value) noexcept
-{
-    if (m_chatId != value)
-    {
-        m_chatId = value;
-
-        emit chatIdChanged();
-    }
-}
-
 QString MessageModel::getChatSubtitle() const noexcept
 {
     if (!m_client)
@@ -466,8 +470,8 @@ QString MessageModel::getChatSubtitle() const noexcept
                                                                 : detail::getSupergroupStatus(supergroup, {}, store, locale);
                              }}};
 
-    const auto type = m_chat->type();
-    const auto chatType = m_chat->type().value("@type").toString();
+    const auto type = m_selectedChat->type();
+    const auto chatType = m_selectedChat->type().value("@type").toString();
 
     if (auto it = chatTypeHandlers.find(chatType.toStdString()); it != chatTypeHandlers.end())
     {
@@ -482,7 +486,7 @@ QString MessageModel::getChatTitle() const noexcept
     if (!m_client)
         return QString();
 
-    if (const auto title = m_chat->title(); !Utils::isMeChat(m_chat, m_storageManager))
+    if (const auto title = m_selectedChat->title(); !Utils::isMeChat(m_selectedChat, m_storageManager))
         return title.isEmpty() ? m_locale->getString("HiddenName") : title;
 
     return m_locale->getString("SavedMessages");
@@ -493,7 +497,7 @@ QString MessageModel::getChatPhoto() const noexcept
     if (!m_client)
         return QString();
 
-    const auto smallPhoto = m_chat->photo().value("small").toMap();
+    const auto smallPhoto = m_selectedChat->photo().value("small").toMap();
     const auto localPhoto = smallPhoto.value("local").toMap();
 
     if (localPhoto.value("is_downloading_completed").toBool())
@@ -514,6 +518,8 @@ QString MessageModel::getFormattedText(const QVariantMap &formattedText, const Q
 
 void MessageModel::loadHistory() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (auto min = std::ranges::min_element(m_messageIds); min != m_messageIds.end() && !m_loadingHistory)
     {
         m_loadingHistory = true;
@@ -526,36 +532,42 @@ void MessageModel::loadHistory() noexcept
 
 void MessageModel::openChat() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
     QVariantMap request;
     request.insert("@type", "openChat");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
 
     m_client->send(request);
 }
 
 void MessageModel::closeChat() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
     QVariantMap request;
     request.insert("@type", "closeChat");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
 
     m_client->send(request);
 }
 
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
     QVariantMap request;
     request.insert("@type", "getChatHistory");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
     request.insert("from_message_id", fromMessageId);
     request.insert("offset", offset);
     request.insert("limit", limit);
@@ -566,6 +578,8 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
@@ -578,7 +592,7 @@ void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 
     QVariantMap request;
     request.insert("@type", "sendMessage");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
 
     if (replyToMessageId != 0)
     {
@@ -592,12 +606,14 @@ void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 
 void MessageModel::viewMessages(const QVariantList &messageIds)
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
     QVariantMap request;
     request.insert("@type", "viewMessages");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
     request.insert("message_thread_id", 0);
     request.insert("message_ids", messageIds);
     request.insert("force_read", true);
@@ -607,12 +623,14 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
 
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (!m_client)
         return;
 
     QVariantMap request;
     request.insert("@type", "deleteMessages");
-    request.insert("chat_id", m_chatId);
+    request.insert("chat_id", m_selectedChat->id());
     request.insert("message_ids", QVariantList() << messageId);
     request.insert("revoke", revoke);
 
@@ -621,6 +639,8 @@ void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 
 void MessageModel::refresh() noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     if (m_messages.isEmpty())
         return;
 
@@ -680,10 +700,10 @@ void MessageModel::handleResult(const QVariantMap &object)
 
 void MessageModel::handleNewMessage(const QVariantMap &message)
 {
-    if (m_chatId != message.value("chat_id").toString())
+    if (m_selectedChat->id() != message.value("chat_id").toLongLong())
         return;
 
-    if (auto lastMessageId = m_chat->lastMessage()->id(); m_messageIds.contains(lastMessageId))
+    if (auto lastMessageId = m_selectedChat->lastMessage()->id(); m_messageIds.contains(lastMessageId))
     {
         beginInsertRows(QModelIndex(), rowCount(), rowCount());
 
@@ -710,7 +730,7 @@ void MessageModel::handleMessageSendFailed(const QVariantMap &message, qint64 ol
 
 void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const QVariantMap &newContent)
 {
-    if (chatId != m_chatId.toLongLong())
+    if (chatId != m_selectedChat->id())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
@@ -726,7 +746,7 @@ void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const Q
 
 void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, const QVariantMap &replyMarkup)
 {
-    if (chatId != m_chatId.toLongLong())
+    if (chatId != m_selectedChat->id())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
@@ -743,7 +763,7 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
 
 void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
 {
-    if (chatId != m_chatId.toLongLong())
+    if (chatId != m_selectedChat->id())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
@@ -759,7 +779,7 @@ void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool i
 
 void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, const QVariantMap &interactionInfo)
 {
-    if (chatId != m_chatId.toLongLong())
+    if (chatId != m_selectedChat->id())
         return;
 
     auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
@@ -775,7 +795,7 @@ void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId,
 
 void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messageIds, bool isPermanent, bool fromCache)
 {
-    if (chatId != m_chatId.toLongLong())
+    if (chatId != m_selectedChat->id())
         return;
 
     QListIterator<QVariant> it(messageIds);
@@ -807,22 +827,22 @@ void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCo
 
 void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
 {
-    if (chatId == m_chatId.toLongLong())
+    if (chatId == m_selectedChat->id())
     {
-        m_chat->setLastReadInboxMessageId(lastReadInboxMessageId);
-        m_chat->setUnreadCount(unreadCount);
+        m_selectedChat->setLastReadInboxMessageId(lastReadInboxMessageId);
+        m_selectedChat->setUnreadCount(unreadCount);
 
-        emit chatIdChanged();
+        emit selectedChatChanged();
     }
 }
 
 void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId)
 {
-    if (chatId != m_chatId.toLongLong())
-        return;
-
-    m_chat->setLastReadOutboxMessageId(lastReadOutboxMessageId);
-    emit chatIdChanged();
+    if (chatId != m_selectedChat->id())
+    {
+        m_selectedChat->setLastReadOutboxMessageId(lastReadOutboxMessageId);
+        emit selectedChatChanged();
+    }
 }
 
 void MessageModel::handleMessages(const QVariantMap &messages)
@@ -852,6 +872,8 @@ void MessageModel::handleMessages(const QVariantMap &messages)
 
 void MessageModel::insertMessages(const QVariantList &messages) noexcept
 {
+    qDebug() << __PRETTY_FUNCTION__;
+
     // if (m_loadingHistory)
     // {
     //     m_loadingHistory = false;
@@ -907,12 +929,14 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
 
 void MessageModel::loadMessages() noexcept
 {
-    if (!m_chat)
+    qDebug() << __PRETTY_FUNCTION__;
+
+    if (!m_selectedChat)
         return;
 
-    const auto unread = m_chat->unreadCount() > 0;
+    const auto unread = m_selectedChat->unreadCount() > 0;
 
-    const auto fromMessageId = unread ? m_chat->lastReadInboxMessageId() : m_chat->lastMessage()->id();
+    const auto fromMessageId = unread ? m_selectedChat->lastReadInboxMessageId() : m_selectedChat->lastMessage()->id();
 
     const auto offset = unread ? -1 - MessageSliceLimit : 0;
     const auto limit = unread ? 2 * MessageSliceLimit : MessageSliceLimit;

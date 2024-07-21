@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QVector>
 
+class Chat;
 class Client;
 class Locale;
 class StorageManager;
@@ -22,7 +23,6 @@ class ChatModel : public QAbstractListModel
 
     Q_PROPERTY(TdApi::ChatList chatList READ chatList WRITE setChatList NOTIFY chatListChanged)
     Q_PROPERTY(int chatFolderId READ chatFolderId WRITE setChatFolderId NOTIFY chatListChanged)
-
 public:
     explicit ChatModel(QObject *parent = nullptr);
     ~ChatModel() override;
@@ -65,8 +65,6 @@ public:
     int chatFolderId() const;
     void setChatFolderId(int value);
 
-    Q_INVOKABLE QVariant get(int index) const noexcept;
-
     Q_INVOKABLE bool isPinned(int index) const noexcept;
     Q_INVOKABLE bool isMuted(int index) const noexcept;
 
@@ -95,11 +93,13 @@ private slots:
 private:
     void clear();
 
-    Client *m_client;
-    Locale *m_locale;
-    StorageManager *m_storageManager;
+    Client *m_client{};
+    Locale *m_locale{};
+    StorageManager *m_storageManager{};
 
-    bool m_loading{true};
+    Chat *m_selectedChat{};
+
+    bool m_loading = true;
 
     int m_count{};
 

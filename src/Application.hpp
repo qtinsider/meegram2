@@ -29,7 +29,7 @@ class Application : public QObject
     Q_PROPERTY(QString emptyString READ getEmptyString NOTIFY languageChanged)
 
 public:
-    explicit Application(QObject *parent = nullptr);
+    explicit Application(StorageManager *storageManager, QObject *parent = nullptr);
 
     bool isAuthorized() const noexcept;
 

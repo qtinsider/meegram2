@@ -44,7 +44,7 @@ private:
 
     int m_currentFrame{};
     int m_frameCount{};
-    int m_frameRate{60};  // 60 FPS
+    int m_frameRate = 60;  // 60 FPS
 
     QUrl m_source;
     QTimer *m_frameTimer;

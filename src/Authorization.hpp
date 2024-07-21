@@ -52,7 +52,7 @@ private:
     void handleAuthorizationStateWaitRegistration(const QVariantMap &authorizationState);
     void handleAuthorizationStateReady(const QVariantMap &authorizationState);
 
-    bool m_loading{true};
+    Client *m_client{};
 
-    Client *m_client;
+    bool m_loading = true;
 };

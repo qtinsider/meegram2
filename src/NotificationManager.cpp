@@ -1,7 +1,6 @@
 #include "NotificationManager.hpp"
 
 #include "Client.hpp"
-#include "StorageManager.hpp"
 
 NotificationManager::NotificationManager(QObject *parent)
     : QObject(parent)

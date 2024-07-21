@@ -82,8 +82,8 @@ void ChatModel::setStorageManager(QObject *storageManager)
     m_storageManager = qobject_cast<StorageManager *>(storageManager);
     m_client = qobject_cast<Client *>(m_storageManager->client());
 
-    connect(m_storageManager, SIGNAL(updateChatItem(qint64)),this, SLOT(handleChatItem(qint64)));
-    connect(m_storageManager, SIGNAL(updateChatPosition(qint64)),this, SLOT(handleChatPosition(qint64)));
+    connect(m_storageManager, SIGNAL(updateChatItem(qint64)), this, SLOT(handleChatItem(qint64)));
+    connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), this, SLOT(handleChatPosition(qint64)));
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -229,26 +229,6 @@ void ChatModel::setChatFolderId(int value)
     }
 }
 
-QVariant ChatModel::get(int index) const noexcept
-{
-    QModelIndex modelIndex = createIndex(index, 0);
-
-    QVariantMap result;
-    result.insert("id", data(modelIndex, IdRole));
-    result.insert("type", data(modelIndex, TypeRole));
-    result.insert("title", data(modelIndex, TitleRole));
-    result.insert("photo", data(modelIndex, PhotoRole));
-    result.insert("lastMessageSender", data(modelIndex, LastMessageSenderRole));
-    result.insert("lastMessageContent", data(modelIndex, LastMessageContentRole));
-    result.insert("lastMessageDate", data(modelIndex, LastMessageDateRole));
-    result.insert("isPinned", data(modelIndex, IsPinnedRole));
-    result.insert("unreadMentionCount", data(modelIndex, UnreadMentionCountRole));
-    result.insert("unreadCount", data(modelIndex, UnreadCountRole));
-    result.insert("isMuted", data(modelIndex, IsMutedRole));
-
-    return result;
-}
-
 bool ChatModel::isPinned(int index) const noexcept
 {
     return data(createIndex(index, 0), IsPinnedRole).toBool();
@@ -391,22 +371,17 @@ void ChatModel::sortChats()
 
 void ChatModel::handleChatItem(qint64 chatId)
 {
-    auto it = std::ranges::find_if(m_chatIds, [chatId](qint64 id) { return id == chatId; });
-
-    if (it != m_chatIds.end())
+    if (auto it = std::ranges::find(m_chatIds, chatId); it != m_chatIds.end())
     {
         auto index = std::distance(m_chatIds.begin(), it);
         QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
-
         emit dataChanged(modelIndex, modelIndex);
     }
 }
 
 void ChatModel::handleChatPosition(qint64 chatId)
 {
-    auto it = std::ranges::find_if(m_chatIds, [chatId](qint64 id) { return id == chatId; });
-
-    if (it != m_chatIds.end())
+    if (auto it = std::ranges::find(m_chatIds, chatId); it != m_chatIds.end())
     {
         // emit delayed event
         if (not m_sortTimer->isActive())

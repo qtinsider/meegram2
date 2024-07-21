@@ -292,7 +292,7 @@ void StorageManager::handleResult(const QVariantMap &object)
          }},
         {"updateChatFolders",
          [this](const QVariantMap &object) {
-             m_chatFolders = object.value("chat_folders").toList();
+             m_chatFolders.append(object.value("chat_folders").toList());
              emit chatFoldersChanged();
          }},
         {"updateUser",
