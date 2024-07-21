@@ -35,8 +35,7 @@ PageStackWindow {
         var component = Qt.createComponent("ChatPage.qml");
 
         if (component.status === Component.Ready) {
-            var chat = store.getChat(chatId);
-            pageStack.push(component, { chat: chat });
+            pageStack.push(component, { chat: app.storageManager.getChat(chatId), locale: app.locale, storage: app.storageManager });
         } else
             console.debug("Error loading component:", component.errorString());
     }

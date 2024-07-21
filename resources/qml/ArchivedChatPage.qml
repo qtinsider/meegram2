@@ -7,6 +7,9 @@ import "components"
 Page {
     id: root
 
+    property alias locale: myChatModel.locale
+    property alias storage: myChatModel.storageManager
+
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -54,9 +57,6 @@ Page {
 
     ChatModel {
         id: myChatModel
-
-        locale: app.locale
-        storageManager: app.storageManager
 
         chatList: TdApi.ChatListArchive
 

@@ -151,7 +151,6 @@ private:
 
     bool m_loading = true;
     bool m_loadingHistory = true;
-    bool m_firstMessages = true;
 
     std::unordered_set<int64_t> m_messageIds;
 };

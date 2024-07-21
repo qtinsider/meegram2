@@ -7,6 +7,9 @@ import "components"
 Page {
     id: root
 
+    property alias locale: myChatModel.locale
+    property alias storage: myChatModel.storageManager
+
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -31,7 +34,7 @@ Page {
             MenuItem {
                 text: app.getString("ArchivedChats") + app.emptyString
                 onClicked: {
-                    pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
+                    pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { locale: app.locale, storage: app.storageManager })
                 }
             }
             MenuItem {
@@ -112,9 +115,6 @@ Page {
 
     ChatModel {
         id: myChatModel
-
-        locale: app.locale
-        storageManager: app.storageManager
 
         chatList: TdApi.ChatListMain
 

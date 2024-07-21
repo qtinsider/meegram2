@@ -60,7 +60,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     new DBusAdaptor(&app, &viewer);
 
     viewer.rootContext()->setContextProperty("app", &application);
-    viewer.rootContext()->setContextProperty("store", &storageManager);
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 

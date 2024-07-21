@@ -227,12 +227,6 @@ void MessageModel::setStorageManager(QObject *storageManager)
     m_client = qobject_cast<Client *>(m_storageManager->client());
 
     connect(m_client, SIGNAL(result(const QVariantMap &)), SLOT(handleResult(const QVariantMap &)));
-
-    qDebug() << __PRETTY_FUNCTION__;
-
-    statusChanged();
-
-    loadMessages();
 }
 
 QObject *MessageModel::locale() const
@@ -297,9 +291,6 @@ void MessageModel::fetchMore(const QModelIndex &parent)
 
 QVariant MessageModel::data(const QModelIndex &index, int role) const
 {
-    if (!m_client)
-        return QVariant();
-
     if (!index.isValid())
         return QVariant();
 
@@ -447,9 +438,6 @@ bool MessageModel::loadingHistory() const noexcept
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    if (!m_client)
-        return QString();
-
     static const std::unordered_map<std::string, std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
         chatTypeHandlers = {{"chatTypeBasicGroup",
                              [](const QVariantMap &type, const Chat *, StorageManager *store, Locale *locale) {
@@ -483,9 +471,6 @@ QString MessageModel::getChatSubtitle() const noexcept
 
 QString MessageModel::getChatTitle() const noexcept
 {
-    if (!m_client)
-        return QString();
-
     if (const auto title = m_selectedChat->title(); !Utils::isMeChat(m_selectedChat, m_storageManager))
         return title.isEmpty() ? m_locale->getString("HiddenName") : title;
 
@@ -494,9 +479,6 @@ QString MessageModel::getChatTitle() const noexcept
 
 QString MessageModel::getChatPhoto() const noexcept
 {
-    if (!m_client)
-        return QString();
-
     const auto smallPhoto = m_selectedChat->photo().value("small").toMap();
     const auto localPhoto = smallPhoto.value("local").toMap();
 
@@ -510,9 +492,6 @@ QString MessageModel::getChatPhoto() const noexcept
 
 QString MessageModel::getFormattedText(const QVariantMap &formattedText, const QVariantMap &options) noexcept
 {
-    if (!m_client)
-        return QString();
-
     return Utils::getFormattedText(formattedText, m_storageManager, m_locale, options);
 }
 
@@ -534,9 +513,6 @@ void MessageModel::openChat() noexcept
 {
     qDebug() << __PRETTY_FUNCTION__;
 
-    if (!m_client)
-        return;
-
     QVariantMap request;
     request.insert("@type", "openChat");
     request.insert("chat_id", m_selectedChat->id());
@@ -548,9 +524,6 @@ void MessageModel::closeChat() noexcept
 {
     qDebug() << __PRETTY_FUNCTION__;
 
-    if (!m_client)
-        return;
-
     QVariantMap request;
     request.insert("@type", "closeChat");
     request.insert("chat_id", m_selectedChat->id());
@@ -561,9 +534,6 @@ void MessageModel::closeChat() noexcept
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
     qDebug() << __PRETTY_FUNCTION__;
-
-    if (!m_client)
-        return;
 
     QVariantMap request;
     request.insert("@type", "getChatHistory");
@@ -579,9 +549,6 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
     qDebug() << __PRETTY_FUNCTION__;
-
-    if (!m_client)
-        return;
 
     QVariantMap formattedText, inputMessageContent;
     formattedText.insert("@type", "formattedText");
@@ -608,9 +575,6 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
 {
     qDebug() << __PRETTY_FUNCTION__;
 
-    if (!m_client)
-        return;
-
     QVariantMap request;
     request.insert("@type", "viewMessages");
     request.insert("chat_id", m_selectedChat->id());
@@ -624,9 +588,6 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
     qDebug() << __PRETTY_FUNCTION__;
-
-    if (!m_client)
-        return;
 
     QVariantMap request;
     request.insert("@type", "deleteMessages");
@@ -930,9 +891,6 @@ void MessageModel::insertMessages(const QVariantList &messages) noexcept
 void MessageModel::loadMessages() noexcept
 {
     qDebug() << __PRETTY_FUNCTION__;
-
-    if (!m_selectedChat)
-        return;
 
     const auto unread = m_selectedChat->unreadCount() > 0;
 

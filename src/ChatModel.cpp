@@ -126,9 +126,6 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return {};
 
-    if (!m_locale && !m_storageManager)
-        return {};
-
     const auto chatId = m_chatIds.at(index.row());
     const auto chat = m_storageManager->getChat(chatId);
 
@@ -241,9 +238,6 @@ bool ChatModel::isMuted(int index) const noexcept
 
 void ChatModel::toggleChatIsPinned(int index)
 {
-    if (!m_client)
-        return;
-
     QModelIndex modelIndex = createIndex(index, 0);
 
     QVariantMap result;
@@ -260,9 +254,6 @@ void ChatModel::toggleChatIsPinned(int index)
 
 void ChatModel::toggleChatNotificationSettings(int index)
 {
-    if (!m_client)
-        return;
-
     QModelIndex modelIndex = createIndex(index, 0);
 
     const auto chatId = data(modelIndex, IdRole).toLongLong();
@@ -289,9 +280,6 @@ void ChatModel::toggleChatNotificationSettings(int index)
 
 void ChatModel::populate()
 {
-    if (!m_client)
-        return;
-
     m_chatIds.clear();
 
     const auto chatIds = m_storageManager->getChatIds();
@@ -357,9 +345,6 @@ void ChatModel::refresh()
 
 void ChatModel::sortChats()
 {
-    if (!m_client)
-        return;
-
     emit layoutAboutToBeChanged();
 
     std::ranges::sort(m_chatIds, [&](auto a, auto b) {
@@ -415,9 +400,6 @@ void ChatModel::handleChatPhoto(const QVariantMap &file)
 
 void ChatModel::loadChats()
 {
-    if (!m_client)
-        return;
-
     switch (m_chatList)
     {
         case TdApi::ChatListMain:

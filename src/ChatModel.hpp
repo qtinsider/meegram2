@@ -6,7 +6,6 @@
 #include <QTimer>
 #include <QVector>
 
-class Chat;
 class Client;
 class Locale;
 class StorageManager;
@@ -96,8 +95,6 @@ private:
     Client *m_client{};
     Locale *m_locale{};
     StorageManager *m_storageManager{};
-
-    Chat *m_selectedChat{};
 
     bool m_loading = true;
 

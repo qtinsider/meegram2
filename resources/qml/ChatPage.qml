@@ -6,7 +6,11 @@ import "components"
 Page {
     id: root
 
+    property alias locale: myMessageModel.locale
+    property alias storage: myMessageModel.storageManager
+
     property alias chat: myMessageModel.selectedChat
+
 
     property int replyMessageId: 0
     property int editMessageId: 0

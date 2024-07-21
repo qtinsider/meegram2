@@ -153,9 +153,9 @@ Page {
         target: app
 
         onAppInitialized: {
-            if (app.authorized)
-                pageStack.push(Qt.resolvedUrl("ChatsPage.qml"));
-            else
+            if (app.authorized) {
+                pageStack.push(Qt.createComponent("ChatsPage.qml"), { locale: app.locale, storage: app.storageManager });
+            } else
                 loader.sourceComponent = infoComponent;
         }
     }
