@@ -1,6 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
-import com.strawberry.meegram 1.0
+import MyComponent 1.0
 import "components"
 
 Page {

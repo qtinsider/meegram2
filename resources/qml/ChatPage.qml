@@ -1,6 +1,6 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
-import com.strawberry.meegram 1.0
+import MyComponent 1.0
 import "components"
 
 Page {
@@ -373,9 +373,6 @@ Page {
 
     MessageModel {
         id: myMessageModel
-
-        locale: app.locale
-        storageManager: app.storageManager
 
         onMoreHistoriesLoaded: {
             listView.positionViewAtIndex(modelIndex - 1, ListView.Beginning)
