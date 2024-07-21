@@ -249,6 +249,8 @@ void MessageModel::setSelectedChat(Chat *value)
     if (m_selectedChat != value)
     {
         m_selectedChat = value;
+
+        emit selectedChatChanged();
     }
 }
 
@@ -518,6 +520,8 @@ void MessageModel::openChat() noexcept
     request.insert("chat_id", m_selectedChat->id());
 
     m_client->send(request);
+
+    loadMessages();
 }
 
 void MessageModel::closeChat() noexcept
@@ -808,85 +812,93 @@ void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMess
 
 void MessageModel::handleMessages(const QVariantMap &messages)
 {
-    // const auto list = messages.value("messages").toList();
+    qDebug() << __PRETTY_FUNCTION__;
 
-    // QVariantList result;
-    // std::ranges::copy_if(list, std::back_inserter(result), [this](const auto &message) {
-    //     return !m_messageIds.contains(message.toMap().value("id").toLongLong()) && message.toMap().value("chat_id").toString() == m_chatId;
-    // });
+    QList<Message *> result;
 
-    // if (result.isEmpty())
-    // {
-    //     m_loadingHistory ? m_loadingHistory = false : m_loading = false;
-    //     emit loadingChanged();
-    // }
-    // else
-    // {
-    //     std::sort(result.begin(), result.end(),
-    //               [](const auto &a, const auto &b) { return a.toMap().value("id").toLongLong() < b.toMap().value("id").toLongLong(); });
+    for (const auto &value : messages.value("messages").toList())
+    {
+        auto *message = new Message();
+        message->setFromVariantMap(value.toMap());
 
-    //     insertMessages(result);
-    // }
+        result.append(message);
+    }
 
-    // emit countChanged();
+    if (result.isEmpty())
+    {
+        if (m_loadingHistory)
+        {
+            m_loadingHistory = false;
+        }
+        else
+        {
+            m_loading = false;
+        }
+        emit loadingChanged();
+    }
+    else
+    {
+        std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) { return a->id() < b->id(); });
+        insertMessages(result);
+    }
+
+    emit countChanged();
 }
 
-void MessageModel::insertMessages(const QVariantList &messages) noexcept
+void MessageModel::insertMessages(const QList<Message *> &messages) noexcept
 {
     qDebug() << __PRETTY_FUNCTION__;
 
-    // if (m_loadingHistory)
-    // {
-    //     m_loadingHistory = false;
+    if (m_loadingHistory)
+    {
+        m_loadingHistory = false;
 
-    //     int offset = 0;
+        beginInsertRows(QModelIndex(), 0, messages.count() - 1);
 
-    //     beginInsertRows(QModelIndex(), 0, messages.count() - 1);
+        int offset = 0;
+        std::ranges::for_each(messages, [this, &offset](auto message) {
+            m_messages.insert(offset++, message);
+            m_messageIds.emplace(message->id());
+        });
 
-    //     std::ranges::for_each(messages, [this, &offset](const auto &message) {
-    //         m_messages.insert(offset, message.toMap());
-    //         m_messageIds.emplace(message.toMap().value("id").toLongLong());
-    //         ++offset;
-    //     });
+        endInsertRows();
 
-    //     endInsertRows();
+        if (!messages.isEmpty())
+            emit moreHistoriesLoaded(messages.count());
+    }
 
-    //     if (offset > 0)
-    //         emit moreHistoriesLoaded(offset);
-    // }
+    if (m_loading)
+    {
+        m_loading = false;
 
-    // if (m_loading)
-    // {
-    //     m_loading = false;
+        beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
 
-    //     beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
+        std::ranges::for_each(messages, [this](auto message) {
+            m_messages.append(message);
+            m_messageIds.emplace(message->id());
+        });
 
-    //     std::ranges::for_each(messages, [this](const auto &message) {
-    //         m_messages.append(message.toMap());
-    //         m_messageIds.emplace(message.toMap().value("id").toLongLong());
-    //     });
+        endInsertRows();
 
-    //     endInsertRows();
+        if (m_selectedChat->unreadCount() > 0)
+        {
+            QVariantList messageIds;
+            std::ranges::for_each(messages, [this, &messageIds](auto message) {
+                auto id = message->id();
+                if (!message->isOutgoing() && id > m_selectedChat->lastReadInboxMessageId())
+                {
+                    messageIds.append(id);
+                }
+            });
 
-    //     QVariantList messageIds;
+            if (!messageIds.isEmpty())
+                viewMessages(messageIds);
+        }
+    }
 
-    //     std::ranges::for_each(messages, [this, &messageIds](const auto &message) {
-    //         if (m_chat->unreadCount() > 0)
-    //         {
-    //             auto id = message.toMap().value("id").toLongLong();
-    //             if (!message.toMap().value("is_outgoing").toBool() && id > m_chat->lastReadInboxMessageId())
-    //             {
-    //                 messageIds.append(id);
-    //             }
-    //         }
-    //     });
-
-    //     if (messageIds.size() > 0)
-    //         viewMessages(messageIds);
-    // }
-
-    // emit loadingChanged();
+    emit loadingChanged();
 }
+
 
 void MessageModel::loadMessages() noexcept
 {

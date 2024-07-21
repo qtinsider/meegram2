@@ -19,9 +19,9 @@ class MessageModel : public QAbstractListModel
 
     Q_PROPERTY(Chat *selectedChat READ selectedChat WRITE setSelectedChat NOTIFY selectedChatChanged)
 
-    Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY statusChanged)
-    Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY statusChanged)
-    Q_PROPERTY(QString chatPhoto READ getChatPhoto NOTIFY statusChanged)
+    Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY selectedChatChanged)
+    Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY selectedChatChanged)
+    Q_PROPERTY(QString chatPhoto READ getChatPhoto NOTIFY selectedChatChanged)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
@@ -109,7 +109,6 @@ public:
 signals:
     void countChanged();
     void moreHistoriesLoaded(int modelIndex);
-    void statusChanged();
     void loadingChanged();
     void selectedChatChanged();
 
@@ -135,7 +134,7 @@ private slots:
 
 private:
     void handleMessages(const QVariantMap &messages);
-    void insertMessages(const QVariantList &messages) noexcept;
+    void insertMessages(const QList<Message *> &messages) noexcept;
 
     void loadMessages() noexcept;
 
