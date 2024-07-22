@@ -23,7 +23,7 @@
 #include <utility>
 
 namespace detail {
-QString getBasicGroupStatus(const BasicGroup *basicGroup, const QVariantMap &chat, Locale *locale) noexcept
+QString getBasicGroupStatus(const BasicGroup *basicGroup, int onlineCount, Locale *locale) noexcept
 {
     const auto statusType = basicGroup->status().value("@type").toByteArray();
     const auto count = basicGroup->memberCount();
@@ -39,7 +39,6 @@ QString getBasicGroupStatus(const BasicGroup *basicGroup, const QVariantMap &cha
         return memberString;
     }
 
-    const auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
         return memberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
@@ -48,7 +47,7 @@ QString getBasicGroupStatus(const BasicGroup *basicGroup, const QVariantMap &cha
     return memberString;
 }
 
-QString getChannelStatus(const Supergroup *supergroup, const QVariantMap &chat, StorageManager *store, Locale *locale) noexcept
+QString getChannelStatus(const Supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
 {
     const auto isChannel = supergroup->isChannel();
     if (!isChannel)
@@ -79,7 +78,6 @@ QString getChannelStatus(const Supergroup *supergroup, const QVariantMap &chat, 
         return subscriberString;
     }
 
-    const auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
         return subscriberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
@@ -88,7 +86,7 @@ QString getChannelStatus(const Supergroup *supergroup, const QVariantMap &chat, 
     return subscriberString;
 }
 
-QString getSupergroupStatus(const Supergroup *supergroup, const QVariantMap &chat, StorageManager *store, Locale *locale) noexcept
+QString getSupergroupStatus(const Supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
 {
     const auto statusType = supergroup->status().value("@type").toByteArray();
     const auto username = supergroup->usernames();
@@ -126,7 +124,6 @@ QString getSupergroupStatus(const Supergroup *supergroup, const QVariantMap &cha
         return memberString;
     }
 
-    const auto onlineCount = chat.value("online_member_count").toInt();
     if (onlineCount > 1)
     {
         return memberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
@@ -444,24 +441,24 @@ bool MessageModel::loadingHistory() const noexcept
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    static const std::unordered_map<std::string, std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
+    static const std::unordered_map<std::string, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>>
         chatTypeHandlers = {{"chatTypeBasicGroup",
-                             [](const QVariantMap &type, const Chat *, StorageManager *store, Locale *locale) {
-                                 return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()), {},
-                                                                    locale);
+                             [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
+                                 return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()),
+                                                                    onlineCount, locale);
                              }},
                             {"chatTypePrivate",
-                             [](const QVariantMap &type, const Chat *, StorageManager *store, Locale *locale) {
+                             [](const QVariantMap &type, int, StorageManager *store, Locale *locale) {
                                  return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
                              }},
                             {"chatTypeSecret",
-                             [](const QVariantMap &type, const Chat *, StorageManager *store, Locale *locale) {
+                             [](const QVariantMap &type, int, StorageManager *store, Locale *locale) {
                                  return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
                              }},
-                            {"chatTypeSupergroup", [](const QVariantMap &type, const Chat *, StorageManager *store, Locale *locale) {
+                            {"chatTypeSupergroup", [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
                                  const auto supergroup = store->getSupergroup(type.value("supergroup_id").toLongLong());
-                                 return supergroup->isChannel() ? detail::getChannelStatus(supergroup, {}, store, locale)
-                                                                : detail::getSupergroupStatus(supergroup, {}, store, locale);
+                                 return supergroup->isChannel() ? detail::getChannelStatus(supergroup, onlineCount, store, locale)
+                                                                : detail::getSupergroupStatus(supergroup, onlineCount, store, locale);
                              }}};
 
     const auto type = m_selectedChat->type();
@@ -469,7 +466,7 @@ QString MessageModel::getChatSubtitle() const noexcept
 
     if (auto it = chatTypeHandlers.find(chatType.toStdString()); it != chatTypeHandlers.end())
     {
-        return it->second(type, {}, m_storageManager, m_locale);
+        return it->second(type, m_onlineCount, m_storageManager, m_locale);
     }
 
     return QString();
@@ -653,6 +650,19 @@ void MessageModel::handleResult(const QVariantMap &object)
              handleMessageInteractionInfo(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
                                           obj.value("interaction_info").toMap());
          }},
+        {"updateChatOnlineMemberCount",
+         [this](const QVariantMap &obj) {
+             handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_count").toInt());
+         }},
+        {"updateChatReadInbox",
+         [this](const QVariantMap &obj) {
+             handleChatReadInbox(obj.value("chat_id").toLongLong(), obj.value("last_read_inbox_message_id").toLongLong(),
+                                 obj.value("online_count").toInt());
+         }},
+        {"updateChatReadOutbox",
+         [this](const QVariantMap &obj) {
+             handleChatReadOutbox(obj.value("chat_id").toLongLong(), obj.value("last_read_outbox_message_id").toLongLong());
+         }},
     };
 
     const auto objectType = object.value("@type").toString().toStdString();
@@ -687,7 +697,6 @@ void MessageModel::handleNewMessage(const QVariantMap &message)
         emit countChanged();
     }
 }
-
 
 void MessageModel::handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId)
 {
@@ -764,9 +773,9 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
     if (chatId != m_selectedChat->id())
         return;
 
-    for (const auto &messageIdVar : messageIds)
+    for (const auto &value : messageIds)
     {
-        qint64 messageId = messageIdVar.toLongLong();
+        auto messageId = value.toLongLong();
         if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
             it != m_messages.end())
         {
@@ -781,13 +790,12 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
 
 void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount)
 {
-    // if (chatId == m_chatId.toLongLong())
-    // {
-    //     m_chat.insert("online_member_count", onlineMemberCount);
+    if (chatId == m_selectedChat->id())
+    {
+        m_onlineCount = onlineMemberCount;
 
-    //     emit chatIdChanged();
-    //     emit statusChanged();
-    // }
+        emit selectedChatChanged();
+    }
 }
 
 void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
@@ -806,14 +814,17 @@ void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMess
     if (chatId != m_selectedChat->id())
     {
         m_selectedChat->setLastReadOutboxMessageId(lastReadOutboxMessageId);
+
         emit selectedChatChanged();
     }
 }
 
 void MessageModel::handleMessages(const QVariantMap &messages)
 {
-    const auto list = messages.value("messages").toList();
+    auto list = messages.value("messages").toList();
+
     std::vector<std::unique_ptr<Message>> result;
+
     result.reserve(list.size());
 
     for (const auto &value : list)
@@ -903,7 +914,7 @@ void MessageModel::handleNewMessages(std::vector<std::unique_ptr<Message>> messa
         }
 
         if (!messageIds.isEmpty())
-            emit viewMessages(messageIds);
+            viewMessages(messageIds);
     }
 }
 

@@ -154,6 +154,8 @@ private:
     Locale *m_locale{};
     StorageManager *m_storageManager{};
 
+    int m_onlineCount = 0;
+
     bool m_loading = true;
     bool m_loadingHistory = true;
 
