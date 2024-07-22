@@ -4,7 +4,8 @@
 
 #include <QAbstractListModel>
 #include <QTimer>
-#include <QVector>
+
+#include <vector>
 
 class Client;
 class Locale;
@@ -106,7 +107,7 @@ private:
     QTimer *m_sortTimer;
     QTimer *m_loadingTimer;
 
-    QVector<qint64> m_chatIds;
-
     QVariantMap m_list;
+
+    std::vector<int64_t> m_chatIds;
 };

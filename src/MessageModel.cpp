@@ -259,7 +259,7 @@ int MessageModel::rowCount(const QModelIndex &parent) const
     if (parent.isValid())
         return 0;
 
-    return m_messages.count();
+    return m_messages.size();
 }
 
 bool MessageModel::canFetchMore(const QModelIndex &parent) const
@@ -267,8 +267,13 @@ bool MessageModel::canFetchMore(const QModelIndex &parent) const
     if (parent.isValid())
         return false;
 
-    if (m_messages.size() > 0)
-        return !m_loading && m_selectedChat->lastMessage()->id() != *std::ranges::max_element(m_messageIds);
+    if (!m_messages.empty())
+    {
+        if (auto max = std::ranges::max(m_messageIds); max.has_value())
+        {
+            return !m_loading && m_selectedChat->lastMessage()->id() != *max;
+        }
+    }
 
     return false;
 }
@@ -280,13 +285,12 @@ void MessageModel::fetchMore(const QModelIndex &parent)
 
     if (!m_loading)
     {
-        if (auto max = std::ranges::max_element(m_messageIds); max != m_messageIds.end())
+        if (auto max = std::ranges::max(m_messageIds); max.has_value())
         {
             getChatHistory(*max, -MessageSliceLimit, MessageSliceLimit);
         }
 
         m_loading = true;
-
         emit loadingChanged();
     }
 }
@@ -305,7 +309,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             if (message->isOutgoing())
                 return QString();
 
-            return Utils::getTitle(message, m_storageManager, m_locale);
+            return Utils::getTitle(message.get(), m_storageManager, m_locale);
         }
         case ChatIdRole:
             return message->chatId();
@@ -365,7 +369,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case BubbleColorRole:
             return QVariant();
         case IsServiceMessageRole: {
-            return Utils::isServiceMessage(message);
+            return Utils::isServiceMessage(message.get());
         }
         case SectionRole: {
             const auto date = QDateTime::fromMSecsSinceEpoch(message->date() * 1000);
@@ -380,7 +384,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return date.toString(m_locale->getString("chatFullDate"));
         }
         case ServiceMessageRole: {
-            return Utils::getServiceMessageContent(message, m_storageManager, m_locale, true);
+            return Utils::getServiceMessageContent(message.get(), m_storageManager, m_locale, true);
         }
     }
     return QVariant();
@@ -425,7 +429,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const noexcept
 
 int MessageModel::count() const noexcept
 {
-    return m_messages.count();
+    return m_messages.size();
 }
 
 bool MessageModel::loading() const noexcept
@@ -499,22 +503,30 @@ QString MessageModel::getFormattedText(const QVariantMap &formattedText, const Q
 
 void MessageModel::loadHistory() noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
-    if (auto min = std::ranges::min_element(m_messageIds); min != m_messageIds.end() && !m_loadingHistory)
+    if (m_messageIds.empty())
     {
+        qDebug() << "No messages available to load history.";
+        return;
+    }
+
+    if (auto min = std::ranges::min(m_messageIds); min.has_value() && !m_loadingHistory)
+    {
+        qDebug() << "Loading history starting from message ID:" << *min;
+
         m_loadingHistory = true;
 
         getChatHistory(*min, 0, MessageSliceLimit);
 
         emit loadingChanged();
     }
+    else
+    {
+        qDebug() << "No minimum message ID found or already loading history.";
+    }
 }
 
 void MessageModel::openChat() noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap request;
     request.insert("@type", "openChat");
     request.insert("chat_id", m_selectedChat->id());
@@ -526,8 +538,6 @@ void MessageModel::openChat() noexcept
 
 void MessageModel::closeChat() noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap request;
     request.insert("@type", "closeChat");
     request.insert("chat_id", m_selectedChat->id());
@@ -537,8 +547,6 @@ void MessageModel::closeChat() noexcept
 
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap request;
     request.insert("@type", "getChatHistory");
     request.insert("chat_id", m_selectedChat->id());
@@ -552,8 +560,6 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap formattedText, inputMessageContent;
     formattedText.insert("@type", "formattedText");
     formattedText.insert("text", message);
@@ -577,8 +583,6 @@ void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 
 void MessageModel::viewMessages(const QVariantList &messageIds)
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap request;
     request.insert("@type", "viewMessages");
     request.insert("chat_id", m_selectedChat->id());
@@ -591,8 +595,6 @@ void MessageModel::viewMessages(const QVariantList &messageIds)
 
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     QVariantMap request;
     request.insert("@type", "deleteMessages");
     request.insert("chat_id", m_selectedChat->id());
@@ -604,9 +606,7 @@ void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 
 void MessageModel::refresh() noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
-    if (m_messages.isEmpty())
+    if (m_messages.empty())
         return;
 
     m_loading = true;
@@ -668,22 +668,26 @@ void MessageModel::handleNewMessage(const QVariantMap &message)
     if (m_selectedChat->id() != message.value("chat_id").toLongLong())
         return;
 
-    if (auto lastMessageId = m_selectedChat->lastMessage()->id(); m_messageIds.contains(lastMessageId))
+    if (auto lastMessage = m_selectedChat->lastMessage(); m_messageIds.contains(lastMessage->id()))
     {
         beginInsertRows(QModelIndex(), rowCount(), rowCount());
 
-        Message *msg = new Message(this);
-        msg->setFromVariantMap(message);
+        auto newMessage = std::make_unique<Message>();
+        newMessage->setFromVariantMap(message);
 
-        m_messages.append(msg);
-        m_messageIds.insert(msg->id());
+        auto id = newMessage->id();
+        m_messageIds.insert(id);
+
+        m_messages.push_back(std::move(newMessage));
+
         endInsertRows();
 
-        viewMessages(QVariantList() << message.value("id").toLongLong());
+        viewMessages(QVariantList() << id);
 
         emit countChanged();
     }
 }
+
 
 void MessageModel::handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId)
 {
@@ -698,7 +702,7 @@ void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const Q
     if (chatId != m_selectedChat->id())
         return;
 
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
+    auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
 
     if (it != m_messages.end())
     {
@@ -714,9 +718,8 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
     if (chatId != m_selectedChat->id())
         return;
 
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
-
-    if (it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
+        it != m_messages.end())
     {
         (*it)->setEditDate(editDate);
         (*it)->setReplyMarkup(replyMarkup);
@@ -731,9 +734,8 @@ void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool i
     if (chatId != m_selectedChat->id())
         return;
 
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
-
-    if (it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
+        it != m_messages.end())
     {
         (*it)->setIsPinned(isPinned);
 
@@ -747,9 +749,8 @@ void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId,
     if (chatId != m_selectedChat->id())
         return;
 
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto *message) { return message->id() == messageId; });
-
-    if (it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
+        it != m_messages.end())
     {
         (*it)->setInteractionInfo(interactionInfo);
 
@@ -763,17 +764,16 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
     if (chatId != m_selectedChat->id())
         return;
 
-    QListIterator<QVariant> it(messageIds);
-    while (it.hasNext())
+    for (const auto &messageIdVar : messageIds)
     {
-        auto result = std::ranges::find_if(m_messages, [&](const auto *message) { return message->id() == it.next().toLongLong(); });
-
-        if (result != m_messages.end())
+        qint64 messageId = messageIdVar.toLongLong();
+        if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
+            it != m_messages.end())
         {
-            auto index = std::distance(m_messages.begin(), result);
+            auto index = std::distance(m_messages.begin(), it);
 
             beginRemoveRows(QModelIndex(), index, index);
-            m_messages.removeAt(index);
+            m_messages.erase(it);
             endRemoveRows();
         }
     }
@@ -812,98 +812,103 @@ void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMess
 
 void MessageModel::handleMessages(const QVariantMap &messages)
 {
-    qDebug() << __PRETTY_FUNCTION__;
+    const auto list = messages.value("messages").toList();
+    std::vector<std::unique_ptr<Message>> result;
+    result.reserve(list.size());
 
-    QList<Message *> result;
-
-    for (const auto &value : messages.value("messages").toList())
+    for (const auto &value : list)
     {
-        auto *message = new Message();
+        auto message = std::make_unique<Message>();
         message->setFromVariantMap(value.toMap());
-
-        result.append(message);
+        result.push_back(std::move(message));
     }
 
-    if (result.isEmpty())
+    if (result.empty())
     {
-        if (m_loadingHistory)
-        {
-            m_loadingHistory = false;
-        }
-        else
-        {
-            m_loading = false;
-        }
-        emit loadingChanged();
+        finalizeLoading();
     }
     else
     {
-        std::sort(result.begin(), result.end(), [](const auto &a, const auto &b) { return a->id() < b->id(); });
-        insertMessages(result);
+        std::ranges::sort(result, std::ranges::less{}, &Message::id);
+        insertMessages(std::move(result));
     }
 
     emit countChanged();
 }
 
-void MessageModel::insertMessages(const QList<Message *> &messages) noexcept
+void MessageModel::insertMessages(std::vector<std::unique_ptr<Message>> messages) noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
+    processMessages(messages);
 
     if (m_loadingHistory)
     {
         m_loadingHistory = false;
+        auto count = static_cast<int>(messages.size());
 
-        beginInsertRows(QModelIndex(), 0, messages.count() - 1);
+        beginInsertRows(QModelIndex(), 0, count - 1);
 
-        int offset = 0;
-        std::ranges::for_each(messages, [this, &offset](auto message) {
-            m_messages.insert(offset++, message);
-            m_messageIds.emplace(message->id());
-        });
+        // Insert messages
+        m_messages.insert(m_messages.begin(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
 
         endInsertRows();
-
-        if (!messages.isEmpty())
-            emit moreHistoriesLoaded(messages.count());
+        emit moreHistoriesLoaded(count);
     }
-
-    if (m_loading)
+    else if (m_loading)
     {
-        m_loading = false;
-
-        beginInsertRows(QModelIndex(), rowCount(), rowCount() + messages.count() - 1);
-
-        std::ranges::for_each(messages, [this](auto message) {
-            m_messages.append(message);
-            m_messageIds.emplace(message->id());
-        });
-
-        endInsertRows();
-
-        if (m_selectedChat->unreadCount() > 0)
-        {
-            QVariantList messageIds;
-            std::ranges::for_each(messages, [this, &messageIds](auto message) {
-                auto id = message->id();
-                if (!message->isOutgoing() && id > m_selectedChat->lastReadInboxMessageId())
-                {
-                    messageIds.append(id);
-                }
-            });
-
-            if (!messageIds.isEmpty())
-                viewMessages(messageIds);
-        }
+        handleNewMessages(std::move(messages));
     }
 
     emit loadingChanged();
 }
 
+void MessageModel::finalizeLoading() noexcept
+{
+    if (m_loadingHistory)
+        m_loadingHistory = false;
+    else
+        m_loading = false;
+
+    emit loadingChanged();
+}
+
+void MessageModel::processMessages(const std::vector<std::unique_ptr<Message>> &messages) noexcept
+{
+    for (const auto &message : messages)
+    {
+        m_messageIds.emplace(message->id());
+    }
+}
+
+void MessageModel::handleNewMessages(std::vector<std::unique_ptr<Message>> messages) noexcept
+{
+    m_loading = false;
+
+    auto rowCountBefore = rowCount();
+    auto count = static_cast<int>(messages.size());
+
+    beginInsertRows(QModelIndex(), rowCountBefore, rowCountBefore + count - 1);
+    m_messages.insert(m_messages.end(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
+    endInsertRows();
+
+    if (m_selectedChat && m_selectedChat->unreadCount() > 0)
+    {
+        QVariantList messageIds;
+        for (const auto &message : messages)
+        {
+            auto id = message->id();
+            if (!message->isOutgoing() && id > m_selectedChat->lastReadInboxMessageId())
+            {
+                messageIds.append(id);
+            }
+        }
+
+        if (!messageIds.isEmpty())
+            emit viewMessages(messageIds);
+    }
+}
 
 void MessageModel::loadMessages() noexcept
 {
-    qDebug() << __PRETTY_FUNCTION__;
-
     const auto unread = m_selectedChat->unreadCount() > 0;
 
     const auto fromMessageId = unread ? m_selectedChat->lastReadInboxMessageId() : m_selectedChat->lastMessage()->id();

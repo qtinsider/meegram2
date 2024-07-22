@@ -99,7 +99,7 @@ bool ChatModel::canFetchMore(const QModelIndex &parent) const
     if (parent.isValid())
         return false;
 
-    return m_count < m_chatIds.count();
+    return m_count < m_chatIds.size();
 }
 
 void ChatModel::fetchMore(const QModelIndex &parent)
@@ -107,7 +107,7 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     if (parent.isValid())
         return;
 
-    const auto itemsToFetch = qMin(ChatSliceLimit, m_chatIds.size() - m_count);
+    const auto itemsToFetch = std::min(ChatSliceLimit, static_cast<int>(m_chatIds.size()) - m_count);
 
     if (itemsToFetch <= 0)
         return;
@@ -291,7 +291,7 @@ void ChatModel::populate()
         {
             if (Utils::chatListEquals(position.toMap().value("list").toMap(), m_list))
             {
-                m_chatIds.append(id);
+                m_chatIds.push_back(id);
                 break;  // No need to check further positions for this chat
             }
         }
@@ -315,7 +315,7 @@ void ChatModel::populate()
 
     sortChats();
 
-    if (!m_chatIds.isEmpty())
+    if (!m_chatIds.empty())
     {
         fetchMore();
     }

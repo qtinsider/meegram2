@@ -1,13 +1,17 @@
 #pragma once
 
+#include "Message.hpp"
+
 #include <QAbstractListModel>
 
+#include <memory>
+#include <optional>
 #include <unordered_set>
+#include <vector>
 
 class Chat;
 class Client;
 class Locale;
-class Message;
 class StorageManager;
 
 class MessageModel : public QAbstractListModel
@@ -134,7 +138,11 @@ private slots:
 
 private:
     void handleMessages(const QVariantMap &messages);
-    void insertMessages(const QList<Message *> &messages) noexcept;
+    void insertMessages(std::vector<std::unique_ptr<Message>> messages) noexcept;
+
+    void finalizeLoading() noexcept;
+    void processMessages(const std::vector<std::unique_ptr<Message>> &messages) noexcept;
+    void handleNewMessages(std::vector<std::unique_ptr<Message>> messages) noexcept;
 
     void loadMessages() noexcept;
 
@@ -146,10 +154,9 @@ private:
     Locale *m_locale{};
     StorageManager *m_storageManager{};
 
-    QList<Message *> m_messages;
-
     bool m_loading = true;
     bool m_loadingHistory = true;
 
-    std::unordered_set<int64_t> m_messageIds;
+    std::vector<std::unique_ptr<Message>> m_messages;
+    std::unordered_set<std::optional<qint64>> m_messageIds;
 };
