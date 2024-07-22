@@ -1,17 +1,9 @@
 #include "StorageManager.hpp"
 
-#include "BasicGroup.hpp"
-#include "BasicGroupFullInfo.hpp"
-#include "Chat.hpp"
-#include "Client.hpp"
 #include "Common.hpp"
-#include "File.hpp"
-#include "Message.hpp"
-#include "Supergroup.hpp"
-#include "SupergroupFullInfo.hpp"
-#include "User.hpp"
-#include "UserFullInfo.hpp"
 #include "Utils.hpp"
+
+#include <QDebug>
 
 #include <algorithm>
 #include <ranges>
@@ -39,40 +31,40 @@ BasicGroup *StorageManager::getBasicGroup(qint64 groupId) const
 {
     if (auto it = m_basicGroup.find(groupId); it != m_basicGroup.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 BasicGroupFullInfo *StorageManager::getBasicGroupFullInfo(qint64 groupId) const
 {
     if (auto it = m_basicGroupFullInfo.find(groupId); it != m_basicGroupFullInfo.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 Chat *StorageManager::getChat(qint64 chatId) const
 {
     if (auto it = m_chats.find(chatId); it != m_chats.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 File *StorageManager::getFile(qint32 fileId) const
 {
     if (auto it = m_files.find(fileId); it != m_files.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 QVariant StorageManager::getOption(const QString &name) const
@@ -87,40 +79,40 @@ Supergroup *StorageManager::getSupergroup(qint64 groupId) const
 {
     if (auto it = m_supergroup.find(groupId); it != m_supergroup.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 SupergroupFullInfo *StorageManager::getSupergroupFullInfo(qint64 groupId) const
 {
     if (auto it = m_supergroupFullInfo.find(groupId); it != m_supergroupFullInfo.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 User *StorageManager::getUser(qint64 userId) const
 {
     if (auto it = m_users.find(userId); it != m_users.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 UserFullInfo *StorageManager::getUserFullInfo(qint64 userId) const
 {
     if (auto it = m_userFullInfo.find(userId); it != m_userFullInfo.end())
     {
-        return it->second;
+        return it->second.get();
     }
 
-    return {};
+    return nullptr;
 }
 
 QVariantList StorageManager::getChatFolders() const noexcept
@@ -141,16 +133,13 @@ void StorageManager::handleResult(const QVariantMap &object)
     static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
         {"updateNewChat",
          [this](const QVariantMap &object) {
-             Chat *chat = new Chat(this);
-
+             auto chat = std::make_unique<Chat>();
              chat->setFromVariantMap(object.value("chat").toMap());
-
-             m_chats.emplace(chat->id(), chat);
+             m_chats.emplace(chat->id(), std::move(chat));
          }},
         {"updateChatTitle",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setTitle(object.value("title").toString());
@@ -160,7 +149,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatPhoto",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setPhoto(object.value("photo").toMap());
@@ -170,7 +158,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatPermissions",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setPermissions(object.value("permissions").toMap());
@@ -181,14 +168,11 @@ void StorageManager::handleResult(const QVariantMap &object)
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
              const auto positions = object.value("positions").toList();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
-                 Message *message = new Message(this);
-
+                 auto message = std::make_unique<Message>();
                  message->setFromVariantMap(object.value("last_message").toMap());
-
-                 it->second->setLastMessage(message);
+                 it->second->setLastMessage(message.release());  // Release ownership
                  if (!positions.isEmpty())
                      emit updateChatPosition(chatId);
                  emit updateChatItem(chatId);
@@ -204,7 +188,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatReadInbox",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setLastReadInboxMessageId(object.value("last_read_inbox_message_id").toLongLong());
@@ -215,7 +198,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatReadOutbox",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setLastReadOutboxMessageId(object.value("last_read_outbox_message_id").toLongLong());
@@ -225,7 +207,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatActionBar",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setActionBar(object.value("action_bar").toMap());
@@ -236,14 +217,11 @@ void StorageManager::handleResult(const QVariantMap &object)
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
              const auto positions = object.value("positions").toList();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
-                 Message *draftMessage = new Message(this);
-
+                 auto draftMessage = std::make_unique<Message>();
                  draftMessage->setFromVariantMap(object.value("draft_message").toMap());
-
-                 it->second->setDraftMessage(draftMessage);
+                 it->second->setDraftMessage(draftMessage.release());  // Release ownership
                  if (!positions.isEmpty())
                      emit updateChatPosition(chatId);
                  emit updateChatItem(chatId);
@@ -253,7 +231,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatNotificationSettings",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setNotificationSettings(object.value("notification_settings").toMap());
@@ -263,7 +240,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatReplyMarkup",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setReplyMarkupMessageId(object.value("reply_markup_message_id").toLongLong());
@@ -273,7 +249,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatUnreadMentionCount",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setUnreadMentionCount(object.value("unread_mention_count").toInt());
@@ -283,7 +258,6 @@ void StorageManager::handleResult(const QVariantMap &object)
         {"updateChatIsMarkedAsUnread",
          [this](const QVariantMap &object) {
              const auto chatId = object.value("chat_id").toLongLong();
-
              if (auto it = m_chats.find(chatId); it != m_chats.end())
              {
                  it->second->setIsMarkedAsUnread(object.value("is_marked_as_unread").toBool());
@@ -297,92 +271,91 @@ void StorageManager::handleResult(const QVariantMap &object)
          }},
         {"updateUser",
          [this](const QVariantMap &object) {
-             User *user = new User(this);
+             auto user = std::make_unique<User>();
              user->setFromVariantMap(object.value("user").toMap());
-
-             m_users.emplace(user->id(), user);
+             m_users.emplace(user->id(), std::move(user));
          }},
         {"updateBasicGroup",
          [this](const QVariantMap &object) {
-             BasicGroup *basicGroup = new BasicGroup(this);
+             auto basicGroup = std::make_unique<BasicGroup>();
              basicGroup->setFromVariantMap(object.value("basic_group").toMap());
-
-             m_basicGroup.emplace(basicGroup->id(), basicGroup);
+             m_basicGroup.emplace(basicGroup->id(), std::move(basicGroup));
          }},
         {"updateSupergroup",
          [this](const QVariantMap &object) {
-             Supergroup *supergroup = new Supergroup(this);
+             auto supergroup = std::make_unique<Supergroup>();
              supergroup->setFromVariantMap(object.value("supergroup").toMap());
-
-             m_supergroup.emplace(supergroup->id(), supergroup);
+             m_supergroup.emplace(supergroup->id(), std::move(supergroup));
          }},
         {"updateUserFullInfo",
          [this](const QVariantMap &object) {
-             UserFullInfo *userFullInfo = new UserFullInfo(this);
+             auto userFullInfo = std::make_unique<UserFullInfo>();
              userFullInfo->setFromVariantMap(object.value("user_full_info").toMap());
-
-             m_userFullInfo.emplace(object.value("user_id").toLongLong(), userFullInfo);
+             m_userFullInfo.emplace(object.value("user_id").toLongLong(), std::move(userFullInfo));
          }},
         {"updateBasicGroupFullInfo",
          [this](const QVariantMap &object) {
-             BasicGroupFullInfo *basicGroupFullInfo = new BasicGroupFullInfo(this);
+             auto basicGroupFullInfo = std::make_unique<BasicGroupFullInfo>();
              basicGroupFullInfo->setFromVariantMap(object.value("basic_group_full_info").toMap());
-
-             m_basicGroupFullInfo.emplace(object.value("basic_group_id").toLongLong(), basicGroupFullInfo);
+             m_basicGroupFullInfo.emplace(object.value("basic_group_id").toLongLong(), std::move(basicGroupFullInfo));
          }},
         {"updateSupergroupFullInfo",
          [this](const QVariantMap &object) {
-             SupergroupFullInfo *supergroupFullInfo = new SupergroupFullInfo(this);
+             auto supergroupFullInfo = std::make_unique<SupergroupFullInfo>();
              supergroupFullInfo->setFromVariantMap(object.value("supergroup_full_info").toMap());
-
-             m_supergroupFullInfo.emplace(object.value("supergroup_id").toLongLong(), supergroupFullInfo);
+             m_supergroupFullInfo.emplace(object.value("supergroup_id").toLongLong(), std::move(supergroupFullInfo));
          }},
         {"updateFile",
          [this](const QVariantMap &object) {
-             File *file = new File(this);
+             auto file = std::make_unique<File>();
              file->setFromVariantMap(object.value("file").toMap());
-
-             m_files.emplace(file->id(), file);
+             m_files.emplace(file->id(), std::move(file));
          }},
         {"updateOption", [this](const QVariantMap &object) {
              m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value"));
          }}};
 
     const auto objectType = object.value("@type").toString().toStdString();
-
     if (auto it = handlers.find(objectType); it != handlers.end())
     {
-        it->second(object);
+        try
+        {
+            it->second(object);
+        }
+        catch (const std::exception &e)
+        {
+            qCritical() << "Error handling object type" << QString::fromStdString(objectType) << ":" << e.what();
+        }
     }
 }
 
 void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positions) noexcept
 {
-    auto it = m_chats.find(chatId);
-    if (it == m_chats.end())
+    if (auto it = m_chats.find(chatId); it == m_chats.end())
     {
         return;  // Early return if chatId is not found
     }
-
-    auto currentPositions = it->second->positions();  // Use a local variable to hold the list
-
-    // Update or append positions
-    for (const auto &position : positions)
+    else
     {
-        auto removeIt = std::ranges::find_if(currentPositions, [&](const auto &value) {
-            return Utils::chatListEquals(value.toMap()["list"].toMap(), position.toMap()["list"].toMap());
-        });
+        auto currentPositions = it->second->positions();
 
-        if (removeIt != currentPositions.end())
+        for (const auto &position : positions)
         {
-            *removeIt = position;  // Update existing position
+            auto removeIt = std::ranges::find_if(currentPositions, [&](const auto &value) {
+                return Utils::chatListEquals(value.toMap()["list"].toMap(), position.toMap()["list"].toMap());
+            });
+
+            if (removeIt != currentPositions.end())
+            {
+                *removeIt = position;  // Update existing position
+            }
+            else
+            {
+                currentPositions.push_back(position);  // Add new position
+            }
         }
-        else
-        {
-            currentPositions.push_back(position);  // Add new position
-        }
+
+        // Update positions in m_chats
+        it->second->setPositions(currentPositions);
     }
-
-    // Update positions in m_chats
-    it->second->setPositions(currentPositions);
 }

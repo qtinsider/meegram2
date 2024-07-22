@@ -32,7 +32,10 @@ bool loadFileContent(const QString &path, std::string &out)
         int len = gzread(gzf, buffer.data(), buffer.size());
 
         if (len < 0)
+        {
+            gzclose(gzf);
             return false;
+        }
 
         result.append(buffer.data(), len);
 
@@ -40,6 +43,7 @@ bool loadFileContent(const QString &path, std::string &out)
             break;
     }
 
+    gzclose(gzf);
     out = std::move(result);
 
     return true;

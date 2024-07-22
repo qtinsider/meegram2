@@ -1,21 +1,22 @@
 #pragma once
 
+#include "BasicGroup.hpp"
+#include "BasicGroupFullInfo.hpp"
+#include "Chat.hpp"
+#include "Client.hpp"
+#include "File.hpp"
+#include "Message.hpp"
+#include "Supergroup.hpp"
+#include "SupergroupFullInfo.hpp"
+#include "User.hpp"
+#include "UserFullInfo.hpp"
+
 #include <QObject>
 #include <QVariant>
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
-
-class BasicGroup;
-class BasicGroupFullInfo;
-class Chat;
-class File;
-class Supergroup;
-class SupergroupFullInfo;
-class User;
-class UserFullInfo;
-
-class Client;
 
 class StorageManager : public QObject
 {
@@ -60,12 +61,12 @@ private:
     QVariantMap m_options;
     QVariantList m_chatFolders;
 
-    std::unordered_map<qint64, BasicGroup *> m_basicGroup;
-    std::unordered_map<qint64, BasicGroupFullInfo *> m_basicGroupFullInfo;
-    std::unordered_map<qint64, Chat *> m_chats;
-    std::unordered_map<int, File *> m_files;
-    std::unordered_map<qint64, Supergroup *> m_supergroup;
-    std::unordered_map<qint64, SupergroupFullInfo *> m_supergroupFullInfo;
-    std::unordered_map<qint64, User *> m_users;
-    std::unordered_map<qint64, UserFullInfo *> m_userFullInfo;
+    std::unordered_map<qint64, std::unique_ptr<BasicGroup>> m_basicGroup;
+    std::unordered_map<qint64, std::unique_ptr<BasicGroupFullInfo>> m_basicGroupFullInfo;
+    std::unordered_map<qint64, std::unique_ptr<Chat>> m_chats;
+    std::unordered_map<qint32, std::unique_ptr<File>> m_files;
+    std::unordered_map<qint64, std::unique_ptr<Supergroup>> m_supergroup;
+    std::unordered_map<qint64, std::unique_ptr<SupergroupFullInfo>> m_supergroupFullInfo;
+    std::unordered_map<qint64, std::unique_ptr<User>> m_users;
+    std::unordered_map<qint64, std::unique_ptr<UserFullInfo>> m_userFullInfo;
 };

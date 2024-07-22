@@ -394,20 +394,6 @@ class PluralRules_Arabic : public PluralRules
     }
 };
 
-namespace {
-void replaceAll(std::string &str, const std::string &from, const std::string &to)
-{
-    if (from.empty())
-        return;
-    size_t start_pos = 0;
-    while ((start_pos = str.find(from, start_pos)) != std::string::npos)
-    {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length();  // Handles case where 'to' is a substring of 'from'
-    }
-}
-}  // namespace
-
 Locale::Locale(QObject *parent)
     : QObject(parent)
 {
@@ -447,7 +433,7 @@ QString Locale::getString(const QString &key) const
         return key;
     }
 
-    const std::string &original = m_languagePack.value(key).toStdString();
+    const auto &original = m_languagePack.value(key).toStdString();
 
     std::string result;
     result.reserve(original.size());  // Reserve space for potential expansion
@@ -467,13 +453,20 @@ QString Locale::getString(const QString &key) const
     while ((pos = result.find("$s", last_pos)) != std::string::npos)
     {
         result.erase(pos, 2);
+        last_pos = pos;
     }
 
-    static const std::unordered_map<std::string, std::string> replacements = {{"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
+    static const std::unordered_map<std::string_view, std::string_view> replacements = {
+        {"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
 
     for (const auto &[from, to] : replacements)
     {
-        replaceAll(result, from, to);
+        std::string::size_type start_pos = 0;
+        while ((start_pos = result.find(from, start_pos)) != std::string::npos)
+        {
+            result.replace(start_pos, from.length(), to);
+            start_pos += to.length();  // Move past the replacement
+        }
     }
 
     static std::regex boldRegex(R"(\*\*(.*?)\*\*)");
@@ -481,8 +474,6 @@ QString Locale::getString(const QString &key) const
 
     static std::regex italicRegex(R"(\*(.*?)\*)");
     result = std::regex_replace(result, italicRegex, "<i>$1</i>");
-
-    // qDebug() << QString::fromStdString(result);
 
     return QString::fromStdString(result);
 }

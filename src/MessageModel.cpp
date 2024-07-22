@@ -6,7 +6,6 @@
 #include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
-#include "Message.hpp"
 #include "Serialize.hpp"
 #include "StorageManager.hpp"
 #include "Supergroup.hpp"
@@ -652,7 +651,7 @@ void MessageModel::handleResult(const QVariantMap &object)
          }},
         {"updateChatOnlineMemberCount",
          [this](const QVariantMap &obj) {
-             handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_count").toInt());
+             handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_member_count").toInt());
          }},
         {"updateChatReadInbox",
          [this](const QVariantMap &obj) {
