@@ -57,9 +57,6 @@ QString getChannelStatus(const Supergroup *supergroup, int onlineCount, StorageM
     auto count = supergroup->memberCount();
     const auto username = supergroup->usernames();  // ???
 
-    nlohmann::json json(username);
-    qDebug() << QString::fromStdString(json.dump());
-
     if (count == 0)
     {
         const auto fullInfo = store->getSupergroupFullInfo(supergroup->id());
@@ -90,9 +87,6 @@ QString getSupergroupStatus(const Supergroup *supergroup, int onlineCount, Stora
     const auto statusType = supergroup->status().value("@type").toByteArray();
     const auto username = supergroup->usernames();
     const auto hasLocation = supergroup->hasLocation();
-
-    nlohmann::json json(username);
-    qDebug() << QString::fromStdString(json.dump());
 
     auto count = supergroup->memberCount();
 
@@ -440,7 +434,7 @@ bool MessageModel::loadingHistory() const noexcept
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    static const std::unordered_map<std::string, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>>
+    static const std::unordered_map<QString, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>>
         chatTypeHandlers = {{"chatTypeBasicGroup",
                              [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
                                  return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()),
@@ -463,7 +457,7 @@ QString MessageModel::getChatSubtitle() const noexcept
     const auto type = m_selectedChat->type();
     const auto chatType = m_selectedChat->type().value("@type").toString();
 
-    if (auto it = chatTypeHandlers.find(chatType.toStdString()); it != chatTypeHandlers.end())
+    if (auto it = chatTypeHandlers.find(chatType); it != chatTypeHandlers.end())
     {
         return it->second(type, m_onlineCount, m_storageManager, m_locale);
     }
@@ -618,7 +612,7 @@ void MessageModel::refresh() noexcept
 
 void MessageModel::handleResult(const QVariantMap &object)
 {
-    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> handlers = {
         {"updateNewMessage", [this](const QVariantMap &obj) { handleNewMessage(obj.value("message").toMap()); }},
         {"updateMessageSendSucceeded",
          [this](const QVariantMap &obj) {
@@ -664,9 +658,7 @@ void MessageModel::handleResult(const QVariantMap &object)
          }},
     };
 
-    const auto objectType = object.value("@type").toString().toStdString();
-
-    if (const auto it = handlers.find(objectType); it != handlers.end())
+    if (const auto it = handlers.find(object.value("@type").toString()); it != handlers.end())
     {
         it->second(object);
     }

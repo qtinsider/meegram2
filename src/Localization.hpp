@@ -1,14 +1,17 @@
 #pragma once
 
+#include "Common.hpp"
+
+#include <QObject>
 #include <QVariant>
 
-class PluralRules;
+#include <memory>
+#include <unordered_map>
 
-class Locale : public QObject
+class PluralRules
 {
-    Q_OBJECT
 public:
-    explicit Locale(QObject *parent = nullptr);
+    virtual ~PluralRules() = default;
 
     enum Quantity {
         QuantityOther = 0x0000,
@@ -19,8 +22,17 @@ public:
         QuantityMany = 0x0010,
     };
 
-    QString getString(const QString &key) const;
+    virtual Quantity quantityForNumber(int count) const = 0;
+    virtual std::unique_ptr<PluralRules> clone() const = 0;
+};
 
+class Locale : public QObject
+{
+    Q_OBJECT
+public:
+    explicit Locale(QObject *parent = nullptr);
+
+    QString getString(const QString &key) const;
     QString formatPluralString(const QString &key, int plural) const;
     QString formatCallDuration(int duration) const;
     QString formatTtl(int ttl) const;
@@ -31,15 +43,13 @@ public:
     void processStrings(const QVariantMap &languagePackStrings);
 
 private:
-    QString stringForQuantity(Quantity quantity) const;
+    QString stringForQuantity(PluralRules::Quantity quantity) const;
 
-    void addRules(const QStringList &languages, PluralRules *rules);
-
+    void addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules);
     void updatePluralRules();
 
     QString m_languagePlural;
-
-    QMap<QString, QString> m_languagePack;
-    QMap<QString, PluralRules *> m_allRules;
-    PluralRules *m_currentPluralRules;
+    std::unordered_map<QString, QString> m_languagePack;
+    std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
+    std::unique_ptr<PluralRules> m_currentPluralRules;
 };

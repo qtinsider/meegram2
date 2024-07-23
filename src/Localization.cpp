@@ -1,8 +1,5 @@
 #include "Localization.hpp"
 
-#include "Common.hpp"
-#include "Serialize.hpp"
-
 #include <QDebug>
 #include <QStringList>
 
@@ -12,385 +9,392 @@
 #include <regex>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-
-class PluralRules
-{
-public:
-    virtual Locale::Quantity quantityForNumber(int count) = 0;
-};
 
 class PluralRules_Zero : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count)
+public:
+    Quantity quantityForNumber(int count) const override
     {
-        if (count == 0 || count == 1)
-        {
-            return Locale::QuantityOne;
-        }
+        return (count == 0 || count == 1) ? QuantityOne : QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Zero>(*this);
     }
 };
 
 class PluralRules_Welsh : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
-        if (count == 0)
+        switch (count)
         {
-            return Locale::QuantityZero;
+            case 0:
+                return QuantityZero;
+            case 1:
+                return QuantityOne;
+            case 2:
+                return QuantityTwo;
+            case 3:
+                return QuantityFew;
+            case 6:
+                return QuantityMany;
+            default:
+                return QuantityOther;
         }
-        else if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count == 2)
-        {
-            return Locale::QuantityTwo;
-        }
-        else if (count == 3)
-        {
-            return Locale::QuantityFew;
-        }
-        else if (count == 6)
-        {
-            return Locale::QuantityMany;
-        }
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Welsh>(*this);
     }
 };
 
 class PluralRules_Two : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count == 2)
-        {
-            return Locale::QuantityTwo;
-        }
+            return QuantityOne;
+        if (count == 2)
+            return QuantityTwo;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Two>(*this);
     }
 };
 
 class PluralRules_Tachelhit : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count >= 0 && count <= 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count >= 2 && count <= 10)
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (count >= 2 && count <= 10)
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Tachelhit>(*this);
     }
 };
 
 class PluralRules_Slovenian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         if (rem100 == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (rem100 == 2)
-        {
-            return Locale::QuantityTwo;
-        }
-        else if (rem100 >= 3 && rem100 <= 4)
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (rem100 == 2)
+            return QuantityTwo;
+        if (rem100 >= 3 && rem100 <= 4)
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Slovenian>(*this);
     }
 };
 
 class PluralRules_Romanian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if ((count == 0 || (rem100 >= 1 && rem100 <= 19)))
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (count == 0 || (rem100 >= 1 && rem100 <= 19))
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Romanian>(*this);
     }
 };
 
 class PluralRules_Polish : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
-        {
-            return Locale::QuantityFew;
-        }
-        else if ((rem10 >= 0 && rem10 <= 1) || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 12 && rem100 <= 14))
-        {
-            return Locale::QuantityMany;
-        }
+            return QuantityOne;
+        if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
+            return QuantityFew;
+        if ((rem10 >= 0 && rem10 <= 1) || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 12 && rem100 <= 14))
+            return QuantityMany;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Polish>(*this);
     }
 };
 
 class PluralRules_One : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
-        return count == 1 ? Locale::QuantityOne : Locale::QuantityOther;
+        return count == 1 ? QuantityOne : QuantityOther;
+    }
+
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_One>(*this);
     }
 };
 
 class PluralRules_None : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int /*count*/) override
+public:
+    Quantity quantityForNumber(int /*count*/) const override
     {
-        return Locale::QuantityOther;
+        return QuantityOther;
+    }
+
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_None>(*this);
     }
 };
 
 class PluralRules_Maltese : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count == 0 || (rem100 >= 2 && rem100 <= 10))
-        {
-            return Locale::QuantityFew;
-        }
-        else if (rem100 >= 11 && rem100 <= 19)
-        {
-            return Locale::QuantityMany;
-        }
+            return QuantityOne;
+        if (count == 0 || (rem100 >= 2 && rem100 <= 10))
+            return QuantityFew;
+        if (rem100 >= 11 && rem100 <= 19)
+            return QuantityMany;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Maltese>(*this);
     }
 };
 
 class PluralRules_Macedonian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count % 10 == 1 && count != 11)
-        {
-            return Locale::QuantityOne;
-        }
+            return QuantityOne;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Macedonian>(*this);
     }
 };
 
 class PluralRules_Lithuanian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && !(rem100 >= 11 && rem100 <= 19))
-        {
-            return Locale::QuantityOne;
-        }
-        else if (rem10 >= 2 && rem10 <= 9 && !(rem100 >= 11 && rem100 <= 19))
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (rem10 >= 2 && rem10 <= 9 && !(rem100 >= 11 && rem100 <= 19))
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Lithuanian>(*this);
     }
 };
 
 class PluralRules_Latvian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count == 0)
-        {
-            return Locale::QuantityZero;
-        }
-        else if (count % 10 == 1 && count % 100 != 11)
-        {
-            return Locale::QuantityOne;
-        }
+            return QuantityZero;
+        if (count % 10 == 1 && count % 100 != 11)
+            return QuantityOne;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Latvian>(*this);
     }
 };
 
 class PluralRules_Langi : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count == 0)
-        {
-            return Locale::QuantityZero;
-        }
-        else if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
+            return QuantityZero;
+        if (count == 1)
+            return QuantityOne;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Langi>(*this);
     }
 };
 
 class PluralRules_French : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
-        if (count >= 0 && count < 2)
-        {
-            return Locale::QuantityOne;
-        }
+        return (count >= 0 && count < 2) ? QuantityOne : QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_French>(*this);
     }
 };
 
 class PluralRules_Czech : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count >= 2 && count <= 4)
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (count >= 2 && count <= 4)
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Czech>(*this);
     }
 };
 
 class PluralRules_Breton : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
-        if (count == 0)
+        switch (count)
         {
-            return Locale::QuantityZero;
+            case 0:
+                return QuantityZero;
+            case 1:
+                return QuantityOne;
+            case 2:
+                return QuantityTwo;
+            case 3:
+                return QuantityFew;
+            case 6:
+                return QuantityMany;
+            default:
+                return QuantityOther;
         }
-        else if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count == 2)
-        {
-            return Locale::QuantityTwo;
-        }
-        else if (count == 3)
-        {
-            return Locale::QuantityFew;
-        }
-        else if (count == 6)
-        {
-            return Locale::QuantityMany;
-        }
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Breton>(*this);
     }
 };
 
 class PluralRules_Balkan : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && rem100 != 11)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
-        {
-            return Locale::QuantityFew;
-        }
-        else if ((rem10 == 0 || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 11 && rem100 <= 14)))
-        {
-            return Locale::QuantityMany;
-        }
+            return QuantityOne;
+        if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
+            return QuantityFew;
+        if ((rem10 == 0 || (rem10 >= 5 && rem10 <= 9) || (rem100 >= 11 && rem100 <= 14)))
+            return QuantityMany;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Balkan>(*this);
     }
 };
 
 class PluralRules_Serbian : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         const auto rem10 = count % 10;
         if (rem10 == 1 && rem100 != 11)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
-        {
-            return Locale::QuantityFew;
-        }
+            return QuantityOne;
+        if (rem10 >= 2 && rem10 <= 4 && !(rem100 >= 12 && rem100 <= 14))
+            return QuantityFew;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Serbian>(*this);
     }
 };
 
 class PluralRules_Arabic : public PluralRules
 {
-    Locale::Quantity quantityForNumber(int count) override
+public:
+    Quantity quantityForNumber(int count) const override
     {
         const auto rem100 = count % 100;
         if (count == 0)
-        {
-            return Locale::QuantityZero;
-        }
-        else if (count == 1)
-        {
-            return Locale::QuantityOne;
-        }
-        else if (count == 2)
-        {
-            return Locale::QuantityTwo;
-        }
-        else if (rem100 >= 3 && rem100 <= 10)
-        {
-            return Locale::QuantityFew;
-        }
-        else if (rem100 >= 11 && rem100 <= 99)
-        {
-            return Locale::QuantityMany;
-        }
+            return QuantityZero;
+        if (count == 1)
+            return QuantityOne;
+        if (count == 2)
+            return QuantityTwo;
+        if (rem100 >= 3 && rem100 <= 10)
+            return QuantityFew;
+        if (rem100 >= 11 && rem100 <= 99)
+            return QuantityMany;
+        return QuantityOther;
+    }
 
-        return Locale::QuantityOther;
+    std::unique_ptr<PluralRules> clone() const override
+    {
+        return std::make_unique<PluralRules_Arabic>(*this);
     }
 };
 
@@ -398,30 +402,30 @@ Locale::Locale(QObject *parent)
     : QObject(parent)
 {
     // clang-format off
-    addRules(QStringList() <<"bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
+    addRules(QStringList() << "bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
                  "nl" << "nn" << "no" << "sv" << "af" << "bg" << "bn" << "ca" << "eu" << "fur" << "fy" << "gu" << "ha" << "is" << "ku" <<
                  "lb" << "ml" << "mr" << "nah" << "ne" << "om" << "or" << "pa" << "pap" << "ps" << "so" << "sq" << "sw" << "ta" << "te" <<
-                 "tk" << "ur" << "zu" << "mn" << "gsw" << "chr" << "rm" << "pt" << "an" << "ast", new PluralRules_One());
-    addRules(QStringList() <<"cs" << "sk", new PluralRules_Czech());
-    addRules(QStringList() <<"ff" << "fr" << "kab", new PluralRules_French());
-    addRules(QStringList() <<"ru" << "uk" << "be" << "sh", new PluralRules_Balkan());
-    addRules(QStringList() <<"sr" << "hr" << "bs", new PluralRules_Serbian());
-    addRules(QStringList() <<"lv", new PluralRules_Latvian());
-    addRules(QStringList() <<"lt", new PluralRules_Lithuanian());
-    addRules(QStringList() <<"pl", new PluralRules_Polish());
-    addRules(QStringList() <<"ro" << "mo", new PluralRules_Romanian());
-    addRules(QStringList() <<"sl", new PluralRules_Slovenian());
-    addRules(QStringList() <<"ar", new PluralRules_Arabic());
-    addRules(QStringList() <<"mk", new PluralRules_Macedonian());
-    addRules(QStringList() <<"cy", new PluralRules_Welsh());
-    addRules(QStringList() <<"br", new PluralRules_Breton());
-    addRules(QStringList() <<"lag", new PluralRules_Langi());
-    addRules(QStringList() <<"shi", new PluralRules_Tachelhit());
-    addRules(QStringList() <<"mt", new PluralRules_Maltese());
-    addRules(QStringList() <<"ga" << "se" << "sma" << "smi" << "smj" << "smn" << "sms", new PluralRules_Two());
-    addRules(QStringList() <<"ak" << "am" << "bh" << "fil" << "tl" << "guw" << "hi" << "ln" << "mg" << "nso" << "ti" << "wa", new PluralRules_Zero());
-    addRules(QStringList() <<"az" << "bm" << "fa" << "ig" << "hu" << "ja" << "kde" << "kea" << "ko" << "my" << "ses" << "sg" << "to" <<
-                 "tr" << "vi" << "wo" << "yo" << "zh" << "bo" << "dz" << "id" << "jv" << "jw" << "ka" << "km" << "kn" << "ms" << "th" << "in", new PluralRules_None());
+                 "tk" << "ur" << "zu" << "mn" << "gsw" << "chr" << "rm" << "pt" << "an" << "ast", std::make_unique<PluralRules_One>());
+    addRules(QStringList() << "cs" << "sk", std::make_unique<PluralRules_Czech>());
+    addRules(QStringList() << "ff" << "fr" << "kab", std::make_unique<PluralRules_French>());
+    addRules(QStringList() << "ru" << "uk" << "be" << "sh", std::make_unique<PluralRules_Balkan>());
+    addRules(QStringList() << "sr" << "hr" << "bs", std::make_unique<PluralRules_Serbian>());
+    addRules(QStringList() << "lv", std::make_unique<PluralRules_Latvian>());
+    addRules(QStringList() << "lt", std::make_unique<PluralRules_Lithuanian>());
+    addRules(QStringList() << "pl", std::make_unique<PluralRules_Polish>());
+    addRules(QStringList() << "ro" << "mo", std::make_unique<PluralRules_Romanian>());
+    addRules(QStringList() << "sl", std::make_unique<PluralRules_Slovenian>());
+    addRules(QStringList() << "ar", std::make_unique<PluralRules_Arabic>());
+    addRules(QStringList() << "mk", std::make_unique<PluralRules_Macedonian>());
+    addRules(QStringList() << "cy", std::make_unique<PluralRules_Welsh>());
+    addRules(QStringList() << "br", std::make_unique<PluralRules_Breton>());
+    addRules(QStringList() << "lag", std::make_unique<PluralRules_Langi>());
+    addRules(QStringList() << "shi", std::make_unique<PluralRules_Tachelhit>());
+    addRules(QStringList() << "mt", std::make_unique<PluralRules_Maltese>());
+    addRules(QStringList() << "ga" << "se" << "sma" << "smi" << "smj" << "smn" << "sms", std::make_unique<PluralRules_Two>());
+    addRules(QStringList() << "ak" << "am" << "bh" << "fil" << "tl" << "guw" << "hi" << "ln" << "mg" << "nso" << "ti" << "wa", std::make_unique<PluralRules_Zero>());
+    addRules(QStringList() << "az" << "bm" << "fa" << "ig" << "hu" << "ja" << "kde" << "kea" << "ko" << "my" << "ses" << "sg" << "to" <<
+                 "tr" << "vi" << "wo" << "yo" << "zh" << "bo" << "dz" << "id" << "jv" << "jw" << "ka" << "km" << "kn" << "ms" << "th" << "in", std::make_unique<PluralRules_None>());
     // clang-format on
 }
 
@@ -433,7 +437,8 @@ QString Locale::getString(const QString &key) const
         return key;
     }
 
-    const auto &original = m_languagePack.value(key).toStdString();
+    auto it = m_languagePack.find(key);
+    const auto &original = (it != m_languagePack.end()) ? it->second.toStdString() : std::string();
 
     std::string result;
     result.reserve(original.size());  // Reserve space for potential expansion
@@ -481,7 +486,6 @@ QString Locale::getString(const QString &key) const
 QString Locale::formatPluralString(const QString &key, int plural) const
 {
     const auto pluralKey = key + stringForQuantity(m_currentPluralRules->quantityForNumber(plural));
-
     return getString(pluralKey).arg(plural);
 }
 
@@ -490,20 +494,17 @@ QString Locale::formatCallDuration(int duration) const
     if (duration > 3600)
     {
         auto result = formatPluralString("CallDurationHours", std::floor(duration / 3600));
-        const auto minutes = std::floor(duration % 3600 / 3600);
+        const auto minutes = std::floor(duration % 3600 / 60);
         if (minutes > 0)
         {
             result.append(", ").append(formatPluralString("CallDurationMinutes", minutes));
         }
-
         return result;
     }
-
     if (duration > 60)
     {
         return formatPluralString("CallDurationMinutes", std::floor(duration / 60));
     }
-
     return formatPluralString("CallDurationSeconds", std::floor(duration));
 }
 
@@ -527,7 +528,6 @@ QString Locale::formatTtl(int ttl) const
     {
         return formatPluralString("TTLStringWeeks", std::floor(days / 7));
     }
-
     return formatPluralString("TTLStringWeeks", std::floor(days / 7)) + formatPluralString("TTLStringDays", std::floor(days % 7));
 }
 
@@ -544,36 +544,36 @@ void Locale::setLanguagePlural(const QString &value)
     }
 }
 
-QString Locale::stringForQuantity(Locale::Quantity quantity) const
+QString Locale::stringForQuantity(PluralRules::Quantity quantity) const
 {
     switch (quantity)
     {
-        case Locale::QuantityZero:
+        case PluralRules::QuantityZero:
             return "_zero_value";
-        case Locale::QuantityOne:
+        case PluralRules::QuantityOne:
             return "_one_value";
-        case Locale::QuantityTwo:
+        case PluralRules::QuantityTwo:
             return "_two_value";
-        case Locale::QuantityFew:
+        case PluralRules::QuantityFew:
             return "_few_value";
-        case Locale::QuantityMany:
+        case PluralRules::QuantityMany:
             return "_many_value";
         default:
             return "_other_value";
     }
 }
 
-void Locale::addRules(const QStringList &languages, PluralRules *rules)
+void Locale::addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules)
 {
-    std::ranges::for_each(languages, [&, this](const auto &x) { m_allRules.insert(x, rules); });
+    std::ranges::for_each(languages, [&](const auto &x) { m_allRules.emplace(x, rules->clone()); });
 }
 
 void Locale::processStrings(const QVariantMap &languagePackStrings)
 {
-    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> stringTypeHandlers = {
+    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> stringTypeHandlers = {
         {"languagePackStringValueOrdinary",
          [this](const QVariantMap &value) {
-             m_languagePack.insert(value.value("key").toString(), value.value("value").toMap().value("value").toString());
+             m_languagePack.emplace(value.value("key").toString(), value.value("value").toMap().value("value").toString());
          }},
         {"languagePackStringValuePluralized",
          [this](const QVariantMap &value) {
@@ -585,7 +585,7 @@ void Locale::processStrings(const QVariantMap &languagePackStrings)
                  {
                      if (const auto &stringValue = pluralValues.value(suffix).toString(); !stringValue.isEmpty())
                      {
-                         m_languagePack.insert(keyBase + "_" + suffix, stringValue);
+                         m_languagePack.emplace(keyBase + "_" + suffix, stringValue);
                      }
                  }
              }
@@ -598,8 +598,7 @@ void Locale::processStrings(const QVariantMap &languagePackStrings)
     for (const auto &value : strings)
     {
         const auto valueType = value.toMap().value("value").toMap().value("@type").toString();
-
-        if (auto it = stringTypeHandlers.find(valueType.toStdString()); it != stringTypeHandlers.end())
+        if (auto it = stringTypeHandlers.find(valueType); it != stringTypeHandlers.end())
         {
             it->second(value.toMap());
         }
@@ -610,8 +609,12 @@ void Locale::processStrings(const QVariantMap &languagePackStrings)
 
 void Locale::updatePluralRules()
 {
-    if (m_allRules.contains(m_languagePlural))
-        m_currentPluralRules = m_allRules.value(m_languagePlural);
+    if (auto it = m_allRules.find(m_languagePlural); it != m_allRules.end())
+    {
+        m_currentPluralRules = it->second->clone();
+    }
     else
-        m_currentPluralRules = m_allRules.value("en");
+    {
+        m_currentPluralRules = m_allRules.at("en")->clone();  // Default to English rules if not found
+    }
 }

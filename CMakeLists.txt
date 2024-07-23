@@ -37,6 +37,7 @@ set(src_files
     src/StorageManager.cpp
     src/SupergroupFullInfo.cpp
     src/Supergroup.cpp
+    src/TextFormatter.cpp
     src/User.cpp
     src/UserFullInfo.cpp
     src/Utils.cpp
@@ -67,6 +68,7 @@ set(header_files
     src/Supergroup.hpp
     src/SupergroupFullInfo.hpp
     src/TdApi.hpp
+    src/TextFormatter.hpp
     src/User.hpp
     src/UserFullInfo.hpp
     src/Utils.hpp

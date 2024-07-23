@@ -106,59 +106,59 @@ QString Application::getString(const QString &key) const noexcept
 
 QString Application::getFormattedText(const QVariantMap &formattedText) const noexcept
 {
-    static const std::unordered_map<std::string, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> formatters =
-        {{"textEntityTypeBold", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontWeight(QFont::Bold); }},
-         {"textEntityTypeBotCommand",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-              format.setAnchor(true);
-              format.setAnchorHref("botCommand:" + entityText);
-          }},
-         {"textEntityTypeEmailAddress",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-              format.setAnchor(true);
-              format.setAnchorHref("mailto:" + entityText);
-          }},
-         {"textEntityTypeItalic", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontItalic(true); }},
-         {"textEntityTypeMentionName",
-          [&](QTextCharFormat &format, const QString &, const QVariantMap &type) {
-              auto userId = type.value("user_id").toLongLong();
-              auto title = getUserFullName(userId, m_storageManager, m_locale);
-              format.setAnchor(true);
-              format.setAnchorHref("userId:" + title);
-          }},
-         {"textEntityTypeMention",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-              format.setAnchor(true);
-              format.setAnchorHref("username:" + entityText);
-          }},
-         {"textEntityTypePhoneNumber",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-              format.setAnchor(true);
-              format.setAnchorHref("tel:" + entityText);
-          }},
-         {"textEntityTypeCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
-         {"textEntityTypePre", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
-         {"textEntityTypePreCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
-         {"textEntityTypeStrikethrough",
-          [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontStrikeOut(true); }},
-         {"textEntityTypeTextUrl",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &type) {
-              QString url = type.value("url").toString();
-              if (url.isEmpty())
-              {
-                  url = entityText;
-              }
-              format.setAnchor(true);
-              format.setAnchorHref(url);
-              format.setFontUnderline(true);
-          }},
-         {"textEntityTypeUrl",
-          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-              format.setAnchor(true);
-              format.setAnchorHref(entityText);
-              format.setFontUnderline(true);
-          }},
-         {"textEntityTypeUnderline", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontUnderline(true); }}};
+    static const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> formatters = {
+        {"textEntityTypeBold", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontWeight(QFont::Bold); }},
+        {"textEntityTypeBotCommand",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("botCommand:" + entityText);
+         }},
+        {"textEntityTypeEmailAddress",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("mailto:" + entityText);
+         }},
+        {"textEntityTypeItalic", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontItalic(true); }},
+        {"textEntityTypeMentionName",
+         [&](QTextCharFormat &format, const QString &, const QVariantMap &type) {
+             auto userId = type.value("user_id").toLongLong();
+             auto title = getUserFullName(userId, m_storageManager, m_locale);
+             format.setAnchor(true);
+             format.setAnchorHref("userId:" + title);
+         }},
+        {"textEntityTypeMention",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("username:" + entityText);
+         }},
+        {"textEntityTypePhoneNumber",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("tel:" + entityText);
+         }},
+        {"textEntityTypeCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
+        {"textEntityTypePre", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
+        {"textEntityTypePreCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
+        {"textEntityTypeStrikethrough",
+         [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontStrikeOut(true); }},
+        {"textEntityTypeTextUrl",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &type) {
+             QString url = type.value("url").toString();
+             if (url.isEmpty())
+             {
+                 url = entityText;
+             }
+             format.setAnchor(true);
+             format.setAnchorHref(url);
+             format.setFontUnderline(true);
+         }},
+        {"textEntityTypeUrl",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref(entityText);
+             format.setFontUnderline(true);
+         }},
+        {"textEntityTypeUnderline", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontUnderline(true); }}};
 
     const auto text = formattedText.value("text").toString();
     const auto entities = formattedText.value("entities").toList();
@@ -179,7 +179,7 @@ QString Application::getFormattedText(const QVariantMap &formattedText) const no
         const auto offset = entity.toMap().value("offset").toInt();
         const auto length = entity.toMap().value("length").toInt();
         const auto type = entity.toMap().value("type").toMap();
-        const auto entityType = type.value("@type").toString().toStdString();
+        const auto entityType = type.value("@type").toString();
         const auto entityText = text.mid(offset, length);
 
         cursor.setPosition(offset);
@@ -356,9 +356,9 @@ void Application::initializeLanguagePackInfo()
 
 void Application::handleAuthorizationState(const QVariantMap &authorizationState)
 {
-    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
+    const auto authorizationStateType = authorizationState.value("@type").toString();
 
-    static const std::unordered_map<std::string, std::function<void()>> handlers = {
+    static const std::unordered_map<QString, std::function<void()>> handlers = {
         {"authorizationStateWaitEncryptionKey",
          [this]() {
              QVariantMap request;
@@ -387,9 +387,9 @@ void Application::handleAuthorizationState(const QVariantMap &authorizationState
 
 void Application::handleConnectionState(const QVariantMap &connectionState)
 {
-    const auto connectionStateType = connectionState.value("@type").toString().toStdString();
+    const auto connectionStateType = connectionState.value("@type").toString();
 
-    static const std::unordered_map<std::string, std::function<void()>> handlers = {
+    static const std::unordered_map<QString, std::function<void()>> handlers = {
         {"connectionStateWaitingForNetwork",
          [this]() {
              m_connectionStateString = "waiting_for_network";

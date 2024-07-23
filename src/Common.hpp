@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QHash>
 #include <QLocale>
+#include <QString>
 
 #include <array>
 #include <cstdint>
@@ -27,3 +29,14 @@ constexpr auto MessageSliceLimit = 20;
 
 constexpr auto MutedValueMax = 2147483647;  // int32.max = 2^32 - 1
 constexpr auto MutedValueMin = 0;
+
+namespace std {
+template <>
+struct hash<QString>
+{
+    std::size_t operator()(const QString &s) const
+    {
+        return qHash(s);
+    }
+};
+}  // namespace std

@@ -72,7 +72,7 @@ QVariant StorageManager::getOption(const QString &name) const
     if (auto it = m_options.find(name); it != m_options.end())
         return it.value();
 
-    return {};
+    return QVariant();
 }
 
 Supergroup *StorageManager::getSupergroup(qint64 groupId) const
@@ -125,12 +125,12 @@ qint64 StorageManager::getMyId() const noexcept
     if (const auto myId = getOption("my_id"); not myId.isNull())
         return myId.toLongLong();
 
-    return {};
+    return 0;
 }
 
 void StorageManager::handleResult(const QVariantMap &object)
 {
-    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> handlers = {
         {"updateNewChat",
          [this](const QVariantMap &object) {
              auto chat = std::make_unique<Chat>();
@@ -315,17 +315,9 @@ void StorageManager::handleResult(const QVariantMap &object)
              m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value"));
          }}};
 
-    const auto objectType = object.value("@type").toString().toStdString();
-    if (auto it = handlers.find(objectType); it != handlers.end())
+    if (auto it = handlers.find(object.value("@type").toString()); it != handlers.end())
     {
-        try
-        {
-            it->second(object);
-        }
-        catch (const std::exception &e)
-        {
-            qCritical() << "Error handling object type" << QString::fromStdString(objectType) << ":" << e.what();
-        }
+        it->second(object);
     }
 }
 

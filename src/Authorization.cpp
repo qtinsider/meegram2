@@ -136,9 +136,9 @@ void Authorization::handleResult(const QVariantMap &object)
         return;
 
     const auto authorizationState = object.value("authorization_state").toMap();
-    const auto authorizationStateType = authorizationState.value("@type").toString().toStdString();
+    const auto authorizationStateType = authorizationState.value("@type").toString();
 
-    static const std::unordered_map<std::string, std::function<void(const QVariantMap &)>> handlers = {
+    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> handlers = {
         {"authorizationStateWaitPhoneNumber", [this](const QVariantMap &state) { handleAuthorizationStateWaitPhoneNumber(state); }},
         {"authorizationStateWaitCode", [this](const QVariantMap &state) { handleAuthorizationStateWaitCode(state); }},
         {"authorizationStateWaitPassword", [this](const QVariantMap &state) { handleAuthorizationStateWaitPassword(state); }},
