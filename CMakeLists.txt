@@ -23,6 +23,8 @@ set(src_files
     src/ChatModel.cpp
     src/Client.cpp
     src/DBusAdaptor.cpp
+    src/Emoji.cpp
+    src/Emoji_data.cpp
     src/File.cpp
     src/ImageProviders.cpp
     src/Localization.cpp
@@ -53,6 +55,7 @@ set(header_files
     src/Client.hpp
     src/Common.hpp
     src/DBusAdaptor.hpp
+    src/Emoji.hpp
     src/File.hpp
     src/ImageProviders.hpp
     src/Localization.hpp
