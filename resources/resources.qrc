@@ -35,5 +35,6 @@
         <file>qml/SettingsPage.qml</file>
         <file>qml/SignInPage.qml</file>
         <file>qml/SignUpPage.qml</file>
+        <file>qml/components/MyLabel.qml</file>
     </qresource>
 </RCC>

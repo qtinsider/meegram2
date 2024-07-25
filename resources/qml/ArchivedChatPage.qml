@@ -20,20 +20,18 @@ Page {
 
     ListView {
         id: listView
-
         anchors {
             bottom: parent.bottom
             left: parent.left
             right: parent.right
             top: header.bottom
         }
-
         cacheBuffer: listView.height * 2
 
         delegate: ChatItem {
             onPressAndHold: {
-                listView.currentIndex = index;
-                contextMenu.open();
+                listView.currentIndex = index
+                contextMenu.open()
             }
         }
 
@@ -57,7 +55,6 @@ Page {
 
     ChatModel {
         id: myChatModel
-
         chatList: TdApi.ChatListArchive
 
         onLoadingChanged: {
@@ -94,7 +91,6 @@ Page {
 
     Timer {
         id: populateTimer
-
         interval: 200
         repeat: false
         onTriggered: myChatModel.populate()

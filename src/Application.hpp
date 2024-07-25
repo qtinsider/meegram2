@@ -2,7 +2,6 @@
 
 #include "TdApi.hpp"
 
-#include <QObject>
 #include <QVariant>
 
 #include <array>
@@ -26,14 +25,14 @@ class Application : public QObject
     Q_PROPERTY(QVariantList languagePackInfo READ languagePackInfo NOTIFY languagePackInfoChanged)
     Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
 
-    Q_PROPERTY(QString emptyString READ getEmptyString NOTIFY languageChanged)
+    Q_PROPERTY(QString emptyString READ emptyString NOTIFY languageChanged)
 
 public:
     explicit Application(StorageManager *storageManager, QObject *parent = nullptr);
 
     bool isAuthorized() const noexcept;
 
-    QString getEmptyString() const;
+    QString emptyString() const noexcept;
 
     QObject *client() const noexcept;
     QObject *locale() const noexcept;
@@ -90,7 +89,7 @@ private:
 
     QString m_connectionStateString;
 
-    bool m_isAuthorized{false};
+    bool m_isAuthorized = false;
 
     std::array<bool, 4> m_initializationStatus{false, false, false, false};
 };

@@ -141,9 +141,9 @@ Page {
                                 MessageBubble {
                                     childrenWidth: messageText.paintedWidth
 
-                                    content: Text {
+                                    content: MyLabel {
                                         id: messageText
-                                        text: model.isServiceMessage ? model.serviceMessage.trim() : myMessageModel.getFormattedText(model.content.text)
+                                        formattedText: model.isServiceMessage ? model.serviceMessage.trim() : model.content.text
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                         width: isPortrait ? 380 : 754
                                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere

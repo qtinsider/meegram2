@@ -20,28 +20,25 @@ Page {
 
         Column {
             id: contentColumn
-
             width: flickable.width
             height: childrenRect.height
-
             spacing: 16
-
 
             Label {
                 id: title
                 text: app.getString("TwoStepVerification") + app.emptyString
                 font.pixelSize: 40
             }
+
             Rectangle {
                 color: "#b2b2b4"
                 height: 1
                 width: flickable.width
             }
 
-            // Password
+            // Password Section
             Column {
                 id: enterPasswordColumn
-
                 width: parent.width
                 spacing: 10
 

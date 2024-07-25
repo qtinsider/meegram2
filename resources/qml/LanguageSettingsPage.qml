@@ -15,7 +15,6 @@ Page {
 
     ListView {
         id: listView
-
         anchors {
             bottom: parent.bottom
             left: parent.left
@@ -31,7 +30,6 @@ Page {
         delegate: ListItem {
             Column {
                 id: column
-
                 anchors {
                     left: parent.left
                     leftMargin: 12
@@ -61,13 +59,11 @@ Page {
 
             Image {
                 id: icon
-
                 anchors {
                     right: parent.right
                     rightMargin: 12
                     verticalCenter: parent.verticalCenter
                 }
-
                 source: app.settings.languagePackId !== model.id
                     ? "image://theme/meegotouch-button-checkbox-background"
                     : "image://theme/meegotouch-button-radiobutton-background-selected"
@@ -76,7 +72,6 @@ Page {
             onClicked: {
                 app.settings.languagePackId = model.id
                 app.settings.languagePluralId = model.plural_code
-
                 appWindow.pageStack.pop()
             }
         }

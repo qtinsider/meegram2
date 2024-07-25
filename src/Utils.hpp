@@ -36,7 +36,6 @@ QString getUserShortName(qint64 userId, StorageManager *store,
 
 QString getContent(const Message *message, StorageManager *store,
                    Locale *locale) noexcept;
-QString getFormattedText(const QVariantMap &formattedText) noexcept;
 QString getTitle(const Message *message, StorageManager *store,
                  Locale *locale) noexcept;
 QString getMessageDate(const Message *message, Locale *locale) noexcept;

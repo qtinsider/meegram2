@@ -11,7 +11,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QLocale>
-#include <QSettings>
 #include <QStringList>
 
 #include <algorithm>
@@ -35,7 +34,7 @@ bool Application::isAuthorized() const noexcept
     return m_isAuthorized;
 }
 
-QString Application::getEmptyString() const
+QString Application::emptyString() const noexcept
 {
     return {};
 }

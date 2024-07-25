@@ -1,15 +1,20 @@
 #pragma once
 
-#include <QFont>
+#include "Common.hpp"
+
+#include <QObject>
 #include <QTextCursor>
 #include <QTextDocument>
+#include <QVariant>
 
+#include <functional>
 #include <memory>
+#include <unordered_map>
 
 class TextFormatter : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QString text READ text NOTIFY textChanged)
+    Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
     Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
     Q_PROPERTY(QVariant formattedText READ formattedText WRITE setFormattedText NOTIFY formattedTextChanged)
 
@@ -18,12 +23,13 @@ public:
     ~TextFormatter() override;
 
     QString text() const;
+    void setText(const QString &value);
 
     QFont font() const;
-    void setFont(const QFont &font);
+    void setFont(const QFont &value);
 
     QVariant formattedText() const;
-    void setFormattedText(const QVariant &formattedText);
+    void setFormattedText(const QVariant &value);
 
 signals:
     void textChanged();
@@ -38,4 +44,6 @@ private:
 
     std::unique_ptr<QTextDocument> m_document;
     std::unique_ptr<QTextCursor> m_cursor;
+
+    static const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> s_formatters;
 };
