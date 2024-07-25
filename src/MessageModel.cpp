@@ -486,9 +486,9 @@ QString MessageModel::getChatPhoto() const noexcept
     return "image://theme/icon-l-content-avatar-placeholder";
 }
 
-QString MessageModel::getFormattedText(const QVariantMap &formattedText, const QVariantMap &options) noexcept
+QString MessageModel::getFormattedText(const QVariantMap &formattedText) noexcept
 {
-    return Utils::getFormattedText(formattedText, m_storageManager, m_locale, options);
+    return Utils::getFormattedText(formattedText);
 }
 
 void MessageModel::loadHistory() noexcept

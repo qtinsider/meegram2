@@ -45,7 +45,6 @@ public:
     const QString &connectionStateString() const noexcept;
 
     Q_INVOKABLE QString getString(const QString &key) const noexcept;
-    Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText) const noexcept;
 
 signals:
     void authorizedChanged();

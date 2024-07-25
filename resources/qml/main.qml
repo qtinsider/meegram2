@@ -8,7 +8,6 @@ PageStackWindow {
     id: appWindow
 
     property QtObject icons: Icons {}
-
     property bool isPortrait: screen.currentOrientation !== Screen.Landscape
 
     initialPage: Component { MainPage {} }
@@ -35,10 +34,15 @@ PageStackWindow {
         var component = Qt.createComponent("ChatPage.qml");
 
         if (component.status === Component.Ready) {
-            pageStack.push(component, { chat: app.storageManager.getChat(chatId), locale: app.locale, storage: app.storageManager });
-        } else
+            pageStack.push(component, {
+                chat: app.storageManager.getChat(chatId),
+                locale: app.locale,
+                storage: app.storageManager
+            });
+        } else {
             console.debug("Error loading component:", component.errorString());
+        }
     }
 
-    Component.onCompleted: { app.initialize(); }
+    Component.onCompleted: app.initialize()
 }

@@ -6,7 +6,6 @@ import "components"
 
 Page {
     id: root
-
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -16,7 +15,8 @@ Page {
 
     Loader {
         id: loader
-        anchors { fill: parent; topMargin: header.height; }
+        anchors.fill: parent
+        anchors.topMargin: header.height
         sourceComponent: Item {
             anchors.fill: parent
             BusyIndicator {
@@ -33,42 +33,35 @@ Page {
             anchors.fill: parent
 
             Column {
-                anchors{
+                anchors {
                     top: parent.top
-                    topMargin: 30
                     left: parent.left
                     right: parent.right
+                    topMargin: 30
                 }
-
                 spacing: 16
 
                 Text {
-                    anchors{
+                    anchors {
                         left: parent.left
                         right: parent.right
                         leftMargin: 24
                         rightMargin: 24
                     }
-
                     text: "Different, Handy, Powerful"
                     wrapMode: Text.WordWrap
-
                     font.pixelSize: 30
                     color: "#777777"
-
                     horizontalAlignment: Text.AlignHCenter
                 }
 
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter
-
                     spacing: 16
 
                     Button {
                         text: app.getString("StartMessaging") + app.emptyString
-
                         platformStyle: ButtonStyle { inverted: true }
-
                         onClicked: pageStack.push(signInPage)
                     }
                 }
@@ -106,28 +99,22 @@ Page {
 
     Connections {
         target: authorization
-        onCodeRequested: {
-            internal.changePage(codeEnterPage, {
-                                    phoneNumber: phoneNumber,
-                                    type: type,
-                                    nextType: nextType,
-                                    timeout: timeout * 1000})
-        }
-
-        onPasswordRequested: {
-            internal.changePage(passwordPage, {
-                                    passwordHint: passwordHint,
-                                    hasRecoveryEmailAddress: hasRecoveryEmailAddress,
-                                    recoveryEmailAddressPattern: recoveryEmailAddressPattern})
-        }
-
-        onRegistrationRequested: {
-            internal.changePage(signUpPage, {
-                                    text: text,
-                                    minUserAge:minUserAge,
-                                    showPopup: showPopup})
-        }
-
+        onCodeRequested: internal.changePage(codeEnterPage, {
+            phoneNumber: phoneNumber,
+            type: type,
+            nextType: nextType,
+            timeout: timeout * 1000
+        })
+        onPasswordRequested: internal.changePage(passwordPage, {
+            passwordHint: passwordHint,
+            hasRecoveryEmailAddress: hasRecoveryEmailAddress,
+            recoveryEmailAddressPattern: recoveryEmailAddressPattern
+        })
+        onRegistrationRequested: internal.changePage(signUpPage, {
+            text: text,
+            minUserAge: minUserAge,
+            showPopup: showPopup
+        })
         onError: appWindow.showBanner(errorString)
     }
 
@@ -140,34 +127,32 @@ Page {
             platformIconId: "toolbar-back"
             onClicked: Qt.quit()
         }
-
         ToolIcon {
             anchors.right: parent.right
             iconSource: "qrc:/images/help-icon.png"
-
             onClicked: aboutDialog.open()
         }
     }
 
     Connections {
         target: app
-
         onAppInitialized: {
             if (app.authorized) {
                 pageStack.push(Qt.createComponent("ChatsPage.qml"), { locale: app.locale, storage: app.storageManager });
-            } else
+            } else {
                 loader.sourceComponent = infoComponent;
+            }
         }
     }
 
     QtObject {
-        id:internal
-
+        id: internal
         function changePage(page, prop) {
-            if (pageStack.depth > 1)
+            if (pageStack.depth > 1) {
                 pageStack.replace(page, prop)
-            else
+            } else {
                 pageStack.push(page, prop)
+            }
         }
     }
 }

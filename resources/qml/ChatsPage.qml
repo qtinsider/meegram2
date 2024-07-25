@@ -19,8 +19,8 @@ Page {
         Image {
             anchors {
                 right: parent.right
-                rightMargin: 16
                 verticalCenter: parent.verticalCenter
+                rightMargin: 16
             }
             source: "image://theme/meegotouch-combobox-indicator-inverted"
         }
@@ -33,15 +33,11 @@ Page {
         MenuLayout {
             MenuItem {
                 text: app.getString("ArchivedChats") + app.emptyString
-                onClicked: {
-                    pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { locale: app.locale, storage: app.storageManager })
-                }
+                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { locale: app.locale, storage: app.storageManager })
             }
             MenuItem {
                 text: app.getString("SETTINGS") + app.emptyString
-                onClicked: {
-                    pageStack.push(Qt.createComponent("SettingsPage.qml"))
-                }
+                onClicked: pageStack.push(Qt.createComponent("SettingsPage.qml"))
             }
             MenuItem {
                 text: "About"
@@ -54,10 +50,10 @@ Page {
         id: listView
 
         anchors {
+            top: header.bottom
             bottom: parent.bottom
             left: parent.left
             right: parent.right
-            top: header.bottom
         }
 
         cacheBuffer: listView.height * 2
@@ -78,11 +74,8 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: app.getString("NoChats") + app.emptyString
-        visible: myChatModel.count === 0
-                 && !populateTimer.running
-                 && !myChatModel.loading
+        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
-
 
     BusyIndicator {
         anchors.centerIn: listView
@@ -115,7 +108,6 @@ Page {
 
     ChatModel {
         id: myChatModel
-
         chatList: TdApi.ChatListMain
 
         onLoadingChanged: {
@@ -132,26 +124,20 @@ Page {
                 text: myChatModel.isPinned(listView.currentIndex)
                     ? app.getString("UnpinFromTop") + app.emptyString
                     : app.getString("PinToTop") + app.emptyString
-                onClicked: {
-                    myChatModel.toggleChatIsPinned(listView.currentIndex)
-                }
+                onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
             }
 
             MenuItem {
                 text: myChatModel.isMuted(listView.currentIndex)
                     ? app.getString("ChatsUnmute") + app.emptyString
                     : app.getString("ChatsMute") + app.emptyString
-                onClicked: {
-                    myChatModel.toggleChatNotificationSettings(listView.currentIndex)
-                }
+                onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
             }
         }
     }
 
-
     Timer {
         id: populateTimer
-
         interval: 200
         repeat: false
         onTriggered: myChatModel.populate()
@@ -168,11 +154,10 @@ Page {
     tools: ToolBarLayout {
         ToolIcon {
             platformIconId: "toolbar-view-menu"
-            anchors.right: (parent === undefined) ? undefined : parent.right
+            anchors.right: (parent !== undefined) ? parent.right : undefined
             onClicked: (myMenu.status === DialogStatus.Closed) ? myMenu.open() : myMenu.close()
         }
     }
 
-
-    Component.onCompleted: { myChatModel.refresh() }
+    Component.onCompleted: myChatModel.refresh()
 }

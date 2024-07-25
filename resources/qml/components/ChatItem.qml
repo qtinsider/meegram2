@@ -4,10 +4,10 @@ import com.nokia.extras 1.1
 
 Item {
     id: root
-
     signal pressAndHold
 
-    height: 88; width: parent.width
+    height: 88
+    width: parent.width
 
     BorderImage {
         id: background
@@ -18,16 +18,11 @@ Item {
 
     MaskedItem {
         id: maskedItem
-
-        anchors {
-            left: parent.left
-            leftMargin: 12
-            verticalCenter: parent.verticalCenter
-        }
-
+        anchors.left: parent.left
+        anchors.leftMargin: 12
+        anchors.verticalCenter: parent.verticalCenter
         width: 64
         height: 64
-
         mask: Image {
             sourceSize.width: maskedItem.width
             sourceSize.height: maskedItem.height
@@ -35,11 +30,10 @@ Item {
             height: maskedItem.height
             source: "qrc:/images/avatar-image-mask.png"
         }
-
         Image {
             id: profilePhotoImage
             anchors.fill: parent
-            cache:  false
+            cache: false
             smooth: true
             fillMode: Image.PreserveAspectCrop
             clip: true
@@ -49,15 +43,11 @@ Item {
 
     Item {
         id: row1
-
         width: parent.width - maskedItem.width - 44
         height: 45
-        anchors {
-            left: maskedItem.right
-            leftMargin: 16
-            rightMargin: 16
-        }
-
+        anchors.left: maskedItem.right
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
         Label {
             id: title
             width: parent.width - date.width
@@ -68,14 +58,10 @@ Item {
             elide: Text.ElideRight
             text: model.title
         }
-
         Label {
             id: date
-
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-            }
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
             font.weight: Font.Light
             font.pixelSize: 20
             color: mouseArea.pressed ? "#797979" : "#505050"
@@ -86,8 +72,8 @@ Item {
     Item {
         height: 30
         width: parent.width - maskedItem.width - 44
-        anchors { left: row1.left; top: row1.bottom }
-
+        anchors.left: row1.left
+        anchors.top: row1.bottom
         Label {
             id: lastMessage
             width: parent.width - mentionLoader.width - bubbleLoader.width
@@ -98,47 +84,37 @@ Item {
             elide: Text.ElideRight
             text: model.lastMessageContent
         }
-
         Loader {
             id: bubbleLoader
-
-            anchors { verticalCenter: parent.verticalCenter; right: parent.right }
-
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
             sourceComponent: model.unreadCount > 0 ? countBubble : model.isPinned ? pinnedBubble : undefined
         }
-
         Loader {
             id: mentionLoader
-
-            anchors {
-                leftMargin: 8
-                right: bubbleLoader.left
-                rightMargin: 8
-                verticalCenter: parent.verticalCenter
-            }
-
+            anchors.leftMargin: 8
+            anchors.right: bubbleLoader.left
+            anchors.rightMargin: 8
+            anchors.verticalCenter: parent.verticalCenter
             sourceComponent: model.unreadMentionCount > 0 ? mentionBubble : undefined
         }
-
         Component {
             id: countBubble
-
             MyCountBubble {
                 isMuted: model.isMuted
                 value: model.unreadCount
             }
         }
-
         Component {
             id: pinnedBubble
-
             BorderImage {
-                border { left: 10; top: 10; right: 10; bottom: 10 }
+                border.left: 10
+                border.top: 10
+                border.right: 10
+                border.bottom: 10
                 source: "image://theme/" + theme.colorString + "meegotouch-new-items-counter-background-combined"
-
                 width: 32
                 height: 32
-
                 Text {
                     id: text
                     height: parent.height
@@ -151,17 +127,16 @@ Item {
                 }
             }
         }
-
         Component {
             id: mentionBubble
-
             BorderImage {
-                border { left: 10; top: 10; right: 10; bottom: 10 }
+                border.left: 10
+                border.top: 10
+                border.right: 10
+                border.bottom: 10
                 source: "image://theme/" + theme.colorString + "meegotouch-countbubble-background-large"
-
                 width: 32
                 height: 32
-
                 Text {
                     id: text
                     height: parent.height
@@ -179,10 +154,7 @@ Item {
     MouseArea {
         id: mouseArea
         anchors.fill: parent
-
-        onClicked: {
-           appWindow.openChat(model.id);
-        }
+        onClicked: appWindow.openChat(model.id)
         onPressAndHold: root.pressAndHold()
     }
 }

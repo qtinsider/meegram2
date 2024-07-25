@@ -1,44 +1,41 @@
 #pragma once
 
 #include <QFont>
-#include <QObject>
-#include <QVariant>
+#include <QTextCursor>
+#include <QTextDocument>
 
-class QTextDocument;
-class QTextCursor;
+#include <memory>
 
 class TextFormatter : public QObject
 {
     Q_OBJECT
-
-    Q_PROPERTY(QString richText READ richText WRITE setRichText NOTIFY richTextChanged)
-    Q_PROPERTY(QFont defaultFont READ defaultFont WRITE setDefaultFont NOTIFY defaultFontChanged)
-
-    Q_PROPERTY(QVariant formattedText READ formattedText NOTIFY formattedTextChanged)
+    Q_PROPERTY(QString text READ text NOTIFY textChanged)
+    Q_PROPERTY(QFont font READ font WRITE setFont NOTIFY fontChanged)
+    Q_PROPERTY(QVariant formattedText READ formattedText WRITE setFormattedText NOTIFY formattedTextChanged)
 
 public:
     explicit TextFormatter(QObject *parent = nullptr);
     ~TextFormatter() override;
 
-    QString richText() const;
-    void setRichText(const QString &richText);
+    QString text() const;
 
-    QFont defaultFont() const;
-    void setDefaultFont(const QFont &font);
+    QFont font() const;
+    void setFont(const QFont &font);
 
     QVariant formattedText() const;
     void setFormattedText(const QVariant &formattedText);
 
 signals:
-    void richTextChanged();
-    void defaultFontChanged();
+    void textChanged();
+    void fontChanged();
     void formattedTextChanged();
 
+private slots:
+    void applyFormatting();
+
 private:
-    void update();
-
-    QTextDocument *m_document;
-    QTextCursor *m_cursor;
-
     QVariant m_formattedText;
+
+    std::unique_ptr<QTextDocument> m_document;
+    std::unique_ptr<QTextCursor> m_cursor;
 };

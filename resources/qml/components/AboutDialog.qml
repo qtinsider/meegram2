@@ -33,7 +33,7 @@ Dialog {
                 color: "white"
                 text: "About MeeGram"
             }
-            
+
             Label {
                 id: versionLabel
 

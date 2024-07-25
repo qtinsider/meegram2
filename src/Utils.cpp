@@ -17,6 +17,7 @@
 #include <QLocale>
 #include <QScopedPointer>
 #include <QStringList>
+#include <QStringRef>
 #include <QTextCharFormat>
 #include <QTextCursor>
 #include <QTextDocument>
@@ -817,43 +818,47 @@ QString getMessageSenderName(const Message *message, StorageManager *store, Loca
     return QString();
 }
 
-QString getFormattedText(const QVariantMap &formattedText, StorageManager *store, Locale *locale, const QVariantMap &options) noexcept
+QString getFormattedText(const QVariantMap &formattedText) noexcept
 {
+    if (formattedText["@type"].toString() != "formattedText" || formattedText["text"].toString().isEmpty())
+    {
+        return {};
+    }
+
+    const auto rawText = formattedText["text"].toString();
+    const auto textEntities = formattedText["entities"].toList();
+
+    QFont font;
+    font.setPixelSize(23);
+    font.setWeight(QFont::Light);
+
+    QTextDocument textDocument;
+    QTextCursor textCursor(&textDocument);
+    textDocument.setDefaultFont(font);
+
+    bool removeLineBreakAfterCodeBlock = false;
+    int currentIndex = 0;
+
+    auto insertTextSegment = [&](const QString &textSegment) {
+        if (removeLineBreakAfterCodeBlock && textSegment.startsWith('\n'))
+        {
+            textCursor.insertText(textSegment.mid(1));
+            removeLineBreakAfterCodeBlock = false;
+        }
+        else
+        {
+            textCursor.insertText(textSegment);
+        }
+    };
+
     static const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> formatters = {
         {"textEntityTypeBold", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontWeight(QFont::Bold); }},
-        {"textEntityTypeBotCommand",
-         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-             format.setAnchor(true);
-             format.setAnchorHref("botCommand:" + entityText);
-         }},
-        {"textEntityTypeEmailAddress",
-         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-             format.setAnchor(true);
-             format.setAnchorHref("mailto:" + entityText);
-         }},
         {"textEntityTypeItalic", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontItalic(true); }},
-        {"textEntityTypeMentionName",
-         [store, locale](QTextCharFormat &format, const QString &, const QVariantMap &type) {
-             auto userId = type.value("user_id").toLongLong();
-             auto title = detail::getUserFullName(userId, store, locale);
-             format.setAnchor(true);
-             format.setAnchorHref("userId:" + title);
-         }},
-        {"textEntityTypeMention",
-         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-             format.setAnchor(true);
-             format.setAnchorHref("username:" + entityText);
-         }},
-        {"textEntityTypePhoneNumber",
-         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
-             format.setAnchor(true);
-             format.setAnchorHref("tel:" + entityText);
-         }},
-        {"textEntityTypeCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
-        {"textEntityTypePre", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
-        {"textEntityTypePreCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFixedPitch(true); }},
+        {"textEntityTypeUnderline", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontUnderline(true); }},
         {"textEntityTypeStrikethrough",
          [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontStrikeOut(true); }},
+        {"textEntityTypeCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFamily("Courier"); }},
+        {"textEntityTypePre", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFamily("Courier"); }},
         {"textEntityTypeTextUrl",
          [](QTextCharFormat &format, const QString &entityText, const QVariantMap &type) {
              QString url = type.value("url").toString();
@@ -871,44 +876,78 @@ QString getFormattedText(const QVariantMap &formattedText, StorageManager *store
              format.setAnchorHref(entityText);
              format.setFontUnderline(true);
          }},
-        {"textEntityTypeUnderline", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontUnderline(true); }}};
+        {"textEntityTypeEmailAddress",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("mailto:" + entityText);
+         }},
+        {"textEntityTypePhoneNumber",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("tel:" + entityText);
+         }},
+        {"textEntityTypeMention",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("mention:" + entityText);
+         }},
+        {"textEntityTypeMentionName",
+         [](QTextCharFormat &format, const QString &, const QVariantMap &entity) {
+             format.setAnchor(true);
+             format.setAnchorHref("mention_name:" + QString::number(entity["user_id"].toInt()));
+         }},
+        {"textEntityTypeHashtag",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("hashtag:" + entityText);
+         }},
+        {"textEntityTypeCashtag",
+         [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("cashtag:" + entityText);
+         }},
+        {"textEntityTypeBotCommand", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+             format.setAnchor(true);
+             format.setAnchorHref("botCommand:" + entityText);
+         }}};
 
-    const auto text = formattedText.value("text").toString();
-    const auto entities = formattedText.value("entities").toList();
-
-    QFont font;
-    font.setPixelSize(23);
-    font.setWeight(QFont::Light);
-
-    QScopedPointer<QTextDocument> doc(new QTextDocument);
-    doc->setDefaultFont(font);
-    doc->setPlainText(text);
-
-    QTextCursor cursor(doc.data());
-
-    for (const auto &entityVariant : entities)
+    for (const auto &entityRef : textEntities)
     {
-        const auto entity = entityVariant.toMap();
-        const auto offset = entity.value("offset").toInt();
-        const auto length = entity.value("length").toInt();
-        const auto type = entity.value("type").toMap();
-        const auto entityType = type.value("@type").toString();
-        const auto entityText = text.mid(offset, length);
+        const auto entity = entityRef.toMap();
+        const int offset = entity["offset"].toInt();
+        const int length = entity["length"].toInt();
+        const auto entityType = entity["type"].toMap();
+        const auto entityTypeString = entityType["@type"].toString();
 
-        cursor.setPosition(offset);
-        cursor.setPosition(offset + length, QTextCursor::KeepAnchor);
-
-        QTextCharFormat format;
-
-        if (auto it = formatters.find(entityType); it != formatters.end())
+        if (currentIndex > offset)
         {
-            it->second(format, entityText, type);
-            cursor.mergeCharFormat(format);
+            continue;
         }
+
+        insertTextSegment(rawText.mid(currentIndex, offset - currentIndex));
+
+        const auto entityText = rawText.mid(offset, length);
+        QTextCharFormat textFormat;
+
+        if (auto formatterIt = formatters.find(entityTypeString); formatterIt != formatters.end())
+        {
+            formatterIt->second(textFormat, entityText, entity);
+            if (entityTypeString == "textEntityTypePre")
+            {
+                removeLineBreakAfterCodeBlock = true;
+            }
+        }
+
+        textCursor.insertText(entityText, textFormat);
+        currentIndex = offset + length;
     }
 
-    // Return the formatted text as HTML
-    return doc->toHtml();
+    if (currentIndex < rawText.length())
+    {
+        insertTextSegment(rawText.mid(currentIndex));
+    }
+
+    return textDocument.toHtml();
 }
 
 void copyToClipboard(const QVariantMap &content) noexcept

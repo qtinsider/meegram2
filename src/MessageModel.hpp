@@ -98,7 +98,7 @@ public:
     QString getChatTitle() const noexcept;
     QString getChatPhoto() const noexcept;
 
-    Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText, const QVariantMap &options = {}) noexcept;
+    Q_INVOKABLE QString getFormattedText(const QVariantMap &formattedText) noexcept;
 
     Q_INVOKABLE void loadHistory() noexcept;
 

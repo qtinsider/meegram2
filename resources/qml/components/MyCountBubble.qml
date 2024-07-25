@@ -5,7 +5,6 @@ Item {
     id: root
 
     property bool isMuted: false
-
     property alias value: label.text
 
     implicitWidth: label.paintedWidth + 19
@@ -14,7 +13,10 @@ Item {
     BorderImage {
         source: "image://theme/" + theme.colorString + (isMuted ? "meegotouch-new-items-counter-background-combined" : "meegotouch-countbubble-background-large")
         anchors.fill: parent
-        border { left: 10; top: 10; right: 10; bottom: 10 }
+        border.left: 10
+        border.top: 10
+        border.right: 10
+        border.bottom: 10
     }
 
     Label {

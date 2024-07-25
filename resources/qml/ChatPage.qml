@@ -8,58 +8,44 @@ Page {
 
     property alias locale: myMessageModel.locale
     property alias storage: myMessageModel.storageManager
-
     property alias chat: myMessageModel.selectedChat
-
 
     property int replyMessageId: 0
     property int editMessageId: 0
-
     property bool __loading: true
 
     Flickable {
         id: contentArea
-
+        anchors.fill: parent
         contentHeight: parent.height
         contentWidth: parent.width
 
-        anchors.fill: parent
-
         Column {
             id: contentColumn
-
             width: parent.width
             height: parent.height
 
             Image {
                 id: topBar
-
                 height: isPortrait ? 72 : 64
                 width: parent.width
                 z: 1
-
                 source: "image://theme/meegotouch-view-header-fixed"
 
                 Row {
                     id: backButtonRow
-
                     anchors { left: parent.left; leftMargin: 12 }
-
                     height: parent.height
 
                     Button {
                         anchors.verticalCenter: parent.verticalCenter
-
                         platformStyle: ButtonStyle {
                             background: "image://theme/meegotouch-sheet-button-background"
                             pressedBackground: "image://theme/meegotouch-sheet-button-background-pressed"
-
                             buttonWidth: 100
                             buttonHeight: 42
                         }
-
                         text: app.getString("Chats") + app.emptyString
-
                         onClicked: pageStack.pop()
                     }
                 }
@@ -71,16 +57,13 @@ Page {
                         right: parent.right
                         rightMargin: 12
                     }
-
                     height: parent.height
                     width: parent.width
-
                     spacing: 12
                     layoutDirection: Qt.RightToLeft
 
                     MaskedItem {
                         id: maskedItem
-
                         anchors.verticalCenter: parent.verticalCenter
                         height: 50
                         width: 50
@@ -105,14 +88,12 @@ Page {
 
                         MouseArea {
                             anchors.fill: parent
-
                             onClicked: pageStack.push(Qt.createComponent("ChatInfoPage.qml"))
                         }
                     }
 
                     Column {
                         anchors.verticalCenter: parent.verticalCenter
-
                         width: parent.width
 
                         Label {
@@ -136,25 +117,20 @@ Page {
 
             Item {
                 id: item
-
                 height: parent.height - topBar.height - inputPanelHolder.height
                 width: parent.width
 
                 ListView {
                     id: listView
-
                     anchors.fill: parent
                     spacing: 6
-
                     clip: true
-
                     cacheBuffer: listView.height * 2
                     pressDelay: 50
 
                     delegate: Component {
                         Loader {
                             id: loader
-
                             width: parent.width
                             height: childrenRect.height
                             sourceComponent: model.isServiceMessage ? textMessageComponent : deleglateChooser.get(model.content)
@@ -163,13 +139,11 @@ Page {
                                 id: textMessageComponent
 
                                 MessageBubble {
-
                                     childrenWidth: messageText.paintedWidth
 
                                     content: Text {
                                         id: messageText
-                                        text:  model.isServiceMessage ? model.serviceMessage.trim() : myMessageModel.getFormattedText(model.content.text)
-
+                                        text: model.isServiceMessage ? model.serviceMessage.trim() : myMessageModel.getFormattedText(model.content.text)
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                         width: isPortrait ? 380 : 754
                                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
@@ -192,24 +166,18 @@ Page {
 
                                     content: Label {
                                         id: notSupportedMessage
-
                                         anchors {
                                             left: parent.left
                                             leftMargin: model.isOutgoing ? 20 : 80
                                         }
-
                                         width: isPortrait ? 380 : 754
-
                                         font {
                                             bold: true
                                             pixelSize: 23
                                         }
-
                                         horizontalAlignment: model.isOutgoing ? Text.AlignLeft : Text.AlignRight
                                         wrapMode: Text.Wrap
-
                                         color: model.isOutgoing ? "black" : "white"
-
                                         text: "The message is not supported on MeeGram yet"
                                     }
                                 }
@@ -217,12 +185,10 @@ Page {
 
                             QtObject {
                                 id: deleglateChooser
-
                                 function get(content) {
                                     switch (content['@type']) {
                                     case 'messageText':
                                         return textMessageComponent;
-
                                     default:
                                         return notSupportedMessageComponent;
                                     }
@@ -245,7 +211,6 @@ Page {
                             anchors.topMargin: 12
                             anchors.bottomMargin: 12
                         }
-
                         property: "section"
                     }
 
@@ -257,7 +222,7 @@ Page {
                     }
 
                     onAtYBeginningChanged: {
-                        if (atYBeginning/* && !myMessageModel.loadingHistory*/)
+                        if (atYBeginning)
                             myMessageModel.loadHistory()
                     }
 
@@ -275,15 +240,12 @@ Page {
 
                 Column {
                     anchors.verticalCenter: parent.verticalCenter
-
                     width: parent.width
                     height: busyIndicator.height
-
                     visible: myMessageModel.count === 0
 
                     BusyIndicator  {
                         id: busyIndicator
-
                         anchors.horizontalCenter: parent.horizontalCenter
                         running: true
                         platformStyle: BusyIndicatorStyle { size: "large" }
@@ -293,18 +255,14 @@ Page {
 
             Column {
                 id: inputPanelHolder
-
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width
 
                 TextArea {
                     id: textArea
-
                     height: 64
                     width: parent.width
-
                     placeholderText: "Write your message here"
-
                     platformStyle: TextAreaStyle {
                         background: "qrc:/images/messaging-textedit-background.png"
                         backgroundError: "qrc:/images/messaging-textedit-background.png"
@@ -316,16 +274,12 @@ Page {
 
                 Rectangle {
                     id: controls
-
                     anchors {
                         left: parent.left
                         right: parent.right
                     }
-
                     height: 0
-
                     clip: true
-
                     color: "white"
 
                     Rectangle {
@@ -345,14 +299,10 @@ Page {
                             rightMargin: 16
                             verticalCenter: parent.verticalCenter
                         }
-
                         height: 48
                         width: 120
-
                         platformStyle: ButtonStyle { inverted: true }
-
                         text: "Send"
-
                         onClicked: {
                             myMessageModel.sendMessage(textArea.text)
                             textArea.text = ""
@@ -373,7 +323,6 @@ Page {
 
     MessageModel {
         id: myMessageModel
-
         onMoreHistoriesLoaded: {
             listView.positionViewAtIndex(modelIndex - 1, ListView.Beginning)
         }

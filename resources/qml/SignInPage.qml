@@ -19,11 +19,7 @@ Page {
 
         Column {
             id: contentColumn
-
             width: flickable.width
-
-
-
             spacing: 16
 
             Label {
@@ -31,16 +27,15 @@ Page {
                 text: app.getString("YourPhone") + app.emptyString
                 font.pixelSize: 40
             }
+
             Rectangle {
                 color: "#b2b2b4"
                 width: parent.width
                 height: 1
             }
 
-            // Phone
             Column {
                 id: signInColumn
-
                 spacing: 16
 
                 Label {
@@ -96,6 +91,7 @@ Page {
                     }
                 }
             }
+
             ToolButton {
                 text: app.getString("Cancel") + app.emptyString
                 onClicked: root.cancelClicked()
@@ -104,14 +100,14 @@ Page {
     }
 
     CountryModel {
-        id: myCountryModel
-        countries:  app.countries
+        id: countryModel
+        countries: app.countries
     }
 
     SelectionDialog {
         id: selectionDialog
         titleText: app.getString("ChooseCountry") + app.emptyString
-        selectedIndex: myCountryModel.defaultIndex
-        model: myCountryModel
+        selectedIndex: countryModel.defaultIndex
+        model: countryModel
     }
 }
