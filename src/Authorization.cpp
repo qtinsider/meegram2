@@ -2,11 +2,8 @@
 
 #include "Client.hpp"
 #include "Common.hpp"
-#include "Serialize.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
-
-#include <QDebug>
 
 Authorization::Authorization(QObject *parent)
     : QObject(parent)
@@ -45,9 +42,6 @@ void Authorization::checkCode(const QString &code) noexcept
     request.insert("@type", "checkAuthenticationCode");
     request.insert("code", code);
 
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
-
     m_client->send(request);
 }
 
@@ -57,9 +51,6 @@ void Authorization::checkPassword(const QString &password) noexcept
     request.insert("@type", "checkAuthenticationPassword");
     request.insert("password", password);
 
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
-
     m_client->send(request);
 }
 
@@ -67,9 +58,6 @@ void Authorization::logOut() noexcept
 {
     QVariantMap request;
     request.insert("@type", "logOut");
-
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
 
     m_client->send(request);
 }
@@ -81,9 +69,6 @@ void Authorization::registerUser(const QString &firstName, const QString &lastNa
     request.insert("first_name", firstName);
     request.insert("last_name", lastName);
 
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
-
     m_client->send(request);
 }
 
@@ -93,22 +78,13 @@ void Authorization::setPhoneNumber(const QString &phoneNumber) noexcept
     request.insert("@type", "setAuthenticationPhoneNumber");
     request.insert("phone_number", phoneNumber);
 
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
-
-    m_client->send(request, [](const auto &value) {
-        nlohmann::json json(value);
-        qDebug() << QString::fromStdString(json.dump());
-    });
+    m_client->send(request);
 }
 
 void Authorization::resendCode() noexcept
 {
     QVariantMap request;
     request.insert("@type", "resendAuthenticationCode");
-
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
 
     m_client->send(request);
 }
@@ -118,9 +94,6 @@ void Authorization::deleteAccount(const QString &reason) noexcept
     QVariantMap request;
     request.insert("@type", "deleteAccount");
     request.insert("reason", reason);
-
-    nlohmann::json json(request);
-    qDebug() << QString::fromStdString(json.dump());
 
     m_client->send(request);
 }
@@ -145,9 +118,6 @@ void Authorization::handleResult(const QVariantMap &object)
         {"authorizationStateWaitRegistration", [this](const QVariantMap &state) { handleAuthorizationStateWaitRegistration(state); }},
         {"authorizationStateReady", [this](const QVariantMap &state) { handleAuthorizationStateReady(state); }},
     };
-
-    nlohmann::json json(object);
-    qDebug() << QString::fromStdString(json.dump());
 
     if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
     {

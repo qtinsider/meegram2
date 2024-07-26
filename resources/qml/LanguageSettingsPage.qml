@@ -24,7 +24,7 @@ Page {
 
         model: FlexibleListModel {
             id: languagePackModel
-            values: app.languagePackInfo
+            values: storageManager.languagePackInfo
         }
 
         delegate: ListItem {
@@ -64,14 +64,15 @@ Page {
                     rightMargin: 12
                     verticalCenter: parent.verticalCenter
                 }
-                source: app.settings.languagePackId !== model.id
+                source: settings.languagePackId !== model.id
                     ? "image://theme/meegotouch-button-checkbox-background"
                     : "image://theme/meegotouch-button-radiobutton-background-selected"
             }
 
             onClicked: {
-                app.settings.languagePackId = model.id
-                app.settings.languagePluralId = model.plural_code
+                settings.languagePackId = model.id
+                settings.languagePluralId = model.plural_code
+
                 appWindow.pageStack.pop()
             }
         }

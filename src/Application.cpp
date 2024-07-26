@@ -15,13 +15,13 @@
 
 #include <algorithm>
 
-Application::Application(StorageManager *storageManager, QObject *parent)
+Application::Application(Settings *settings, StorageManager *storageManager, QObject *parent)
     : QObject(parent)
-    , m_locale(new Locale(this))
-    , m_settings(new Settings(this))
+    , m_settings(settings)
     , m_storageManager(storageManager)
 {
-    m_client = qobject_cast<Client *>(m_storageManager->client());
+    m_client = m_storageManager->client();
+    m_locale = m_storageManager->locale();
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
 
@@ -39,36 +39,6 @@ bool Application::isAuthorized() const noexcept
 QString Application::emptyString() const noexcept
 {
     return {};
-}
-
-QObject *Application::client() const noexcept
-{
-    return m_client;
-}
-
-QObject *Application::locale() const noexcept
-{
-    return m_locale;
-}
-
-QObject *Application::settings() const noexcept
-{
-    return m_settings;
-}
-
-QObject *Application::storageManager() const noexcept
-{
-    return m_storageManager;
-}
-
-const QVariantList &Application::countries() const noexcept
-{
-    return m_countries;
-}
-
-const QVariantList &Application::languagePackInfo() const noexcept
-{
-    return m_languagePackInfo;
 }
 
 const QString &Application::connectionStateString() const noexcept
@@ -174,7 +144,7 @@ void Application::initializeLanguagePack() noexcept
         if (value.value("@type").toByteArray() == "languagePackStrings")
         {
             m_locale->setLanguagePlural(m_settings->languagePluralId());
-            m_locale->processStrings(value);
+            m_locale->setLanguagePackStrings(value);
 
             if (!m_initializationStatus[1])
             {
@@ -190,10 +160,10 @@ void Application::initializeCountries() noexcept
     QVariantMap request;
     request.insert("@type", "getCountries");
 
-    m_client->send(request, [this](auto &&value) {
+    m_client->send(request, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "countries")
         {
-            m_countries = std::move(value.value("countries").toList());
+            m_storageManager->setCountries(value.value("countries").toList());
             m_initializationStatus[2] = true;
             checkInitializationStatus();
         }
@@ -231,7 +201,7 @@ void Application::initializeLanguagePackInfo()
     m_client->send(request, [this](const auto &value) {
         if (value.value("@type").toByteArray() == "localizationTargetInfo")
         {
-            m_languagePackInfo = std::move(value.value("language_packs").toList());
+            m_storageManager->setLanguagePackInfo(value.value("language_packs").toList());
 
             m_initializationStatus[3] = true;
             checkInitializationStatus();
@@ -241,32 +211,16 @@ void Application::initializeLanguagePackInfo()
 
 void Application::handleAuthorizationState(const QVariantMap &authorizationState)
 {
-    const auto authorizationStateType = authorizationState.value("@type").toString();
-
-    static const std::unordered_map<QString, std::function<void()>> handlers = {
-        {"authorizationStateWaitEncryptionKey",
-         [this]() {
-             QVariantMap request;
-             request.insert("@type", "checkDatabaseEncryptionKey");
-             request.insert("encryption_key", "changeMe123");
-             m_client->send(request);
-         }},
-        {"authorizationStateReady",
-         [this]() {
-             QVariantMap request;
-             request.insert("@type", "loadChats");
-             request.insert("chat_list", {});
-             request.insert("limit", ChatSliceLimit);
-             m_client->send(request);
-
-             m_isAuthorized = true;
-             emit authorizedChanged();
-         }},
-    };
-
-    if (const auto it = handlers.find(authorizationStateType); it != handlers.end())
+    if (const auto authorizationStateType = authorizationState.value("@type").toString(); authorizationStateType == "authorizationStateReady")
     {
-        it->second();
+        QVariantMap request;
+        request.insert("@type", "loadChats");
+        request.insert("chat_list", {});
+        request.insert("limit", ChatSliceLimit);
+        m_client->send(request);
+
+        m_isAuthorized = true;
+        emit authorizedChanged();
     }
 }
 
@@ -275,35 +229,16 @@ void Application::handleConnectionState(const QVariantMap &connectionState)
     const auto connectionStateType = connectionState.value("@type").toString();
 
     static const std::unordered_map<QString, std::function<void()>> handlers = {
-        {"connectionStateWaitingForNetwork",
-         [this]() {
-             m_connectionStateString = "waiting_for_network";
-             emit connectionStateChanged();
-         }},
-        {"connectionStateConnectingToProxy",
-         [this]() {
-             m_connectionStateString = "connecting_to_proxy";
-             emit connectionStateChanged();
-         }},
-        {"connectionStateConnecting",
-         [this]() {
-             m_connectionStateString = "connecting";
-             emit connectionStateChanged();
-         }},
-        {"connectionStateUpdating",
-         [this]() {
-             m_connectionStateString = "updating";
-             emit connectionStateChanged();
-         }},
-        {"connectionStateReady",
-         [this]() {
-             m_connectionStateString = "ready";
-             emit connectionStateChanged();
-         }},
+        {"connectionStateReady", [this]() { m_connectionStateString = "Ready"; }},
+        {"connectionStateUpdating", [this]() { m_connectionStateString = "Updating"; }},
+        {"connectionStateConnecting", [this]() { m_connectionStateString = "Connecting"; }},
+        {"connectionStateConnectingToProxy", [this]() { m_connectionStateString = "ConnectingToProxy"; }},
+        {"connectionStateWaitingForNetwork", [this]() { m_connectionStateString = "WaitingForNetwork"; }},
     };
 
     if (const auto it = handlers.find(connectionStateType); it != handlers.end())
     {
         it->second();
+        emit connectionStateChanged();
     }
 }

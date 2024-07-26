@@ -214,34 +214,11 @@ QObject *MessageModel::storageManager() const
 void MessageModel::setStorageManager(QObject *storageManager)
 {
     m_storageManager = qobject_cast<StorageManager *>(storageManager);
-    m_client = qobject_cast<Client *>(m_storageManager->client());
+
+    m_client = m_storageManager->client();
+    m_locale = m_storageManager->locale();
 
     connect(m_client, SIGNAL(result(const QVariantMap &)), SLOT(handleResult(const QVariantMap &)));
-}
-
-QObject *MessageModel::locale() const
-{
-    return m_locale;
-}
-
-void MessageModel::setLocale(QObject *locale)
-{
-    m_locale = qobject_cast<Locale *>(locale);
-}
-
-Chat *MessageModel::selectedChat() const
-{
-    return m_selectedChat;
-}
-
-void MessageModel::setSelectedChat(Chat *value)
-{
-    if (m_selectedChat != value)
-    {
-        m_selectedChat = value;
-
-        emit selectedChatChanged();
-    }
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -432,27 +409,37 @@ bool MessageModel::loadingHistory() const noexcept
     return m_loadingHistory;
 }
 
+Chat *MessageModel::selectedChat() const
+{
+    return m_selectedChat;
+}
+
+void MessageModel::setSelectedChat(Chat *value) noexcept
+{
+    if (m_selectedChat != value)
+    {
+        m_selectedChat = value;
+
+        emit selectedChatChanged();
+    }
+}
+
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    static const std::unordered_map<QString, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>>
-        chatTypeHandlers = {{"chatTypeBasicGroup",
-                             [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
-                                 return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()),
-                                                                    onlineCount, locale);
-                             }},
-                            {"chatTypePrivate",
-                             [](const QVariantMap &type, int, StorageManager *store, Locale *locale) {
-                                 return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
-                             }},
-                            {"chatTypeSecret",
-                             [](const QVariantMap &type, int, StorageManager *store, Locale *locale) {
-                                 return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale);
-                             }},
-                            {"chatTypeSupergroup", [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
-                                 const auto supergroup = store->getSupergroup(type.value("supergroup_id").toLongLong());
-                                 return supergroup->isChannel() ? detail::getChannelStatus(supergroup, onlineCount, store, locale)
-                                                                : detail::getSupergroupStatus(supergroup, onlineCount, store, locale);
-                             }}};
+    static const std::unordered_map<QString, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>> chatTypeHandlers = {
+        {"chatTypeBasicGroup",
+         [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
+             return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()), onlineCount, locale);
+         }},
+        {"chatTypePrivate", [](const QVariantMap &type, int, StorageManager *store,
+                               Locale *locale) { return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale); }},
+        {"chatTypeSecret", [](const QVariantMap &type, int, StorageManager *store,
+                              Locale *locale) { return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale); }},
+        {"chatTypeSupergroup", [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
+             const auto supergroup = store->getSupergroup(type.value("supergroup_id").toLongLong());
+             return supergroup->isChannel() ? detail::getChannelStatus(supergroup, onlineCount, store, locale)
+                                            : detail::getSupergroupStatus(supergroup, onlineCount, store, locale);
+         }}};
 
     const auto type = m_selectedChat->type();
     const auto chatType = m_selectedChat->type().value("@type").toString();
@@ -485,7 +472,6 @@ QString MessageModel::getChatPhoto() const noexcept
 
     return "image://theme/icon-l-content-avatar-placeholder";
 }
-
 
 void MessageModel::loadHistory() noexcept
 {
@@ -611,18 +597,15 @@ void MessageModel::handleResult(const QVariantMap &object)
     static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> handlers = {
         {"updateNewMessage", [this](const QVariantMap &obj) { handleNewMessage(obj.value("message").toMap()); }},
         {"updateMessageSendSucceeded",
-         [this](const QVariantMap &obj) {
-             handleMessageSendSucceeded(obj.value("message").toMap(), obj.value("old_message_id").toLongLong());
-         }},
+         [this](const QVariantMap &obj) { handleMessageSendSucceeded(obj.value("message").toMap(), obj.value("old_message_id").toLongLong()); }},
         {"updateMessageSendFailed",
          [this](const QVariantMap &obj) {
-             handleMessageSendFailed(obj.value("message").toMap(), obj.value("old_message_id").toLongLong(),
-                                     obj.value("error_code").toInt(), obj.value("error_message").toString());
+             handleMessageSendFailed(obj.value("message").toMap(), obj.value("old_message_id").toLongLong(), obj.value("error_code").toInt(),
+                                     obj.value("error_message").toString());
          }},
         {"updateMessageContent",
          [this](const QVariantMap &obj) {
-             handleMessageContent(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
-                                  obj.value("new_content").toMap());
+             handleMessageContent(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("new_content").toMap());
          }},
         {"updateMessageEdited",
          [this](const QVariantMap &obj) {
@@ -631,27 +614,20 @@ void MessageModel::handleResult(const QVariantMap &object)
          }},
         {"updateMessageIsPinned",
          [this](const QVariantMap &obj) {
-             handleMessageIsPinned(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
-                                   obj.value("is_pinned").toBool());
+             handleMessageIsPinned(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("is_pinned").toBool());
          }},
         {"updateMessageInteractionInfo",
          [this](const QVariantMap &obj) {
-             handleMessageInteractionInfo(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(),
-                                          obj.value("interaction_info").toMap());
+             handleMessageInteractionInfo(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("interaction_info").toMap());
          }},
         {"updateChatOnlineMemberCount",
-         [this](const QVariantMap &obj) {
-             handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_member_count").toInt());
-         }},
+         [this](const QVariantMap &obj) { handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_member_count").toInt()); }},
         {"updateChatReadInbox",
          [this](const QVariantMap &obj) {
-             handleChatReadInbox(obj.value("chat_id").toLongLong(), obj.value("last_read_inbox_message_id").toLongLong(),
-                                 obj.value("online_count").toInt());
+             handleChatReadInbox(obj.value("chat_id").toLongLong(), obj.value("last_read_inbox_message_id").toLongLong(), obj.value("online_count").toInt());
          }},
         {"updateChatReadOutbox",
-         [this](const QVariantMap &obj) {
-             handleChatReadOutbox(obj.value("chat_id").toLongLong(), obj.value("last_read_outbox_message_id").toLongLong());
-         }},
+         [this](const QVariantMap &obj) { handleChatReadOutbox(obj.value("chat_id").toLongLong(), obj.value("last_read_outbox_message_id").toLongLong()); }},
     };
 
     if (const auto it = handlers.find(object.value("@type").toString()); it != handlers.end())
@@ -714,8 +690,7 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
     if (chatId != m_selectedChat->id())
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
-        it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
     {
         (*it)->setEditDate(editDate);
         (*it)->setReplyMarkup(replyMarkup);
@@ -730,8 +705,7 @@ void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool i
     if (chatId != m_selectedChat->id())
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
-        it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
     {
         (*it)->setIsPinned(isPinned);
 
@@ -745,8 +719,7 @@ void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId,
     if (chatId != m_selectedChat->id())
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
-        it != m_messages.end())
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
     {
         (*it)->setInteractionInfo(interactionInfo);
 
@@ -763,8 +736,7 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
     for (const auto &value : messageIds)
     {
         auto messageId = value.toLongLong();
-        if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
-            it != m_messages.end())
+        if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
         {
             auto index = std::distance(m_messages.begin(), it);
 

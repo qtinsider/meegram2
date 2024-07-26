@@ -45,10 +45,10 @@ class ChatFolderModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
-
-    Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
+
+    Q_PROPERTY(QString localeString READ localeString WRITE setLocaleString NOTIFY localeStringChanged)
+    Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
 
 public:
     ChatFolderModel(QObject *parent = nullptr);
@@ -58,8 +58,8 @@ public:
         IconNameRole,
     };
 
-    QObject *locale() const;
-    void setLocale(QObject *locale);
+    const QString &localeString() const;
+    void setLocaleString(const QString &value);
 
     QVariantList getChatFolders() const noexcept;
     void setChatFolders(QVariantList value) noexcept;
@@ -75,9 +75,10 @@ public:
 signals:
     void countChanged();
     void chatFoldersChanged();
+    void localeStringChanged();
 
 private:
-    Locale *m_locale;
+    QString m_localeString;
 
     QVariantList m_chatFolders;
 };

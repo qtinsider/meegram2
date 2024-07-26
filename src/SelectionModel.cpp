@@ -80,9 +80,8 @@ int CountryModel::count() const noexcept
 int CountryModel::getDefaultIndex() const noexcept
 {
     // TODO(strawberry): refactor
-    auto it = std::ranges::find_if(m_countries, [](const auto &value) {
-        return value.toMap().value("country_code").toString().compare("NG", Qt::CaseInsensitive) == 0;
-    });
+    auto it = std::ranges::find_if(m_countries,
+                                   [](const auto &value) { return value.toMap().value("country_code").toString().compare("NG", Qt::CaseInsensitive) == 0; });
 
     if (it != m_countries.end())
     {
@@ -103,18 +102,16 @@ ChatFolderModel::ChatFolderModel(QObject *parent)
     setRoleNames(roles);
 }
 
-QObject *ChatFolderModel::locale() const
+const QString &ChatFolderModel::localeString() const
 {
-    return m_locale;
+    return m_localeString;
 }
 
-void ChatFolderModel::setLocale(QObject *locale)
+void ChatFolderModel::setLocaleString(const QString &value)
 {
-    m_locale = qobject_cast<Locale *>(locale);
-
     QVariantMap chatFolder;
     chatFolder.insert("id", 0);
-    chatFolder.insert("title", m_locale->getString("FilterAllChats"));
+    chatFolder.insert("title", value);
 
     beginInsertRows(QModelIndex(), 0, 0);
     m_chatFolders.insert(0, chatFolder);

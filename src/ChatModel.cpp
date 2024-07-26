@@ -17,10 +17,8 @@ namespace detail {
 
 QString getChatType(const QVariantMap &type)
 {
-    static const std::unordered_map<const char *, QString> chatTypeMap = {{"chatTypePrivate", "private"},
-                                                                          {"chatTypeSecret", "secret"},
-                                                                          {"chatTypeBasicGroup", "group"},
-                                                                          {"chatTypeSupergroup", "supergroup"}};
+    static const std::unordered_map<const char *, QString> chatTypeMap = {
+        {"chatTypePrivate", "private"}, {"chatTypeSecret", "secret"}, {"chatTypeBasicGroup", "group"}, {"chatTypeSupergroup", "supergroup"}};
 
     const auto chatType = type.value("@type").toByteArray().constData();
 
@@ -62,16 +60,6 @@ ChatModel::~ChatModel()
     delete m_loadingTimer;
 }
 
-QObject *ChatModel::locale() const
-{
-    return m_locale;
-}
-
-void ChatModel::setLocale(QObject *locale)
-{
-    m_locale = qobject_cast<Locale *>(locale);
-}
-
 QObject *ChatModel::storageManager() const
 {
     return m_storageManager;
@@ -80,7 +68,9 @@ QObject *ChatModel::storageManager() const
 void ChatModel::setStorageManager(QObject *storageManager)
 {
     m_storageManager = qobject_cast<StorageManager *>(storageManager);
-    m_client = qobject_cast<Client *>(m_storageManager->client());
+
+    m_client = m_storageManager->client();
+    m_locale = m_storageManager->locale();
 
     connect(m_storageManager, SIGNAL(updateChatItem(qint64)), this, SLOT(handleChatItem(qint64)));
     connect(m_storageManager, SIGNAL(updateChatPosition(qint64)), this, SLOT(handleChatPosition(qint64)));
@@ -347,9 +337,8 @@ void ChatModel::sortChats()
 {
     emit layoutAboutToBeChanged();
 
-    std::ranges::sort(m_chatIds, [&](auto a, auto b) {
-        return Utils::getChatOrder(a, m_list, m_storageManager) > Utils::getChatOrder(b, m_list, m_storageManager);
-    });
+    std::ranges::sort(m_chatIds,
+                      [&](auto a, auto b) { return Utils::getChatOrder(a, m_list, m_storageManager) > Utils::getChatOrder(b, m_list, m_storageManager); });
 
     emit layoutChanged();
 }

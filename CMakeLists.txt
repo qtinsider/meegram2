@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
-project(MeeGram VERSION 0.1.6 LANGUAGES CXX)
+project(MeeGram VERSION 0.1.5 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Td REQUIRED)
@@ -23,8 +23,6 @@ set(src_files
     src/ChatModel.cpp
     src/Client.cpp
     src/DBusAdaptor.cpp
-    src/Emoji.cpp
-    src/Emoji_data.cpp
     src/File.cpp
     src/ImageProviders.cpp
     src/Localization.cpp
@@ -35,7 +33,6 @@ set(src_files
     src/NotificationManager.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
-    src/SignalConnector.cpp
     src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
     src/SupergroupFullInfo.cpp
@@ -56,7 +53,6 @@ set(header_files
     src/Client.hpp
     src/Common.hpp
     src/DBusAdaptor.hpp
-    src/Emoji.hpp
     src/File.hpp
     src/ImageProviders.hpp
     src/Localization.hpp
@@ -67,7 +63,6 @@ set(header_files
     src/SelectionModel.hpp
     src/Serialize.hpp
     src/Settings.hpp
-    src/SignalConnector.hpp
     src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/Supergroup.hpp

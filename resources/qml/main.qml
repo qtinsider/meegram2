@@ -22,7 +22,7 @@ PageStackWindow {
 
     Authorization {
         id: authorization
-        client: app.client
+        client: tdclient
     }
 
     function showInfoBanner(message) {
@@ -35,9 +35,8 @@ PageStackWindow {
 
         if (component.status === Component.Ready) {
             pageStack.push(component, {
-                chat: app.storageManager.getChat(chatId),
-                locale: app.locale,
-                storage: app.storageManager
+                chat: storageManager.getChat(chatId),
+                storage: storageManager
             });
         } else {
             console.debug("Error loading component:", component.errorString());

@@ -138,10 +138,13 @@ Page {
         target: app
         onAppInitialized: {
             if (app.authorized) {
-                pageStack.push(Qt.createComponent("ChatsPage.qml"), { locale: app.locale, storage: app.storageManager });
+                pageStack.push(Qt.createComponent("ChatsPage.qml"), { storage: storageManager });
             } else {
                 loader.sourceComponent = infoComponent;
             }
+        }
+        onLanguageChanged: {
+            console.log("Language changed, updating UI...");
         }
     }
 

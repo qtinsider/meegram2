@@ -398,9 +398,7 @@ public:
     }
 };
 
-Locale::Locale(QObject *parent)
-    : QObject(parent)
-{
+Locale::Locale(){
     // clang-format off
     addRules(QStringList() << "bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
                  "nl" << "nn" << "no" << "sv" << "af" << "bg" << "bn" << "ca" << "eu" << "fur" << "fy" << "gu" << "ha" << "is" << "ku" <<
@@ -429,7 +427,7 @@ Locale::Locale(QObject *parent)
     // clang-format on
 }
 
-QString Locale::getString(const QString &key) const
+ QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))
     {
@@ -461,8 +459,7 @@ QString Locale::getString(const QString &key) const
         last_pos = pos;
     }
 
-    static const std::unordered_map<std::string_view, std::string_view> replacements = {
-        {"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
+    static const std::unordered_map<std::string_view, std::string_view> replacements = {{"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
 
     for (const auto &[from, to] : replacements)
     {
@@ -531,11 +528,6 @@ QString Locale::formatTtl(int ttl) const
     return formatPluralString("TTLStringWeeks", std::floor(days / 7)) + formatPluralString("TTLStringDays", std::floor(days % 7));
 }
 
-QString Locale::languagePlural() const
-{
-    return m_languagePlural;
-}
-
 void Locale::setLanguagePlural(const QString &value)
 {
     if (m_languagePlural != value)
@@ -544,37 +536,11 @@ void Locale::setLanguagePlural(const QString &value)
     }
 }
 
-QString Locale::stringForQuantity(PluralRules::Quantity quantity) const
-{
-    switch (quantity)
-    {
-        case PluralRules::QuantityZero:
-            return "_zero_value";
-        case PluralRules::QuantityOne:
-            return "_one_value";
-        case PluralRules::QuantityTwo:
-            return "_two_value";
-        case PluralRules::QuantityFew:
-            return "_few_value";
-        case PluralRules::QuantityMany:
-            return "_many_value";
-        default:
-            return "_other_value";
-    }
-}
-
-void Locale::addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules)
-{
-    std::ranges::for_each(languages, [&](const auto &x) { m_allRules.emplace(x, rules->clone()); });
-}
-
-void Locale::processStrings(const QVariantMap &languagePackStrings)
+void Locale::setLanguagePackStrings(const QVariantMap &languagePackStrings)
 {
     static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> stringTypeHandlers = {
         {"languagePackStringValueOrdinary",
-         [this](const QVariantMap &value) {
-             m_languagePack.emplace(value.value("key").toString(), value.value("value").toMap().value("value").toString());
-         }},
+         [this](const QVariantMap &value) { m_languagePack.emplace(value.value("key").toString(), value.value("value").toMap().value("value").toString()); }},
         {"languagePackStringValuePluralized",
          [this](const QVariantMap &value) {
              const auto &pluralValues = value.value("value").toMap();
@@ -605,6 +571,30 @@ void Locale::processStrings(const QVariantMap &languagePackStrings)
     }
 
     updatePluralRules();
+}
+
+QString Locale::stringForQuantity(PluralRules::Quantity quantity) const
+{
+    switch (quantity)
+    {
+        case PluralRules::QuantityZero:
+            return "_zero_value";
+        case PluralRules::QuantityOne:
+            return "_one_value";
+        case PluralRules::QuantityTwo:
+            return "_two_value";
+        case PluralRules::QuantityFew:
+            return "_few_value";
+        case PluralRules::QuantityMany:
+            return "_many_value";
+        default:
+            return "_other_value";
+    }
+}
+
+void Locale::addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules)
+{
+    std::ranges::for_each(languages, [&](const auto &x) { m_allRules.emplace(x, rules->clone()); });
 }
 
 void Locale::updatePluralRules()

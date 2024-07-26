@@ -6,7 +6,6 @@
 #include <QFontDatabase>
 #include <QTextCodec>
 
-#include "TextFormatter.hpp"
 #include "Application.hpp"
 #include "Authorization.hpp"
 #include "Chat.hpp"
@@ -23,6 +22,7 @@
 #include "Settings.hpp"
 #include "StorageManager.hpp"
 #include "TdApi.hpp"
+#include "TextFormatter.hpp"
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
@@ -30,6 +30,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     QCoreApplication::setApplicationName(AppName);
     QCoreApplication::setApplicationVersion(AppVersion);
+    QCoreApplication::setOrganizationName("insider");
 
     QFontDatabase::addApplicationFont(":/fonts/Icons.ttf");
     QFontDatabase::addApplicationFont(":/fonts/NotoEmoji-Regular.ttf");
@@ -55,13 +56,21 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");
 
-    StorageManager storageManager;
-    Application application(&storageManager);
-
     QDeclarativeView viewer;
     new DBusAdaptor(&app, &viewer);
 
+    Client client;
+    Locale locale;
+    Settings settings;
+    StorageManager storageManager(&client, &locale);
+
+    Application application(&settings, &storageManager);
+
     viewer.rootContext()->setContextProperty("app", &application);
+    viewer.rootContext()->setContextProperty("tdclient", &client);
+    viewer.rootContext()->setContextProperty("settings", &settings);
+    viewer.rootContext()->setContextProperty("storageManager", &storageManager);
+
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 

@@ -26,21 +26,18 @@ public:
     virtual std::unique_ptr<PluralRules> clone() const = 0;
 };
 
-class Locale : public QObject
+class Locale final
 {
-    Q_OBJECT
 public:
-    explicit Locale(QObject *parent = nullptr);
+    Locale();
 
     QString getString(const QString &key) const;
     QString formatPluralString(const QString &key, int plural) const;
     QString formatCallDuration(int duration) const;
     QString formatTtl(int ttl) const;
 
-    QString languagePlural() const;
     void setLanguagePlural(const QString &value);
-
-    void processStrings(const QVariantMap &languagePackStrings);
+    void setLanguagePackStrings(const QVariantMap &languagePackStrings);
 
 private:
     QString stringForQuantity(PluralRules::Quantity quantity) const;

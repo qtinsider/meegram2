@@ -19,7 +19,7 @@ BraceWrapping: {
 }
 BreakBeforeBraces: Custom
 BreakConstructorInitializersBeforeComma: true
-ColumnLimit: 140
+ColumnLimit: 160
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 DerivePointerBinding: false
 FixNamespaceComments: true

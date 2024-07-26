@@ -18,8 +18,7 @@ class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
-    Q_PROPERTY(QObject *storageManager READ storageManager WRITE setStorageManager)
+    Q_PROPERTY(QObject *store READ storageManager WRITE setStorageManager)
 
     Q_PROPERTY(Chat *selectedChat READ selectedChat WRITE setSelectedChat NOTIFY selectedChatChanged)
 
@@ -71,12 +70,6 @@ public:
     QObject *storageManager() const;
     void setStorageManager(QObject *storageManager);
 
-    QObject *locale() const;
-    void setLocale(QObject *locale);
-
-    Chat *selectedChat() const;
-    void setSelectedChat(Chat *value);
-
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const override;
@@ -91,8 +84,8 @@ public:
     bool loading() const noexcept;
     bool loadingHistory() const noexcept;
 
-    QString getChatId() const noexcept;
-    void setChatId(const QString &value) noexcept;
+    Chat *selectedChat() const;
+    void setSelectedChat(Chat *value) noexcept;
 
     QString getChatSubtitle() const noexcept;
     QString getChatTitle() const noexcept;

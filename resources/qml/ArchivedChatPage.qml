@@ -7,7 +7,6 @@ import "components"
 Page {
     id: root
 
-    property alias locale: myChatModel.locale
     property alias storage: myChatModel.storageManager
 
     orientationLock: PageOrientation.LockPortrait

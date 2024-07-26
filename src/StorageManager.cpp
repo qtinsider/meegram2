@@ -8,9 +8,10 @@
 #include <algorithm>
 #include <ranges>
 
-StorageManager::StorageManager(QObject *parent)
+StorageManager::StorageManager(Client *client, Locale *locale, QObject *parent)
     : QObject(parent)
-    , m_client(new Client(this))
+    , m_client(client)
+    , m_locale(locale)
 {
     connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
 }
@@ -18,6 +19,11 @@ StorageManager::StorageManager(QObject *parent)
 Client *StorageManager::client() const noexcept
 {
     return m_client;
+}
+
+Locale *StorageManager::locale() const noexcept
+{
+    return m_locale;
 }
 
 std::vector<qint64> StorageManager::getChatIds() const noexcept
@@ -115,9 +121,39 @@ UserFullInfo *StorageManager::getUserFullInfo(qint64 userId) const
     return nullptr;
 }
 
-QVariantList StorageManager::getChatFolders() const noexcept
+const QVariantList &StorageManager::chatFolders() const noexcept
 {
     return m_chatFolders;
+}
+
+const QVariantList &StorageManager::countries() const noexcept
+{
+    return m_countries;
+}
+
+const QVariantList &StorageManager::languagePackInfo() const noexcept
+{
+    return m_languagePackInfo;
+}
+
+void StorageManager::setCountries(const QVariantList &value) noexcept
+{
+    if (m_countries != value)
+    {
+        m_countries = value;
+
+        emit countriesChanged();
+    }
+}
+
+void StorageManager::setLanguagePackInfo(const QVariantList &value) noexcept
+{
+    if (m_languagePackInfo != value)
+    {
+        m_languagePackInfo = value;
+
+        emit languagePackInfoChanged();
+    }
 }
 
 qint64 StorageManager::getMyId() const noexcept
@@ -311,9 +347,8 @@ void StorageManager::handleResult(const QVariantMap &object)
              file->setFromVariantMap(object.value("file").toMap());
              m_files.emplace(file->id(), std::move(file));
          }},
-        {"updateOption", [this](const QVariantMap &object) {
-             m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value"));
-         }}};
+        {"updateOption",
+         [this](const QVariantMap &object) { m_options.insert(object.value("name").toString(), object.value("value").toMap().value("value")); }}};
 
     if (auto it = handlers.find(object.value("@type").toString()); it != handlers.end())
     {
@@ -333,9 +368,8 @@ void StorageManager::setChatPositions(qint64 chatId, const QVariantList &positio
 
         for (const auto &position : positions)
         {
-            auto removeIt = std::ranges::find_if(currentPositions, [&](const auto &value) {
-                return Utils::chatListEquals(value.toMap()["list"].toMap(), position.toMap()["list"].toMap());
-            });
+            auto removeIt = std::ranges::find_if(
+                currentPositions, [&](const auto &value) { return Utils::chatListEquals(value.toMap()["list"].toMap(), position.toMap()["list"].toMap()); });
 
             if (removeIt != currentPositions.end())
             {

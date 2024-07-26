@@ -7,8 +7,7 @@ import "components"
 Page {
     id: root
 
-    property alias locale: myChatModel.locale
-    property alias storage: myChatModel.storageManager
+    property alias storage: myChatModel.store
 
     orientationLock: PageOrientation.LockPortrait
 
@@ -33,7 +32,7 @@ Page {
         MenuLayout {
             MenuItem {
                 text: app.getString("ArchivedChats") + app.emptyString
-                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { locale: app.locale, storage: app.storageManager })
+                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { storage: app.storageManager })
             }
             MenuItem {
                 text: app.getString("SETTINGS") + app.emptyString
@@ -102,8 +101,7 @@ Page {
 
     ChatFolderModel {
         id: mychatFolderModel
-        locale: app.locale
-        chatFolders: app.storageManager.chatFolders
+        chatFolders: storageManager.chatFolders
     }
 
     ChatModel {
