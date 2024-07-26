@@ -141,7 +141,7 @@ Page {
                                 MessageBubble {
                                     childrenWidth: messageText.paintedWidth
 
-                                    content: MyLabel {
+                                    content: FormattedText {
                                         id: messageText
                                         formattedText: model.isServiceMessage ? model.serviceMessage.trim() : model.content.text
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"

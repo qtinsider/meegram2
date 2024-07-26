@@ -24,9 +24,11 @@ Application::Application(StorageManager *storageManager, QObject *parent)
     m_client = qobject_cast<Client *>(m_storageManager->client());
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
+
+    connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
+
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(initializeLanguagePack()));
-    connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
 }
 
 bool Application::isAuthorized() const noexcept
@@ -174,8 +176,11 @@ void Application::initializeLanguagePack() noexcept
             m_locale->setLanguagePlural(m_settings->languagePluralId());
             m_locale->processStrings(value);
 
-            m_initializationStatus[1] = true;
-            checkInitializationStatus();
+            if (!m_initializationStatus[1])
+            {
+                m_initializationStatus[1] = true;
+                checkInitializationStatus();
+            }
         }
     });
 }

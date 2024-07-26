@@ -14,6 +14,7 @@
         <file>qml/components/AboutDialog.qml</file>
         <file>qml/components/ChatItem.qml</file>
         <file>qml/components/DrillDownDelegate.qml</file>
+        <file>qml/components/FormattedText.qml</file>
         <file>qml/components/Icons.qml</file>
         <file>qml/components/ListDelegate.qml</file>
         <file>qml/components/ListItem.qml</file>
@@ -35,6 +36,5 @@
         <file>qml/SettingsPage.qml</file>
         <file>qml/SignInPage.qml</file>
         <file>qml/SignUpPage.qml</file>
-        <file>qml/components/MyLabel.qml</file>
     </qresource>
 </RCC>

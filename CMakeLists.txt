@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Td REQUIRED)
 find_package(rlottie REQUIRED)
-find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtDeclarative REQUIRED)
+find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtSvg QtXml QtDeclarative REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
@@ -35,6 +35,7 @@ set(src_files
     src/NotificationManager.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
+    src/SignalConnector.cpp
     src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
     src/SupergroupFullInfo.cpp
@@ -66,6 +67,7 @@ set(header_files
     src/SelectionModel.hpp
     src/Serialize.hpp
     src/Settings.hpp
+    src/SignalConnector.hpp
     src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/Supergroup.hpp
@@ -85,7 +87,7 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
-target_link_libraries(meegram PRIVATE rlottie::rlottie Td::TdJsonStatic Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtDeclarative Threads::Threads)
+target_link_libraries(meegram PRIVATE rlottie::rlottie Td::TdJsonStatic Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtSvg Qt4::QtXml Qt4::QtDeclarative Threads::Threads)
 
 if (boostable_FOUND)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})

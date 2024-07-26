@@ -71,15 +71,6 @@ QString TextFormatter::text() const
     return m_document->toHtml();
 }
 
-void TextFormatter::setText(const QString &value)
-{
-    if (value != text())
-    {
-        m_document->setPlainText(value);
-        emit textChanged();
-    }
-}
-
 QFont TextFormatter::font() const
 {
     return m_document->defaultFont();

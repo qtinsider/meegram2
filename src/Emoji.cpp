@@ -3,10 +3,18 @@
 #include <QAbstractTextDocumentLayout>
 #include <QDebug>
 #include <QDir>
+#include <QDomDocument>
+#include <QFile>
 #include <QPainter>
+#include <QPixmapCache>
+#include <QSvgRenderer>
 #include <QTextBlock>
 #include <QTextDocumentFragment>
 #include <QTextLayout>
+
+#include <algorithm>
+#include <memory>
+#include <ranges>
 
 EmojiTextObjectInterface::EmojiTextObjectInterface(EmojiTextObject *emojiTextObject)
     : QObject(emojiTextObject)
@@ -14,12 +22,8 @@ EmojiTextObjectInterface::EmojiTextObjectInterface(EmojiTextObject *emojiTextObj
 {
 }
 
-void EmojiTextObjectInterface::drawObject(QPainter *painter, const QRectF &rect, QTextDocument *doc, int posInDocument,
-                                          const QTextFormat &format)
+void EmojiTextObjectInterface::drawObject(QPainter *painter, const QRectF &rect, QTextDocument *, int, const QTextFormat &format)
 {
-    Q_UNUSED(doc);
-    Q_UNUSED(posInDocument);
-
     const auto code = format.property(EmojiTextObject::EmojiUnicode).value<Emoji>();
     const auto drawRect = rect.adjusted(1, 0, -1, 0);
 
@@ -29,25 +33,23 @@ void EmojiTextObjectInterface::drawObject(QPainter *painter, const QRectF &rect,
     {
         painter->setPen(QPen(Qt::darkGray, 1, Qt::SolidLine));
         painter->setBrush(QColor(240, 240, 240));
-        painter->drawRect(drawRect.adjusted(1, 0, -1, 0));  // adjust again
+        painter->drawRect(drawRect);
         painter->setFont(QFont("typewriter", qMax(6, int(drawRect.height() * 0.6))));
-        painter->drawText(drawRect, Qt::AlignCenter, QLatin1String("?"));
+        painter->drawText(drawRect, Qt::AlignCenter, "?");
     }
     else
     {
-        const QPixmap pix = m_emojiTextObject->getEmoticon(code, drawRect.size().toSize());
-
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(Qt::NoBrush);
+        const auto pix = m_emojiTextObject->getEmoji(code, drawRect.size().toSize());
         painter->drawPixmap(drawRect, pix, QRectF(QPointF(0, 0), pix.size()));
     }
 
     painter->restore();
 }
 
-QSizeF EmojiTextObjectInterface::intrinsicSize(QTextDocument *doc, int posInDocument, const QTextFormat &format)
+QSizeF EmojiTextObjectInterface::intrinsicSize(QTextDocument *, int posInDocument, const QTextFormat &format)
 {
-    int height = m_emojiTextObject->computeLineHeight(posInDocument, format);
+    auto height = m_emojiTextObject->computeLineHeight(posInDocument, format);
+
     QSize size(height + 2, height);
     if (m_emojiTextObject->m_minimumEmojiSize.isValid())
         size = size.expandedTo(m_emojiTextObject->m_minimumEmojiSize);
@@ -61,7 +63,7 @@ EmojiTextObject::EmojiTextObject(QTextDocument *document)
     , m_minimumEmojiSize(20, 20)
     , m_isApplyingFormats(false)
 {
-    connect(document, &QTextDocument::contentsChanged, this, &EmojiTextObject::onTextDocumentContentsChanged);
+    connect(document, SIGNAL(contentsChange(int, int, int)), this, SLOT(onTextDocumentContentsChanged(int, int, int)));
 
     auto *textObjectInterface = new EmojiTextObjectInterface(this);
     m_textDocument->documentLayout()->registerHandler(EmojiTextObject::EmojiTextFormatObjectType, textObjectInterface);
@@ -71,30 +73,55 @@ EmojiTextObject::EmojiTextObject(QTextDocument *document)
 QString EmojiTextObject::getEmojiString(const Emoji &code)
 {
     QString emojiStr;
-    emojiStr.reserve(code.size() * 2);  // Reserve space to avoid multiple allocations
-    for (uint character : code)
+    for (auto character : code)
     {
         emojiStr += getEmojiString(character);
     }
     return emojiStr;
 }
 
-QString EmojiTextObject::getEmojiString(uint character)
+QString EmojiTextObject::getEmojiString(unsigned int character)
 {
-    QString emojiStr;
     if (QChar::requiresSurrogates(character))
     {
-        QChar chars[] = {QChar(QChar::highSurrogate(character)), QChar(QChar::lowSurrogate(character))};
-        emojiStr = QString(chars, 2);
+        return QString(QChar::highSurrogate(character)) + QString(QChar::lowSurrogate(character));
     }
-    else
-    {
-        emojiStr = QChar(character);
-    }
-    return emojiStr;
+    return QString(QChar(character));
 }
 
-void EmojiTextObject::onTextDocumentContentsChanged(int position, int /*charsRemoved*/, int charsAdded)
+QString EmojiTextObject::getEmojiPath(const Emoji &code) const
+{
+    auto simplifiedCode = code | std::views::filter([](unsigned int ch) { return ch != 0xFE0E && ch != 0xFE0F; });
+
+    QString hexString;
+    hexString.reserve(std::ranges::distance(simplifiedCode) * 6);  // 5 hex digits + 1 hyphen per character
+
+    for (auto it = simplifiedCode.begin(); it != simplifiedCode.end(); ++it)
+    {
+        if (it != simplifiedCode.begin())
+        {
+            hexString += QLatin1Char('-');
+        }
+        hexString += QString("%1").arg(*it, 5, 16, QLatin1Char('0'));
+    }
+
+    return QString(":/emoji/") + hexString + ".svg";
+}
+
+bool EmojiTextObject::hasEmoticon(const Emoji &code) const
+{
+    const auto fileName = getEmojiPath(code);
+    return QFile::exists(fileName);
+}
+
+QPixmap EmojiTextObject::getEmoji(const Emoji &code, const QSize &size) const
+{
+    const auto fileName = getEmojiPath(code);
+    auto pix = svgToPixmap(fileName, size);
+    return pix;
+}
+
+void EmojiTextObject::onTextDocumentContentsChanged(int position, int, int charsAdded)
 {
     if (charsAdded > 0)
     {
@@ -104,12 +131,12 @@ void EmojiTextObject::onTextDocumentContentsChanged(int position, int /*charsRem
 
 bool EmojiTextObject::isEmoji(uint character) const
 {
-    return isEmoji(Emoji() << character);
+    return isEmoji(Emoji{character});
 }
 
 bool EmojiTextObject::isEmoji(const Emoji &code) const
 {
-    return !code.isEmpty() && AllEmojis.contains(code);
+    return !code.empty() && AllEmojis.contains(code);
 }
 
 Emoji EmojiTextObject::extractEmojiCode(QTextCursor cursor, int *selectionLength)
@@ -124,57 +151,20 @@ Emoji EmojiTextObject::extractEmojiCode(QTextCursor cursor, int *selectionLength
         return Emoji();
     }
 
-    int start = cursor.position();
-    cursor.setPosition(start, QTextCursor::MoveAnchor);
-    int end = start;
+    cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, m_maxEmojiCharCodeCount);
 
-    while (cursor.selectedText().length() < (m_maxEmojiCharCodeCount * 2))
+    while (cursor.hasSelection())
     {
-        if (!cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1))
-        {
-            break;
-        }
-        end = cursor.position();
-    }
-
-    while (end > start)
-    {
-        cursor.setPosition(start, QTextCursor::MoveAnchor);
-        cursor.setPosition(end, QTextCursor::KeepAnchor);
-
-        const auto selection = cursor.selectedText();
-
         Emoji code;
-        code.reserve(selection.length());  // Reserve space to avoid multiple allocations
-
+        const auto selection = cursor.selectedText();
         for (int i = 0; i < selection.length(); ++i)
         {
-            const ushort prevCharacter = i > 0 ? selection[i - 1].unicode() : 0x0;
-            const ushort unicodeCharacter = selection[i].unicode();
-            uint emojiCharCode = 0x0;
-
-            if (QChar::isHighSurrogate(unicodeCharacter))
+            auto emojiCharCode = selection[i].unicode();
+            if (i > 0 && QChar::isLowSurrogate(emojiCharCode) && QChar::isHighSurrogate(selection[i - 1].unicode()))
             {
-                continue;
+                emojiCharCode = QChar::surrogateToUcs4(selection[i - 1].unicode(), emojiCharCode);
             }
-
-            if (QChar::isLowSurrogate(unicodeCharacter) && QChar::isHighSurrogate(prevCharacter))
-            {
-                emojiCharCode = QChar::surrogateToUcs4(prevCharacter, unicodeCharacter);
-            }
-            else
-            {
-                emojiCharCode = unicodeCharacter;
-            }
-
-            if (emojiCharCode > 0)
-            {
-                code << emojiCharCode;
-            }
-            else
-            {
-                break;
-            }
+            code.push_back(emojiCharCode);
         }
 
         if (isEmoji(code))
@@ -186,11 +176,7 @@ Emoji EmojiTextObject::extractEmojiCode(QTextCursor cursor, int *selectionLength
             return code;
         }
 
-        if (!cursor.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, 1))
-        {
-            break;
-        }
-        end = cursor.position();
+        cursor.setPosition(cursor.position() - 1, QTextCursor::KeepAnchor);
     }
 
     return Emoji();
@@ -203,35 +189,24 @@ QString EmojiTextObject::extractDocumentText(bool html) const
         return QString();
     }
 
-    QScopedPointer<QTextDocument> doc(m_textDocument->clone());
-    QTextCursor cursor(doc);
+    auto doc = std::make_unique<QTextDocument>(m_textDocument->clone());
+    QTextCursor cursor(doc.get());
 
-    cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
     while (!cursor.atEnd())
     {
-        if (!cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1))
-        {
-            break;
-        }
-        const auto selection = cursor.selectedText().trimmed();
-        if (selection == QString(QChar::ObjectReplacementCharacter))
+        cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+        if (cursor.selectedText() == QString(QChar::ObjectReplacementCharacter))
         {
             const QTextCharFormat format = cursor.charFormat();
             if (format.objectType() == EmojiTextObject::EmojiTextFormatObjectType)
             {
-                const auto code = format.property(EmojiTextObject::EmojiUnicode).value<Emoji>();
-                const auto replaceText = format.stringProperty(EmojiTextObject::EmojiString);
-
+                const QString replaceText = format.stringProperty(EmojiTextObject::EmojiString);
                 cursor.insertText(replaceText);
             }
         }
-
-        cursor.setPosition(cursor.position(), QTextCursor::MoveAnchor);
     }
 
-    QString text = html ? doc->toHtml() : doc->toPlainText();
-
-    return text;
+    return html ? doc->toHtml() : doc->toPlainText();
 }
 
 QString EmojiTextObject::extractCursorText(const QTextCursor &cursor, bool html) const
@@ -241,90 +216,148 @@ QString EmojiTextObject::extractCursorText(const QTextCursor &cursor, bool html)
         return QString();
     }
 
-    QScopedPointer<QTextDocument> doc(m_textDocument->clone());
-    QTextCursor cursorCopy(doc);
+    auto doc = std::make_unique<QTextDocument>(m_textDocument->clone());
+    QTextCursor cursorCopy(doc.get());
     cursorCopy.setPosition(qMin(cursor.position(), cursor.anchor()), QTextCursor::MoveAnchor);
     cursorCopy.setPosition(qMax(cursor.position(), cursor.anchor()), QTextCursor::KeepAnchor);
 
-    int start = cursorCopy.anchor();
-    int end = cursorCopy.position();
-
-    cursorCopy.setPosition(start, QTextCursor::MoveAnchor);
-    while (cursorCopy.position() <= end)
+    while (!cursorCopy.atEnd())
     {
-        if (!cursorCopy.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1))
-        {
-            break;
-        }
-        const QString selection = cursorCopy.selectedText().trimmed();
-        if (selection == QString(QChar::ObjectReplacementCharacter))
+        cursorCopy.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 1);
+        if (cursorCopy.selectedText() == QString(QChar::ObjectReplacementCharacter))
         {
             const QTextCharFormat format = cursorCopy.charFormat();
             if (format.objectType() == EmojiTextObject::EmojiTextFormatObjectType)
             {
-                const auto code = format.property(EmojiTextObject::EmojiUnicode).value<Emoji>();
-
                 const QString replaceText = format.stringProperty(EmojiTextObject::EmojiString);
-
-                end += (replaceText.length() - 1);
-                cursorCopy.insertText(replaceText, QTextCharFormat());
+                cursorCopy.insertText(replaceText);
             }
         }
-
-        cursorCopy.setPosition(cursorCopy.position(), QTextCursor::MoveAnchor);
     }
 
-    cursorCopy.setPosition(start, QTextCursor::MoveAnchor);
-    cursorCopy.setPosition(end, QTextCursor::KeepAnchor);
-    QTextDocumentFragment fragment = cursorCopy.selection();
-    QString text = html ? fragment.toHtml() : fragment.toPlainText();
-
-    return text;
+    return html ? doc->toHtml() : doc->toPlainText();
 }
 
-void EmojiTextObject::applyTextCharFormat(int pos)
+QByteArray EmojiTextObject::svgPrepare(const QString &fileName) const
 {
-    if (m_isApplyingFormats)
+    QDomDocument svgDocument;
+    QFile svgFile(fileName);
+    if (!svgFile.open(QIODevice::ReadOnly) || !svgDocument.setContent(&svgFile))
+        return QByteArray();
+
+    /*
+     * QSvgRenderer fills certain elements with "black" if they are not
+     * explicitly filled
+     */
+
+    const auto fillAttribute = QLatin1String("fill");
+    const auto transparentFillValue = QLatin1String("transparent");
+
+    auto applyTransparentFill = [&](const QString &elementTag) {
+        auto elements = svgDocument.elementsByTagName(elementTag);
+        for (int i = 0; i < elements.size(); ++i)
+        {
+            if (auto element = elements.at(i).toElement(); !element.hasAttribute(fillAttribute))
+                element.setAttribute(fillAttribute, transparentFillValue);
+        }
+    };
+
+    applyTransparentFill(QLatin1String("path"));
+    applyTransparentFill(QLatin1String("rect"));
+
+    return svgDocument.toByteArray();
+}
+
+QPixmap EmojiTextObject::svgToPixmap(const QString &fileName, const QSize &size) const
+{
+    QPixmap pixmap;
+    const auto cacheKey = fileName + QString("@%1x%2").arg(size.width()).arg(size.height());
+    if (!QPixmapCache::find(cacheKey, &pixmap))
+    {
+        if (QFile::exists(fileName))
+        {
+            const auto svg = svgPrepare(fileName);
+
+            if (QSvgRenderer renderer(svg); renderer.isValid())
+            {
+                pixmap = QPixmap(size);
+                pixmap.fill(Qt::transparent);
+
+                QPainter painter(&pixmap);
+                renderer.render(&painter, QRectF());
+
+                painter.end();
+
+                QPixmapCache::insert(cacheKey, pixmap);
+            }
+        }
+    }
+    return pixmap;
+}
+
+void EmojiTextObject::applyTextCharFormat(int startPosition)
+{
+    if (!m_textDocument || m_isApplyingFormats)
     {
         return;
     }
 
     m_isApplyingFormats = true;
-    const bool isModified = m_textDocument->isModified();
 
     QTextCursor cursor(m_textDocument);
-    if (pos == 0)
-    {
-        cursor.movePosition(QTextCursor::Start, QTextCursor::MoveAnchor);
-    }
-    else
-    {
-        cursor.setPosition(pos, QTextCursor::MoveAnchor);
-    }
-
+    cursor.setPosition(startPosition, QTextCursor::MoveAnchor);
+    const bool isModified = m_textDocument->isModified();
     cursor.beginEditBlock();
+
     while (!cursor.atEnd())
     {
-        int increase = 1;
-
-        if (const auto code = extractEmojiCode(cursor, &increase); !code.isEmpty())
+        int increase = 0;
+        const auto code = extractEmojiCode(cursor, &increase);
+        if (!code.empty())
         {
-            QTextCharFormat emojiFormat;
-            emojiFormat.setObjectType(EmojiTextObject::EmojiTextFormatObjectType);
-            emojiFormat.setProperty(EmojiTextObject::EmojiUnicode, QVariant::fromValue<Emoji>(code));
-            emojiFormat.setProperty(EmojiTextObject::EmojiString, QVariant::fromValue<QString>(getEmojiString(code)));
-            emojiFormat.setVerticalAlignment(QTextCharFormat::AlignBottom);
+            QTextCharFormat format;
+            format.setObjectType(EmojiTextObject::EmojiTextFormatObjectType);
+            format.setProperty(EmojiTextObject::EmojiUnicode, QVariant::fromValue(code));
+            format.setProperty(EmojiTextObject::EmojiString, getEmojiString(code));
 
-            cursor.setPosition(cursor.position() + increase, QTextCursor::KeepAnchor);
-            cursor.insertText(QString(QChar::ObjectReplacementCharacter), emojiFormat);
+            cursor.insertText(QString(QChar::ObjectReplacementCharacter), format);
         }
-        else if (!cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::MoveAnchor, 1))
+        else
         {
-            break;
+            cursor.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, increase);
         }
     }
-    cursor.endEditBlock();
 
+    cursor.endEditBlock();
     m_textDocument->setModified(isModified);
+
     m_isApplyingFormats = false;
+}
+
+int EmojiTextObject::computeLineHeight(int posInDocument, const QTextFormat &format) const
+{
+    auto calculateBlockHeight = [&](const QTextBlockFormat &) {
+        QTextBlock block = m_textDocument->findBlock(posInDocument);
+        int blockHeight = qRound(block.layout()->lineAt(0).height());
+        qDebug() << blockHeight;
+        return blockHeight;
+    };
+
+    auto calculateCharHeight = [&](const QTextCharFormat &charFormat) {
+        QFont font = charFormat.font();
+        int charHeight = font.pixelSize();
+        if (charHeight == -1)
+            charHeight = qRound(font.pointSizeF() * 1.33333);  // pt -> px
+        return charHeight;
+    };
+
+    switch (format.type())
+    {
+        case QTextFormat::BlockFormat:
+            return calculateBlockHeight(format.toBlockFormat());
+        case QTextFormat::CharFormat:
+            return calculateCharHeight(format.toCharFormat());
+        default:
+            return 20;
+    }
 }
