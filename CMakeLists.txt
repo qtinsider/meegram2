@@ -79,7 +79,16 @@ set(header_files
     src/Utils.hpp
 )
 
-set(qrc_files resources/resources.qrc)
+set(qrc_files 
+    resources/resources.qrc
+    resources/emoji_0.qrc
+    resources/emoji_1.qrc
+    resources/emoji_2.qrc
+    resources/emoji_3.qrc
+    resources/emoji_4.qrc
+    resources/emoji_5.qrc
+    resources/emoji_6.qrc
+)
 
 add_executable(meegram ${src_files} ${header_files} ${qrc_files})
 

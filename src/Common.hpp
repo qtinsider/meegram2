@@ -6,6 +6,7 @@
 
 #include <array>
 #include <cstdint>
+#include <vector>
 
 constexpr auto AppName = "MeeGram";
 constexpr auto AppVersion = "0.1.6";
@@ -37,6 +38,21 @@ struct hash<QString>
     std::size_t operator()(const QString &s) const
     {
         return qHash(s);
+    }
+};
+
+
+template <>
+struct hash<std::vector<unsigned int>>
+{
+    std::size_t operator()(const auto &emoji) const
+    {
+        std::size_t seed = 0;
+        for (const auto &element : emoji)
+        {
+            seed ^= std::hash<uint>()(element) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
     }
 };
 }  // namespace std

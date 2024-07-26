@@ -1,40 +1,26 @@
 #pragma once
 
+#include "Common.hpp"
+
 #include <QTextObjectInterface>
 
 #include <unordered_set>
-#include <vector>
 
 class EmojiTextObject;
 
 using Emoji = std::vector<unsigned int>;
 using EmojiSet = std::unordered_set<Emoji>;
 
-namespace std {
-template <>
-struct hash<Emoji>
-{
-    std::size_t operator()(const Emoji &emoji) const
-    {
-        std::size_t seed = 0;
-        for (const auto &element : emoji)
-        {
-            seed ^= std::hash<uint>()(element) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-        }
-        return seed;
-    }
-};
-}  // namespace std
-
-class EmojiTextObjectInterface : public QObject
+class EmojiTextObjectInterface : public QObject, public QTextObjectInterface
 {
     Q_OBJECT
+    Q_INTERFACES(QTextObjectInterface)
 
 public:
     explicit EmojiTextObjectInterface(EmojiTextObject *emojiTextObject);
 
-    void drawObject(QPainter *painter, const QRectF &rect, QTextDocument *document, int posInDocument, const QTextFormat &format);
-    QSizeF intrinsicSize(QTextDocument *document, int posInDocument, const QTextFormat &format);
+    void drawObject(QPainter *painter, const QRectF &rect, QTextDocument *document, int posInDocument, const QTextFormat &format) override;
+    QSizeF intrinsicSize(QTextDocument *document, int posInDocument, const QTextFormat &format) override;
 
 private:
     EmojiTextObject *m_emojiTextObject;
@@ -75,8 +61,7 @@ private:
     [[nodiscard]] QString extractCursorText(const QTextCursor &cursor, bool html = false) const;
 
     QByteArray svgPrepare(const QString &fileName) const;
-    QPixmap svgToPixmap(const QString & fileName, const QSize & size) const;
-
+    QPixmap svgToPixmap(const QString &fileName, const QSize &size) const;
 
     void applyTextCharFormat(int pos = 0);
 
