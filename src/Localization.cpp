@@ -398,8 +398,7 @@ public:
     }
 };
 
-Locale::Locale(QObject *parent)
-    : QObject(parent)
+Locale::Locale()
 {
     // clang-format off
     addRules(QStringList() << "bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
@@ -461,8 +460,7 @@ QString Locale::getString(const QString &key) const
         last_pos = pos;
     }
 
-    static const std::unordered_map<std::string_view, std::string_view> replacements = {
-        {"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
+    static const std::unordered_map<std::string_view, std::string_view> replacements = {{"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
 
     for (const auto &[from, to] : replacements)
     {
@@ -531,17 +529,60 @@ QString Locale::formatTtl(int ttl) const
     return formatPluralString("TTLStringWeeks", std::floor(days / 7)) + formatPluralString("TTLStringDays", std::floor(days % 7));
 }
 
-QString Locale::languagePlural() const
-{
-    return m_languagePlural;
-}
-
 void Locale::setLanguagePlural(const QString &value)
 {
     if (m_languagePlural != value)
     {
         m_languagePlural = value;
     }
+}
+
+void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> value)
+{
+    for ( auto &&string : value->strings_)
+    {
+        if (string->value_->get_id() == td::td_api::languagePackStringValueOrdinary::ID)
+        {
+            auto ordinaryValue = td::move_tl_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
+            m_languagePack.emplace(QString::fromStdString(string->key_), QString::fromStdString(ordinaryValue->value_));
+        }
+        else if (string->value_->get_id() == td::td_api::languagePackStringValuePluralized::ID)
+        {
+            auto pluralizedValue = td::move_tl_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
+            const auto keyBase = QString::fromStdString(string->key_);
+            if (!pluralizedValue->zero_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_zero_value", QString::fromStdString(pluralizedValue->zero_value_));
+            }
+            if (!pluralizedValue->one_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_one_value", QString::fromStdString(pluralizedValue->one_value_));
+            }
+            if (!pluralizedValue->two_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_two_value", QString::fromStdString(pluralizedValue->two_value_));
+            }
+            if (!pluralizedValue->few_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_few_value", QString::fromStdString(pluralizedValue->few_value_));
+            }
+            if (!pluralizedValue->many_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_many_value", QString::fromStdString(pluralizedValue->many_value_));
+            }
+            if (!pluralizedValue->other_value_.empty())
+            {
+                m_languagePack.emplace(keyBase + "_other_value", QString::fromStdString(pluralizedValue->other_value_));
+            }
+        }
+        else if (string->value_->get_id() == td::td_api::languagePackStringValueDeleted::ID)
+        {
+            // No action needed for deleted strings
+        }
+
+    }
+
+    updatePluralRules();
 }
 
 QString Locale::stringForQuantity(PluralRules::Quantity quantity) const
@@ -566,45 +607,6 @@ QString Locale::stringForQuantity(PluralRules::Quantity quantity) const
 void Locale::addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules)
 {
     std::ranges::for_each(languages, [&](const auto &x) { m_allRules.emplace(x, rules->clone()); });
-}
-
-void Locale::processStrings(const QVariantMap &languagePackStrings)
-{
-    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> stringTypeHandlers = {
-        {"languagePackStringValueOrdinary",
-         [this](const QVariantMap &value) {
-             m_languagePack.emplace(value.value("key").toString(), value.value("value").toMap().value("value").toString());
-         }},
-        {"languagePackStringValuePluralized",
-         [this](const QVariantMap &value) {
-             const auto &pluralValues = value.value("value").toMap();
-             if (!pluralValues.isEmpty())
-             {
-                 const auto keyBase = value.value("key").toString();
-                 for (const char *suffix : {"zero_value", "one_value", "two_value", "few_value", "many_value", "other_value"})
-                 {
-                     if (const auto &stringValue = pluralValues.value(suffix).toString(); !stringValue.isEmpty())
-                     {
-                         m_languagePack.emplace(keyBase + "_" + suffix, stringValue);
-                     }
-                 }
-             }
-         }},
-        {"languagePackStringValueDeleted", [](const QVariantMap &) {
-             // No action needed for deleted strings
-         }}};
-
-    const auto strings = languagePackStrings.value("strings").toList();
-    for (const auto &value : strings)
-    {
-        const auto valueType = value.toMap().value("value").toMap().value("@type").toString();
-        if (auto it = stringTypeHandlers.find(valueType); it != stringTypeHandlers.end())
-        {
-            it->second(value.toMap());
-        }
-    }
-
-    updatePluralRules();
 }
 
 void Locale::updatePluralRules()

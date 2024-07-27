@@ -138,7 +138,7 @@ Page {
         target: app
         onAppInitialized: {
             if (app.authorized) {
-                pageStack.push(Qt.createComponent("ChatsPage.qml"), { locale: app.locale, storage: app.storageManager });
+                pageStack.push(Qt.createComponent("ChatsPage.qml"));
             } else {
                 loader.sourceComponent = infoComponent;
             }

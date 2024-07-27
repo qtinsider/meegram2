@@ -5,11 +5,11 @@
 #include <QObject>
 #include <QTextCursor>
 #include <QTextDocument>
-#include <QVariant>
 
 #include <functional>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 class TextFormatter : public QObject
 {
@@ -20,7 +20,7 @@ class TextFormatter : public QObject
 
 public:
     explicit TextFormatter(QObject *parent = nullptr);
-    ~TextFormatter() override;
+    ~TextFormatter() override = default;
 
     QString text() const;
 

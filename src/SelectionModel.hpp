@@ -45,8 +45,6 @@ class ChatFolderModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QObject *locale READ locale WRITE setLocale)
-
     Q_PROPERTY(QVariantList chatFolders READ getChatFolders WRITE setChatFolders NOTIFY chatFoldersChanged)
     Q_PROPERTY(int count READ count NOTIFY countChanged)
 
@@ -58,8 +56,8 @@ public:
         IconNameRole,
     };
 
-    QObject *locale() const;
-    void setLocale(QObject *locale);
+    Locale *locale() const;
+    void setLocale(Locale *locale);
 
     QVariantList getChatFolders() const noexcept;
     void setChatFolders(QVariantList value) noexcept;
@@ -80,40 +78,4 @@ private:
     Locale *m_locale;
 
     QVariantList m_chatFolders;
-};
-
-class FlexibleListModel : public QAbstractListModel
-{
-    Q_OBJECT
-
-    Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(QVariantList values READ values WRITE setValues NOTIFY valuesChanged)
-
-public:
-    explicit FlexibleListModel(QObject *parent = nullptr);
-
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-
-    int count() const noexcept;
-
-    QVariantList values() const noexcept;
-    void setValues(const QVariantList &values) noexcept;
-
-    Q_INVOKABLE void append(const QVariant &value) noexcept;
-    Q_INVOKABLE void remove(int index) noexcept;
-    Q_INVOKABLE QVariant get(int index) const noexcept;
-    Q_INVOKABLE void clear() noexcept;
-    Q_INVOKABLE void replace(const QString &key, const QVariant &value) noexcept;
-    Q_INVOKABLE void insert(int index, const QVariant &value) noexcept;
-
-    Q_INVOKABLE void sort(const QString &criteria, bool ascending);
-
-signals:
-    void countChanged();
-    void valuesChanged();
-
-private:
-    QVariantList m_values;
-    QHash<int, QByteArray> m_roleNames;
 };

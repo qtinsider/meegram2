@@ -20,11 +20,6 @@ PageStackWindow {
         z: 100
     }
 
-    Authorization {
-        id: authorization
-        client: app.client
-    }
-
     function showInfoBanner(message) {
         banner.text = message
         banner.show()

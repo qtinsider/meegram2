@@ -1,5 +1,8 @@
 #include "TextFormatter.hpp"
 
+#include <QDebug>
+#include <QPainter>
+#include <QTextBlock>
 #include <QTextCharFormat>
 
 // clang-format off
@@ -56,15 +59,15 @@ const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QS
 
 // clang-format on
 
+
 TextFormatter::TextFormatter(QObject *parent)
     : QObject(parent)
     , m_document(std::make_unique<QTextDocument>(this))
     , m_cursor(std::make_unique<QTextCursor>(m_document.get()))
 {
+
     connect(this, SIGNAL(formattedTextChanged()), this, SLOT(applyFormatting()));
 }
-
-TextFormatter::~TextFormatter() = default;
 
 QString TextFormatter::text() const
 {
@@ -104,6 +107,7 @@ void TextFormatter::applyFormatting()
     if (m_formattedText.canConvert<QString>())
     {
         m_document->setPlainText(m_formattedText.toString());
+
         emit textChanged();
         return;
     }

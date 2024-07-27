@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Message.hpp"
-
 #include <QAbstractListModel>
 
 #include <memory>
@@ -12,6 +10,7 @@
 class Chat;
 class Client;
 class Locale;
+class Message;
 class StorageManager;
 
 class MessageModel : public QAbstractListModel
