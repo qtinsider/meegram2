@@ -2,6 +2,9 @@
 
 #include "TdApi.hpp"
 
+#include <td/telegram/td_api.h>
+
+#include <QDeclarativeView>
 #include <QVariant>
 
 #include <array>
@@ -10,37 +13,26 @@ class Client;
 class Locale;
 class Settings;
 class StorageManager;
+class ChatModel;
+class ChatFolderModel;
+class CountryModel;
+class LanguagePackInfoModel;
 
 class Application : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool authorized READ isAuthorized NOTIFY authorizedChanged)
 
-    Q_PROPERTY(QObject *client READ client NOTIFY clientChanged)
-    Q_PROPERTY(QObject *locale READ locale NOTIFY localeChanged)
-    Q_PROPERTY(QObject *settings READ settings NOTIFY settingsChanged)
-    Q_PROPERTY(QObject *storageManager READ storageManager NOTIFY storageManagerChanged)
-
-    Q_PROPERTY(QVariantList countries READ countries NOTIFY countriesChanged)
-    Q_PROPERTY(QVariantList languagePackInfo READ languagePackInfo NOTIFY languagePackInfoChanged)
+    Q_PROPERTY(QString emptyString READ emptyString NOTIFY languageChanged)
     Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
 
-    Q_PROPERTY(QString emptyString READ emptyString NOTIFY languageChanged)
-
 public:
-    explicit Application(StorageManager *storageManager, QObject *parent = nullptr);
+    explicit Application(QDeclarativeView *view, QObject *parent = nullptr);
 
     bool isAuthorized() const noexcept;
 
     QString emptyString() const noexcept;
 
-    QObject *client() const noexcept;
-    QObject *locale() const noexcept;
-    QObject *settings() const noexcept;
-    QObject *storageManager() const noexcept;
-
-    const QVariantList &countries() const noexcept;
-    const QVariantList &languagePackInfo() const noexcept;
     const QString &connectionStateString() const noexcept;
 
     Q_INVOKABLE QString getString(const QString &key) const noexcept;
@@ -48,12 +40,7 @@ public:
 signals:
     void authorizedChanged();
 
-    void clientChanged();
-    void localeChanged();
     void settingsChanged();
-    void storageManagerChanged();
-    void countriesChanged();
-    void languagePackInfoChanged();
     void connectionStateChanged();
     void languageChanged();
 
@@ -65,7 +52,7 @@ public slots:
     void initialize() noexcept;
 
 private slots:
-    void handleResult(const QVariantMap &object);
+    void handleResult(td::td_api::Object *object);
 
     void initializeLanguagePack() noexcept;
 
@@ -76,16 +63,20 @@ private:
 
     void checkInitializationStatus() noexcept;
 
-    void handleAuthorizationState(const QVariantMap &authorizationState);
-    void handleConnectionState(const QVariantMap &connectionState);
+    void handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState);
+    void handleConnectionState(const td::td_api::ConnectionState &connectionState);
+
+    QDeclarativeView *declarativeView;
 
     Client *m_client{};
     Locale *m_locale{};
     Settings *m_settings{};
     StorageManager *m_storageManager{};
 
-    QVariantList m_countries;
-    QVariantList m_languagePackInfo;
+    ChatModel *chatModel{};
+    CountryModel *countryModel{};
+    ChatFolderModel *chatFolderModel{};
+    LanguagePackInfoModel* languagePackInfoModel{};
 
     QString m_connectionStateString;
 

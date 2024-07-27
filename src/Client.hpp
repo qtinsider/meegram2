@@ -1,36 +1,40 @@
 #pragma once
 
+#include <td/telegram/Client.h>
+#include <td/telegram/td_api.h>
+
 #include <QObject>
-#include <QVariant>
 
 #include <functional>
+#include <memory>
 #include <shared_mutex>
 #include <thread>
+#include <type_traits>
 #include <unordered_map>
 
 class Client : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(int clientId READ clientId CONSTANT)
 public:
     explicit Client(QObject *parent = nullptr);
 
     int clientId() const noexcept;
 
-    void send(const QVariantMap &request, std::function<void(const QVariantMap &)> callback = {});
-
-    Q_INVOKABLE static QVariantMap execute(const QVariantMap &request);
+    void send(td::td_api::object_ptr<td::td_api::Function> request, std::function<void(td::td_api::object_ptr<td::td_api::Object>)> callback);
 
 signals:
-    void result(const QVariantMap &object);
+    void result(td::td_api::Object *object);
 
 private:
     void initialize();
 
     int m_clientId;
-    std::atomic_uint64_t m_requestId;
+
+    std::unique_ptr<td::ClientManager> m_clientManager;
+
     std::jthread m_worker;
-    mutable std::shared_mutex m_handlerMutex;
-    std::unordered_map<std::uint64_t, std::function<void(const QVariantMap &)>> m_handlers;
+    std::shared_mutex m_handlerMutex;
+    std::atomic<std::uint64_t> m_requestId{0};
+    std::unordered_map<std::uint64_t, std::function<void(td::td_api::object_ptr<td::td_api::Object>)>> m_handlers;
 };

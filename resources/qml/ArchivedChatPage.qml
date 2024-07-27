@@ -7,9 +7,6 @@ import "components"
 Page {
     id: root
 
-    property alias locale: myChatModel.locale
-    property alias storage: myChatModel.storageManager
-
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -35,7 +32,7 @@ Page {
             }
         }
 
-        model: myChatModel
+        model: chatModel
     }
 
     Label {
@@ -43,22 +40,21 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: app.getString("NoChats") + app.emptyString
-        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
+        visible: chatModel.count === 0 && !populateTimer.running && !chatModel.loading
     }
 
     BusyIndicator {
         anchors.centerIn: listView
         running: visible
-        visible: populateTimer.running || myChatModel.loading
+        visible: populateTimer.running || chatModel.loading
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
-    ChatModel {
-        id: myChatModel
-        chatList: TdApi.ChatListArchive
+    Connections {
+        target: chatModel
 
         onLoadingChanged: {
-            if (!loading)
+            if (!chatModel.loading)
                 populateTimer.restart()
         }
     }
@@ -68,11 +64,11 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.isPinned(listView.currentIndex)
+                text: chatModel.isPinned(listView.currentIndex)
                       ? app.getString("UnpinFromTop") + app.emptyString
                       : app.getString("PinToTop") + app.emptyString
                 onClicked: {
-                    myChatModel.toggleChatIsPinned(listView.currentIndex)
+                    chatModel.toggleChatIsPinned(listView.currentIndex)
                 }
             }
         }
@@ -93,8 +89,16 @@ Page {
         id: populateTimer
         interval: 200
         repeat: false
-        onTriggered: myChatModel.populate()
+        onTriggered: chatModel.populate()
     }
 
-    Component.onCompleted: { myChatModel.refresh() }
+    Component.onCompleted: {
+        chatModel.chatList = TdApi.ChatListArchive
+        chatModel.refresh()
+    }
+
+    Component.onDestruction: {
+        chatModel.chatList = TdApi.ChatListMain
+        chatModel.refresh()
+    }
 }

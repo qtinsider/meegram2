@@ -7,9 +7,6 @@ import "components"
 Page {
     id: root
 
-    property alias locale: myChatModel.locale
-    property alias storage: myChatModel.storageManager
-
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -25,7 +22,7 @@ Page {
             source: "image://theme/meegotouch-combobox-indicator-inverted"
         }
 
-        onClicked: chatFolderDialog.open()
+         onClicked: chatFolderDialog.open()
     }
 
     Menu {
@@ -65,7 +62,7 @@ Page {
             }
         }
 
-        model: myChatModel
+        model: chatModel
         snapMode: ListView.SnapToItem
     }
 
@@ -74,13 +71,13 @@ Page {
         font.pixelSize: 60
         color: "gray"
         text: app.getString("NoChats") + app.emptyString
-        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
+        visible: chatModel.count === 0 && !populateTimer.running && !chatModel.loading
     }
 
     BusyIndicator {
         anchors.centerIn: listView
         running: visible
-        visible: populateTimer.running || myChatModel.loading
+        visible: populateTimer.running || chatModel.loading
         platformStyle: BusyIndicatorStyle { size: "large" }
     }
 
@@ -88,30 +85,23 @@ Page {
         id: chatFolderDialog
         titleText: app.getString("Filters") + app.emptyString
         selectedIndex: 0
-        model: mychatFolderModel
+        model: chatFolderModel
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {
-                myChatModel.chatList = TdApi.ChatListMain;
+                chatModel.chatList = TdApi.ChatListMain;
             } else {
-                myChatModel.chatList = TdApi.ChatListFolder;
-                myChatModel.chatFolderId = model.get(selectedIndex).id;
+                chatModel.chatList = TdApi.ChatListFolder;
+                chatModel.chatFolderId = model.get(selectedIndex).id;
             }
         }
     }
 
-    ChatFolderModel {
-        id: mychatFolderModel
-        locale: app.locale
-        chatFolders: app.storageManager.chatFolders
-    }
-
-    ChatModel {
-        id: myChatModel
-        chatList: TdApi.ChatListMain
+    Connections {
+        target: chatModel
 
         onLoadingChanged: {
-            if (!loading)
+            if (!chatModel.loading)
                 populateTimer.restart()
         }
     }
@@ -121,17 +111,17 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.isPinned(listView.currentIndex)
+                text: chatModel.isPinned(listView.currentIndex)
                     ? app.getString("UnpinFromTop") + app.emptyString
                     : app.getString("PinToTop") + app.emptyString
-                onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
+                onClicked: chatModel.toggleChatIsPinned(listView.currentIndex)
             }
 
             MenuItem {
-                text: myChatModel.isMuted(listView.currentIndex)
+                text: chatModel.isMuted(listView.currentIndex)
                     ? app.getString("ChatsUnmute") + app.emptyString
                     : app.getString("ChatsMute") + app.emptyString
-                onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
+                onClicked: chatModel.toggleChatNotificationSettings(listView.currentIndex)
             }
         }
     }
@@ -140,7 +130,7 @@ Page {
         id: populateTimer
         interval: 200
         repeat: false
-        onTriggered: myChatModel.populate()
+        onTriggered: chatModel.populate()
     }
 
     ScrollDecorator {
@@ -159,5 +149,9 @@ Page {
         }
     }
 
-    Component.onCompleted: myChatModel.refresh()
+    Component.onCompleted: {
+        chatModel.chatList = TdApi.ChatListMain
+
+        chatModel.refresh()
+    }
 }

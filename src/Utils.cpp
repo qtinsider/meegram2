@@ -1,13 +1,8 @@
 #include "Utils.hpp"
 
-#include "Chat.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
-#include "Message.hpp"
-#include "Serialize.hpp"
 #include "StorageManager.hpp"
-#include "User.hpp"
-#include "UserFullInfo.hpp"
 
 #include <QApplication>
 #include <QBuffer>
@@ -18,21 +13,19 @@
 #include <QScopedPointer>
 #include <QStringList>
 #include <QStringRef>
-#include <QTextCharFormat>
-#include <QTextCursor>
-#include <QTextDocument>
 #include <QTextStream>
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <unordered_map>
 #include <unordered_set>
 
-namespace detail {
+namespace {
 
-bool isBotUser(const User *user) noexcept
+bool isBotUser(const td::td_api::user *user) noexcept
 {
-    return user->type().value("@type").toString() == QLatin1String("userTypeBot");
+    return user->type_->get_id() == td::td_api::userTypeBot::ID;
 }
 
 bool isMeUser(qint64 userId, StorageManager *store) noexcept
@@ -40,93 +33,111 @@ bool isMeUser(qint64 userId, StorageManager *store) noexcept
     return store->getMyId() == userId;
 }
 
-bool isUserOnline(const User *user) noexcept
+bool isUserOnline(const td::td_api::user *user) noexcept
 {
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](auto id) { return id == user->id(); }))
+    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](auto id) { return id == user->id_; }))
     {
         return false;
     }
 
-    const auto statusType = user->status().value("@type").toByteArray();
-    const auto userType = user->type().value("@type").toByteArray();
-
-    return statusType == "userStatusOnline" && userType != "userTypeBot";
+    return user->status_->get_id() == td::td_api::userStatusOnline::ID && user->type_->get_id() != td::td_api::userTypeBot::ID;
 }
 
-bool isChannelChat(const Chat *chat) noexcept
+bool isChannelChat(const td::td_api::chat *chat) noexcept
 {
-    const auto type = chat->type();
-    const auto chatType = type.value("@type").toByteArray();
-
-    if (chatType == "chatTypeSupergroup")
+    if (chat->type_->get_id() == td::td_api::chatTypeSupergroup::ID)
     {
-        return type.value("is_channel").toBool();
+        return static_cast<const td::td_api::chatTypeSupergroup *>(chat->type_.get())->is_channel_;
     }
 
     return false;
 }
 
-bool isSupergroup(const Chat *chat) noexcept
+bool isSupergroup(const td::td_api::chat *chat) noexcept
 {
-    return chat->type().value("@type").toByteArray() == "chatTypeSupergroup";
+    return chat->type_->get_id() == td::td_api::chatTypeSupergroup::ID;
 }
 
-QString getMessageAuthor(const Message *message, StorageManager *store, Locale *locale, bool openUser) noexcept
+QString getMessageAuthor(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser) noexcept
 {
-    const auto sender = message->senderId();
-    const auto senderType = sender.value("@type").toByteArray();
-    const QString linkStyle = "<a style=\"text-decoration: none; font-weight: "
-                              "bold; color: grey \" href=\"";
+    const auto sender = static_cast<const td::td_api::MessageSender *>(message.sender_id_.get());
+    const QString linkStyle = "<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"";
     const QString linkClose = "</a>";
 
-    if (senderType == "messageSenderUser")
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
     {
-        const auto userIdStr = sender.value("user_id").toString();
-        const auto userName = Utils::getUserShortName(sender.value("user_id").toLongLong(), store, locale);
+        const auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+        const auto userName = Utils::getUserShortName(userId, store, locale);
 
         if (openUser)
         {
-            return linkStyle + "userId://" + userIdStr + "\">" + userName + linkClose;
+            return linkStyle + "userId://" + QString::number(userId) + "\">" + userName + linkClose;
         }
         return userName;
     }
-    else
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
     {
-        const auto chatTitle = store->getChat(message->chatId())->title();
+        const auto chatId = static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_;
+        const auto chatTitle = QString::fromStdString(store->getChat(chatId)->title_);
 
         if (openUser)
         {
-            return linkStyle + "chatId://" + sender.value("chat_id").toString() + "\">" + chatTitle + linkClose;
+            return linkStyle + "chatId://" + QString::number(chatId) + "\">" + chatTitle + linkClose;
         }
         return chatTitle;
     }
+
+    return {};
 }
 
 QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
-    const auto userType = user->type().value("@type").toByteArray();
 
-    if (userType == "userTypeBot" || userType == "userTypeRegular")
+    switch (user->type_->get_id())
     {
-        return QString(user->firstName() + " " + user->lastName()).trimmed();
-    }
-    else if (userType == "userTypeDeleted" || userType == "userTypeUnknown")
-    {
-        return locale->getString("HiddenName");
-    }
+        case td::td_api::userTypeBot::ID:
+        case td::td_api::userTypeRegular::ID: {
+            return QString::fromStdString(user->first_name_ + " " + user->last_name_).trimmed();
+        }
+        case td::td_api::userTypeDeleted::ID:
+        case td::td_api::userTypeUnknown::ID: {
+            return locale->getString("HiddenName");
+        }
 
-    return QString();
+        default:
+            return QString();
+    }
 }
 
-QString getCallContent(const QVariantMap &sender, const QVariantMap &content, StorageManager *store, Locale *locale) noexcept
+QString getUserName(auto userId, StorageManager *store, Locale *locale, bool openUser)
 {
-    const auto isVideo = content.value("is_video").toBool();
-    const auto discardReason = content.value("discard_reason").toMap();
-    const auto discardType = discardReason.value("@type").toByteArray();
-    const auto isMissed = discardType == "callDiscardReasonMissed";
-    const auto isBusy = discardType == "callDiscardReasonDeclined";
-    const auto isOutgoing = isMeUser(sender.value("user_id").toInt(), store);
+    const auto userName = Utils::getUserShortName(userId, store, locale);
+    if (userName.isEmpty())
+    {
+        return QString();
+    }
+
+    QString result;
+    if (openUser)
+    {
+        result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>").arg(userId).arg(userName);
+    }
+    else
+    {
+        result = QString("<span style=\"color: grey\">%1</span>").arg(userName);
+    }
+
+    return result;
+}
+
+QString getCallContent(qint64 userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
+{
+    const auto isVideo = content.is_video_;
+    const auto &discardReason = content.discard_reason_;
+    const auto isMissed = discardReason->get_id() == td::td_api::callDiscardReasonMissed::ID;
+    const auto isBusy = discardReason->get_id() == td::td_api::callDiscardReasonDeclined::ID;
+    const auto isOutgoing = isMeUser(userId, store);
 
     if (isMissed)
     {
@@ -146,11 +157,11 @@ QString getCallContent(const QVariantMap &sender, const QVariantMap &content, St
                    : (isOutgoing ? locale->getString("CallMessageOutgoing") : locale->getString("CallMessageIncoming"));
 }
 
-QString getAudioTitle(const QVariantMap &audio) noexcept
+QString getAudioTitle(const td::td_api::audio &audio) noexcept
 {
-    const auto fileName = audio.value("file_name").toString();
-    const auto title = audio.value("title").toString().trimmed();
-    const auto performer = audio.value("performer").toString().trimmed();
+    const auto fileName = QString::fromStdString(audio.file_name_);
+    const auto title = QString::fromStdString(audio.title_).trimmed();
+    const auto performer = QString::fromStdString(audio.performer_).trimmed();
 
     if (title.isEmpty() && performer.isEmpty())
         return fileName;
@@ -170,126 +181,96 @@ bool isUserBlocked(qint64 userId, StorageManager *store) noexcept
 
 bool isDeletedUser(qint64 userId, StorageManager *store)
 {
-    const auto userType = store->getUser(userId)->type();
-
-    return userType.value("@type").toByteArray() == "userTypeDeleted";
+    return store->getUser(userId)->type_->get_id() == td::td_api::userTypeDeleted::ID;
 }
 
-}  // namespace detail
+}  // namespace
 
-struct ChatMessage
+td::td_api::object_ptr<td::td_api::ChatList> Utils::toChatList(const ChatList &list)
 {
-    QVariantMap sender;
-    QVariantMap content;
-    QString author;
-    Chat *chatDetails;
-    Locale *locale = nullptr;
-    StorageManager *storageManager = nullptr;
-    bool isOutgoing = false;
-    bool isChannel = false;
-
-    ChatMessage(QVariantMap sender_, QVariantMap content_, QString author_, Chat *chatDetails_ = nullptr, Locale *locale_ = nullptr,
-                StorageManager *storageManager_ = nullptr, bool isOutgoing_ = false, bool isChannel_ = false)
-        : sender(std::move(sender_))
-        , content(std::move(content_))
-        , author(std::move(author_))
-        , chatDetails(chatDetails_)
-        , locale(locale_)
-        , storageManager(storageManager_)
-        , isOutgoing(isOutgoing_)
-        , isChannel(isChannel_)
+    switch (list.type)
     {
+        case TdApi::ChatListArchive:
+            return td::td_api::make_object<td::td_api::chatListArchive>();
+        case TdApi::ChatListFolder:
+            return td::td_api::make_object<td::td_api::chatListFolder>(list.folderId);
+        default:
+            return td::td_api::make_object<td::td_api::chatListMain>();
     }
-};
-
-namespace Utils {
-
-bool isMeChat(const Chat *chat, StorageManager *store) noexcept
-{
-    const auto type = chat->type();
-    const auto chatType = type.value("@type").toString();
-
-    if (chatType == QLatin1String("chatTypeSecret") || chatType == QLatin1String("chatTypePrivate"))
-    {
-        return store->getMyId() == type.value("user_id").toLongLong();
-    }
-
-    return false;
 }
 
-QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
+td::td_api::object_ptr<td::td_api::chatPosition> Utils::getChatPosition(const td::td_api::chat *chat, const ChatList &chatList)
 {
-    const auto positions = store->getChat(chatId)->positions();
-    const auto chatListType = chatList.value("@type").toString();
+    const auto &positions = chat->positions_;
 
-    const auto findPosition = [&](const QByteArray &type, const std::function<bool(const QVariantMap &)> &folder = nullptr) -> QVariantMap {
+    const auto findPosition = [&](int id,
+                                  std::function<bool(const td::td_api::ChatList &)> &&folder = nullptr) -> td::td_api::object_ptr<td::td_api::chatPosition> {
         for (const auto &position : positions)
         {
-            const auto list = position.toMap().value("list").toMap();
-            if (list.value("@type").toByteArray() == type && (!folder || folder(list)))
+            if (const auto &list = position->list_; list->get_id() == id && (!folder || folder(*list)))
             {
-                return position.toMap();
+                auto result = td::td_api::make_object<td::td_api::chatPosition>();
+
+                result->order_ = position->order_;
+                result->is_pinned_ = position->is_pinned_;
+                result->list_ = toChatList(chatList);
+
+                return result;
             }
         }
-        return {};
+        return nullptr;
     };
 
-    std::unordered_map<QString, std::function<QVariantMap()>> handler = {
-        {"chatListMain", [&]() { return findPosition("chatListMain"); }},
-        {"chatListArchive", [&]() { return findPosition("chatListArchive"); }},
-        {"chatListFolder", [&]() {
-             const auto folder = [&chatList](const QVariantMap &list) {
-                 return list.value("chat_folder_id").toInt() == chatList.value("chat_folder_id").toInt();
-             };
-             return findPosition("chatListFolder", folder);
-         }}};
-
-    if (auto it = handler.find(chatListType); it != handler.end())
+    switch (chatList.type)
     {
-        return it->second();
+        case TdApi::ChatListMain:
+            return findPosition(td::td_api::chatListMain::ID);
+        case TdApi::ChatListArchive:
+            return findPosition(td::td_api::chatListArchive::ID);
+        case TdApi::ChatListFolder: {
+            auto folder = [&chatList](const td::td_api::ChatList &list) {
+                return static_cast<const td::td_api::chatListFolder &>(list).chat_folder_id_ == chatList.folderId;
+            };
+            return findPosition(td::td_api::chatListFolder::ID, folder);
+        }
+        default:
+            return nullptr;
     }
-
-    return {};
 }
 
-bool isChatPinned(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
+bool Utils::isChatPinned(const td::td_api::chat *chat, const ChatList &chatList)
 {
-    return getChatPosition(chatId, chatList, store).value("is_pinned").toBool();
+    return getChatPosition(chat, chatList)->is_pinned_;
 }
 
-qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList, StorageManager *store)
+qint64 Utils::getChatOrder(const td::td_api::chat *chat, const ChatList &chatList)
 {
-    return getChatPosition(chatId, chatList, store).value("order").toLongLong();
+    return getChatPosition(chat, chatList)->order_;
 }
 
-bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2)
+bool Utils::isMeChat(const td::td_api::chat *chat, StorageManager *store) noexcept
 {
-    const auto type1 = list1.value("@type").toString();
-    const auto type2 = list2.value("@type").toString();
-
-    if (type1 != type2)
+    if (!chat || !chat->type_)  // Safety check for null pointers
         return false;
 
-    static const std::unordered_map<QString, QString> typeMap = {
-        {"chatListMain", "chatListMain"}, {"chatListArchive", "chatListArchive"}, {"chatListFolder", "chatListFolder"}};
+    const auto chatTypeId = chat->type_->get_id();
+    const auto myId = store->getMyId();
 
-    if (auto it = typeMap.find(type1); it != typeMap.end())
+    if (chatTypeId == td::td_api::chatTypeSecret::ID)
     {
-        const QString &typeName = it->second;
-        if (typeName == "chatListMain" || typeName == "chatListArchive")
-        {
-            return true;
-        }
-        else if (typeName == "chatListFolder")
-        {
-            return list1.value("chat_folder_id") == list2.value("chat_folder_id");
-        }
+        const auto userId = static_cast<const td::td_api::chatTypeSecret *>(chat->type_.get())->user_id_;
+        return myId == userId;
+    }
+    else if (chatTypeId == td::td_api::chatTypePrivate::ID)
+    {
+        const auto userId = static_cast<const td::td_api::chatTypePrivate *>(chat->type_.get())->user_id_;
+        return myId == userId;
     }
 
     return false;
 }
 
-QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages)
+QString Utils::getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages)
 {
     const auto chat = store->getChat(chatId);
 
@@ -298,336 +279,313 @@ QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool 
         return locale->getString("SavedMessages");
     }
 
-    const auto title = chat->title().trimmed();
+    const auto title = QString::fromStdString(chat->title_).trimmed();
 
     return !title.isEmpty() ? title : locale->getString("HiddenName");
 }
 
-bool isChatMuted(qint64 chatId, StorageManager *store)
+bool Utils::isChatMuted(qint64 chatId, StorageManager *store)
 {
     return getChatMuteFor(chatId, store) > 0;
 }
 
-int getChatMuteFor(qint64 chatId, StorageManager *store)
+int Utils::getChatMuteFor(qint64 chatId, StorageManager *store)
 {
-    const auto notificationSettings = store->getChat(chatId)->notificationSettings();
+    if (auto chat = store->getChat(chatId))
+    {
+        if (chat->notification_settings_)
+        {
+            return chat->notification_settings_->mute_for_;
+        }
+    }
 
-    return notificationSettings.value("mute_for").toInt();
+    return 0;
 }
 
-QString getUserName(auto userId, StorageManager *store, Locale *locale, bool openUser)
+QString Utils::getServiceMessageContent(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser)
 {
-    const auto userName = getUserShortName(userId, store, locale);
-    if (userName.isEmpty())
+    const auto chat = store->getChat(message.chat_id_);
+
+    auto &sender = message.sender_id_;
+    auto &content = message.content_;
+    auto isOutgoing = message.is_outgoing_;
+
+    auto isChannel = isChannelChat(chat);
+
+    auto author = getMessageAuthor(message, store, locale, openUser);
+
+    switch (content->get_id())
     {
-        return QString();
-    }
+        case td::td_api::messageExpiredPhoto::ID: {
+            return locale->getString("AttachPhotoExpired");
+        }
+        case td::td_api::messageExpiredVideo::ID: {
+            return locale->getString("AttachVideoExpired");
+        }
+        case td::td_api::messageBasicGroupChatCreate::ID: {
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouCreateGroup");
+            }
 
-    QString result;
-    if (openUser)
-    {
-        result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>")
-                     .arg(userId)
-                     .arg(userName);
-    }
-    else
-    {
-        result = QString("<span style=\"color: grey\">%1</span>").arg(userName);
-    }
+            return locale->getString("ActionCreateGroup").replace("un1", author);
+        }
+        case td::td_api::messageSupergroupChatCreate::ID: {
+            if (isChannel)
+            {
+                return locale->getString("ActionCreateChannel");
+            }
 
-    return result;
-}
+            return locale->getString("ActionCreateMega");
+        }
+        case td::td_api::messageChatChangeTitle::ID: {
+            const auto title = QString::fromStdString(static_cast<const td::td_api::messageChatChangeTitle *>(content.get())->title_);
 
-QString getServiceMessageContent(const Message *message, StorageManager *store, Locale *locale, bool openUser)
-{
-    const auto chat = store->getChat(message->chatId());
+            if (isChannel)
+            {
+                return locale->getString("ActionChannelChangedTitle").replace("un2", title);
+            }
 
-    ChatMessage messageDetail{
-        message->senderId(),   message->content(),         detail::getMessageAuthor(message, store, locale, openUser), chat, locale, store,
-        message->isOutgoing(), detail::isChannelChat(chat)};
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouChangedTitle").replace("un2", title);
+            }
 
-    const auto contentType = messageDetail.content.value("@type").toString();
+            return locale->getString("ActionChangedTitle").replace("un1", author).replace("un2", title);
+        }
+        case td::td_api::messageChatChangePhoto::ID: {
+            if (isChannel)
+            {
+                return locale->getString("ActionChannelChangedPhoto");
+            }
 
-    static const std::unordered_map<QString, std::function<QString(const ChatMessage &)>> handlers = {
-        {"messagePhoto",
-         [](const ChatMessage &message) {
-             return message.isOutgoing ? message.locale->getString("ActionYouSendTTLPhoto")
-                                       : message.locale->getString("ActionSendTTLPhoto").replace("un1", message.author);
-         }},
-        {"messageVideo",
-         [](const ChatMessage &message) {
-             return message.isOutgoing ? message.locale->getString("ActionYouSendTTLVideo")
-                                       : message.locale->getString("ActionSendTTLVideo").replace("un1", message.author);
-         }},
-        {"messageExpiredPhoto", [](const ChatMessage &message) { return message.locale->getString("AttachPhotoExpired"); }},
-        {"messageExpiredVideo", [](const ChatMessage &message) { return message.locale->getString("AttachVideoExpired"); }},
-        {"messageBasicGroupChatCreate",
-         [](const ChatMessage &message) {
-             return message.isOutgoing ? message.locale->getString("ActionYouCreateGroup")
-                                       : message.locale->getString("ActionCreateGroup").replace("un1", message.author);
-         }},
-        {"messageSupergroupChatCreate",
-         [](const ChatMessage &message) {
-             return message.isChannel ? message.locale->getString("ActionCreateChannel") : message.locale->getString("ActionCreateMega");
-         }},
-        {"messageChatChangeTitle",
-         [](const ChatMessage &message) {
-             const auto title = message.content.value("title").toString();
-             return message.isChannel ? message.locale->getString("ActionChannelChangedTitle").replace("un2", title)
-                    : message.isOutgoing
-                        ? message.locale->getString("ActionYouChangedTitle").replace("un2", title)
-                        : message.locale->getString("ActionChangedTitle").replace("un1", message.author).replace("un2", title);
-         }},
-        {"messageChatChangePhoto",
-         [](const ChatMessage &message) {
-             return message.isChannel    ? message.locale->getString("ActionChannelChangedPhoto")
-                    : message.isOutgoing ? message.locale->getString("ActionYouChangedPhoto")
-                                         : message.locale->getString("ActionChangedPhoto").replace("un1", message.author);
-         }},
-        {"messageChatDeletePhoto",
-         [](const ChatMessage &message) {
-             return message.isChannel    ? message.locale->getString("ActionChannelRemovedPhoto")
-                    : message.isOutgoing ? message.locale->getString("ActionYouRemovedPhoto")
-                                         : message.locale->getString("ActionRemovedPhoto").replace("un1", message.author);
-         }},
-        {"messageChatAddMembers",
-         [&](const ChatMessage &message) {
-             const auto memberIds = message.content.value("member_user_ids").toList();
-             const auto memberCount = memberIds.size();
-             if (memberCount == 1)
-             {
-                 const auto memberUserId = memberIds.first().toLongLong();
-                 if (message.sender.value("user_id") == memberUserId)
-                 {
-                     if (detail::isSupergroup(message.chatDetails))
-                     {
-                         if (message.isChannel)
-                         {
-                             return message.locale->getString("ChannelJoined");
-                         }
-                         else if (detail::isMeUser(memberUserId, message.storageManager))
-                         {
-                             return message.locale->getString("ChannelMegaJoined");
-                         }
-                         else if (message.isOutgoing)
-                         {
-                             return message.locale->getString("ActionAddUserSelfYou");
-                         }
-                         else
-                         {
-                             return message.locale->getString("ActionAddUserSelf").replace("un1", message.author);
-                         }
-                     }
-                     else if (message.isOutgoing)
-                     {
-                         return message.locale->getString("ActionAddUserSelfYou");
-                     }
-                     else
-                     {
-                         return message.locale->getString("ActionAddUserSelf").replace("un1", message.author);
-                     }
-                 }
-                 else
-                 {
-                     if (message.isOutgoing)
-                     {
-                         const auto userName = getUserName(memberUserId, message.storageManager, message.locale, openUser);
-                         return message.locale->getString("ActionYouAddUser").replace("un2", userName);
-                     }
-                     else if (detail::isMeUser(memberUserId, message.storageManager))
-                     {
-                         if (detail::isSupergroup(message.chatDetails))
-                         {
-                             return message.isChannel ? message.locale->getString("ChannelAddedBy").replace("un1", message.author)
-                                                      : message.locale->getString("MegaAddedBy").replace("un1", message.author);
-                         }
-                         else
-                         {
-                             return message.locale->getString("ActionAddUserYou").replace("un1", message.author);
-                         }
-                     }
-                     else
-                     {
-                         const auto userName = getUserName(memberUserId, message.storageManager, message.locale, openUser);
-                         return message.locale->getString("ActionAddUser").replace("un1", message.author).replace("un2", userName);
-                     }
-                 }
-             }
-             else
-             {
-                 QStringList members;
-                 members.reserve(memberCount);
-                 for (const auto &userId : memberIds)
-                 {
-                     members << getUserName(userId.toLongLong(), message.storageManager, message.locale, openUser);
-                 }
-                 const auto users = members.join(", ");
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouChangedPhoto");
+            }
 
-                 return message.isOutgoing
-                            ? message.locale->getString("ActionYouAddUser").arg(users)
-                            : message.locale->getString("ActionAddUser").replace("un1", message.author).replace("un2", users);
-             }
-         }},
-        {"messageChatJoinByLink",
-         [](const ChatMessage &message) {
-             return message.isOutgoing ? message.locale->getString("ActionInviteYou")
-                                       : message.locale->getString("ActionInviteUser").replace("un1", message.author);
-         }},
-        {"messageChatDeleteMember",
-         [&](const ChatMessage &message) {
-             const auto userId = message.content.value("user_id").toLongLong();
-             const auto userName = getUserName(userId, message.storageManager, message.locale, openUser);
+            return locale->getString("ActionChangedPhoto").replace("un1", author);
+        }
+        case td::td_api::messageChatDeletePhoto::ID: {
+            if (isChannel)
+            {
+                return locale->getString("ActionChannelRemovedPhoto");
+            }
 
-             if (userId == message.sender.value("user_id").toLongLong())
-             {
-                 return message.isOutgoing ? message.locale->getString("ActionYouLeftUser")
-                                           : message.locale->getString("ActionLeftUser").replace("un1", message.author);
-             }
-             else if (message.isOutgoing)
-             {
-                 return message.locale->getString("ActionYouKickUser").replace("un2", userName);
-             }
-             else if (detail::isMeUser(userId, message.storageManager))
-             {
-                 return message.locale->getString("ActionKickUserYou").replace("un1", message.author);
-             }
-             else
-             {
-                 return message.locale->getString("ActionKickUser").replace("un1", message.author).replace("un2", userName);
-             }
-         }},
-        {"messageChatUpgradeTo", [](const ChatMessage &message) { return message.locale->getString("ActionMigrateFromGroup"); }},
-        {"messageChatUpgradeFrom", [](const ChatMessage &message) { return message.locale->getString("ActionMigrateFromGroup"); }},
-        {"messagePinMessage",
-         [](const ChatMessage &message) { return message.locale->getString("ActionPinned").replace("un1", message.author); }},
-        {"messageScreenshotTaken",
-         [](const ChatMessage &message) {
-             return message.isOutgoing ? message.locale->getString("ActionTakeScreenshootYou")
-                                       : message.locale->getString("ActionTakeScreenshoot").replace("un1", message.author);
-         }},
-        {"messageCustomServiceAction", [](const ChatMessage &message) { return message.content.value("text").toString(); }},
-        {"messageContactRegistered",
-         [&](const ChatMessage &message) {
-             const auto userName =
-                 getUserName(message.sender.value("user_id").toLongLong(), message.storageManager, message.locale, openUser);
-             return message.locale->getString("NotificationContactJoined").arg(userName);
-         }},
-        {"messageWebsiteConnected", [](const ChatMessage &message) { return message.locale->getString("ActionBotAllowed"); }},
-        {"messageUnsupported", [](const ChatMessage &message) { return message.locale->getString("UnsupportedMedia"); }}};
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouRemovedPhoto");
+            }
 
-    if (const auto it = handlers.find(contentType); it != handlers.end())
-    {
-        return it->second(messageDetail);
+            return locale->getString("ActionRemovedPhoto").replace("un1", author);
+        }
+        case td::td_api::messageChatAddMembers::ID: {
+            const auto &memberUserIds = static_cast<const td::td_api::messageChatAddMembers *>(content.get())->member_user_ids_;
+
+            if (memberUserIds.size() == 1)
+            {
+                auto memberUserId = memberUserIds[0];
+                if (static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_ == memberUserId)
+                {
+                    if (isSupergroup(chat) && isChannel)
+                    {
+                        return locale->getString("ChannelJoined");
+                    }
+
+                    if (isSupergroup(chat) && !isChannel)
+                    {
+                        if (isMeUser(memberUserId, store))
+                        {
+                            return locale->getString("ChannelMegaJoined");
+                        }
+
+                        return locale->getString("ActionAddUserSelfMega").replace("un1", author);
+                    }
+
+                    if (isOutgoing)
+                    {
+                        return locale->getString("ActionAddUserSelfYou");
+                    }
+
+                    return locale->getString("ActionAddUserSelf").replace("un1", author);
+                }
+
+                if (isOutgoing)
+                {
+                    return locale->getString("ActionYouAddUser").replace("un2", getUserName(memberUserId, store, locale, openUser));
+                }
+
+                if (isMeUser(memberUserId, store))
+                {
+                    if (isSupergroup(chat))
+                    {
+                        if (!isChannel)
+                        {
+                            return locale->getString("MegaAddedBy").replace("un1", author);
+                        }
+
+                        return locale->getString("ChannelAddedBy").replace("un1", author);
+                    }
+
+                    return locale->getString("ActionAddUserYou").replace("un1", author);
+                }
+
+                return locale->getString("ActionAddUser").replace("un1", author).replace("un2", getUserName(memberUserId, store, locale, openUser));
+            }
+
+            QStringList result;
+            for (const auto &userId : memberUserIds)
+            {
+                result << getUserName(userId, store, locale, openUser);
+            }
+
+            auto users = result.join(", ");
+
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouAddUser").arg(users);
+            }
+
+            return locale->getString("ActionAddUser").replace("un1", author).replace("un2", users);
+        }
+        case td::td_api::messageChatJoinByLink::ID: {
+            if (isOutgoing)
+            {
+                return locale->getString("ActionInviteYou");
+            }
+
+            return locale->getString("ActionInviteUser").replace("un1", author);
+        }
+        case td::td_api::messageChatDeleteMember::ID: {
+            auto userId = static_cast<const td::td_api::messageChatDeleteMember *>(content.get())->user_id_;
+
+            if (userId == static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_)
+            {
+                if (isOutgoing)
+                {
+                    return locale->getString("ActionYouLeftUser");
+                }
+
+                return locale->getString("ActionLeftUser").replace("un1", author);
+            }
+
+            if (isOutgoing)
+            {
+                return locale->getString("ActionYouKickUser").replace("un2", getUserName(userId, store, locale, openUser));
+            }
+            else if (isMeUser(userId, store))
+            {
+                return locale->getString("ActionKickUserYou").replace("un1", author);
+            }
+
+            return locale->getString("ActionKickUser").replace("un1", author).replace("un2", getUserName(userId, store, locale, openUser));
+        }
+        case td::td_api::messageChatUpgradeTo::ID: {
+            return locale->getString("ActionMigrateFromGroup");
+        }
+        case td::td_api::messageChatUpgradeFrom::ID: {
+            return locale->getString("ActionMigrateFromGroup");
+        }
+        case td::td_api::messagePinMessage::ID: {
+            return locale->getString("ActionPinned").replace("un1", author);
+        }
+        case td::td_api::messageScreenshotTaken::ID: {
+            if (isOutgoing)
+            {
+                return locale->getString("ActionTakeScreenshootYou");
+            }
+
+            return locale->getString("ActionTakeScreenshoot").replace("un1", author);
+        }
+        case td::td_api::messageCustomServiceAction::ID: {
+            return QString::fromStdString(static_cast<const td::td_api::messageCustomServiceAction *>(content.get())->text_);
+        }
+        case td::td_api::messageContactRegistered::ID: {
+            return locale->getString("NotificationContactJoined")
+                .arg(getUserName(static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_, store, locale, openUser));
+        }
+        case td::td_api::messageUnsupported::ID: {
+            return locale->getString("UnsupportedMedia");
+        }
     }
 
     return locale->getString("UnsupportedMedia");
 }
 
-bool isServiceMessage(const Message *message)
+bool Utils::isServiceMessage(const td::td_api::message &message)
 {
-    const auto contentType = message->content().value("@type").toString();
-    static const std::unordered_map<QString, bool> serviceMap = {
-        {"messageText", false},
-        {"messageAnimation", false},
-        {"messageAudio", false},
-        {"messageDocument", false},
-        {"messagePhoto", false},
-        {"messageExpiredPhoto", true},
-        {"messageSticker", false},
-        {"messageVideo", false},
-        {"messageExpiredVideo", true},
-        {"messageVideoNote", false},
-        {"messageVoiceNote", false},
-        {"messageLocation", false},
-        {"messageVenue", false},
-        {"messageContact", false},
-        {"messageDice", false},
-        {"messageGame", false},
-        {"messagePoll", false},
-        {"messageInvoice", false},
-        {"messageCall", false},
-        {"messageBasicGroupChatCreate", true},
-        {"messageSupergroupChatCreate", true},
-        {"messageChatChangeTitle", true},
-        {"messageChatChangePhoto", true},
-        {"messageChatDeletePhoto", true},
-        {"messageChatAddMembers", true},
-        {"messageChatJoinByLink", true},
-        {"messageChatDeleteMember", true},
-        {"messageChatUpgradeTo", true},
-        {"messageChatUpgradeFrom", true},
-        {"messagePinMessage", true},
-        {"messageScreenshotTaken", true},
-        {"messageCustomServiceAction", true},
-        {"messageGameScore", true},
-        {"messagePaymentSuccessful", true},
-        {"messagePaymentSuccessfulBot", true},
-        {"messageContactRegistered", true},
-        {"messageWebsiteConnected", true},
-        {"messagePassportDataSent", true},
-        {"messagePassportDataReceived", true},
-        {"messageLiveLocationApproached", true},
-        {"messageUnsupported", true},
+    const std::unordered_set<int> serviceMessageTypes = {
+        td::td_api::messageBasicGroupChatCreate::ID, td::td_api::messageChatAddMembers::ID,      td::td_api::messageChatChangePhoto::ID,
+        td::td_api::messageChatChangeTitle::ID,      td::td_api::messageChatDeleteMember::ID,    td::td_api::messageChatDeletePhoto::ID,
+        td::td_api::messageChatJoinByLink::ID,       td::td_api::messageChatUpgradeFrom::ID,     td::td_api::messageChatUpgradeTo::ID,
+        td::td_api::messageContactRegistered::ID,    td::td_api::messageCustomServiceAction::ID, td::td_api::messageExpiredPhoto::ID,
+        td::td_api::messageExpiredVideo::ID,         td::td_api::messageGameScore::ID,           td::td_api::messagePassportDataReceived::ID,
+        td::td_api::messagePassportDataSent::ID,     td::td_api::messagePaymentSuccessful::ID,   td::td_api::messagePaymentSuccessfulBot::ID,
+        td::td_api::messagePinMessage::ID,           td::td_api::messageScreenshotTaken::ID,     td::td_api::messageSupergroupChatCreate::ID,
+        td::td_api::messageUnsupported::ID,
     };
 
-    if (const auto it = serviceMap.find(contentType); it != serviceMap.end())
+    if (message.content_)
     {
-        return it->second;
+        const int contentId = message.content_->get_id();
+        return serviceMessageTypes.contains(contentId);
     }
 
     return false;
 }
 
-QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept
+QString Utils::getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
 
-    const auto firstName = user->firstName();
-    const auto lastName = user->lastName();
-    const auto userType = user->type().value("@type").toString();
+    const auto firstName = user->first_name_;
+    const auto lastName = user->last_name_;
 
-    if (userType == QLatin1String("userTypeBot") || userType == QLatin1String("userTypeRegular"))
+    switch (user->type_->get_id())
     {
-        if (!firstName.isEmpty())
-        {
-            return firstName;
+        case td::td_api::userTypeBot::ID:
+        case td::td_api::userTypeRegular::ID: {
+            if (!firstName.empty())
+            {
+                return QString::fromStdString(firstName);
+            }
+
+            if (!lastName.empty())
+            {
+                return QString::fromStdString(lastName);
+            }
+        }
+        case td::td_api::userTypeDeleted::ID:
+        case td::td_api::userTypeUnknown::ID: {
+            return locale->getString("HiddenName");
         }
 
-        if (!lastName.isEmpty())
-        {
-            return lastName;
-        }
+        default:
+            return QString();
     }
-
-    if (userType == QLatin1String("userTypeDeleted") || userType == QLatin1String("userTypeUnknown"))
-    {
-        return locale->getString("HiddenName");
-    }
-
-    return QString();
 }
 
-QString getTitle(const Message *message, StorageManager *store, Locale *locale) noexcept
+QString Utils::getTitle(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept
 {
-    const auto sender = message->senderId();
-    const auto senderType = sender.value("@type").toString();
+    const auto sender = static_cast<const td::td_api::MessageSender *>(message.sender_id_.get());
 
-    if (senderType == QLatin1String("messageSenderUser"))
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
     {
-        return detail::getUserFullName(sender.value("user_id").toLongLong(), store, locale);
+        auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+        return getUserFullName(userId, store, locale);
+    }
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
+    {
+        auto chatId = static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_;
+        return QString::fromStdString(store->getChat(chatId)->title_);
     }
 
-    if (senderType == QLatin1String("messageSenderChat"))
-    {
-        return store->getChat(sender.value("chat_id").toLongLong())->title();
-    }
-
-    return QString();
+    return {};
 }
 
-QString getMessageDate(const Message *message, Locale *locale) noexcept
+QString Utils::getMessageDate(const td::td_api::message &message, Locale *locale) noexcept
 {
-    const auto date = QDateTime::fromMSecsSinceEpoch(message->date() * 1000);
+    const auto date = QDateTime::fromMSecsSinceEpoch(message.date_ * 1000);
     const auto days = date.daysTo(QDateTime::currentDateTime());
 
     if (days == 0)
@@ -642,101 +600,105 @@ QString getMessageDate(const Message *message, Locale *locale) noexcept
     return date.toString(locale->getString("formatterYear"));
 }
 
-QString getContent(const Message *message, StorageManager *store, Locale *locale) noexcept
+QString Utils::getContent(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept
 {
-    const auto messageContent = message->content();
-    const auto senderInfo = message->senderId();
+    const auto &content = message.content_;
+    const auto &sender = message.sender_id_;
 
-    // Function to sanitize text
-    auto sanitizeText = [](const QString &text) -> QString {
+    auto sanitizeText = [](const std::string &text) -> QString {
         QString result;
-        result.reserve(text.size());  // Reserve memory in advance to avoid reallocations
+        result.reserve(static_cast<int>(text.size()));  // Reserve memory in advance to avoid reallocations
 
-        for (auto ch : text)
+        for (char ch : text)
         {
-            if (ch == '\n' || ch == '\r')
-            {
-                result.append(' ');
-            }
-            else
-            {
-                result.append(ch);
-            }
+            // Append a space for newline or carriage return, otherwise append the character
+            result.append((ch == '\n' || ch == '\r') ? ' ' : QChar(ch));
         }
 
         return result;
     };
 
-    QString attachmentCaption;
-    if (const auto captionText = messageContent.value("caption").toString(); !captionText.isEmpty())
-    {
-        attachmentCaption.append(": ").append(sanitizeText(captionText));
-    }
+    auto captionText = [&](const td::td_api::formattedText &caption) -> QString {
+        QString result;
 
-    const auto contentType = messageContent.value("@type").toString();
+        result.append(": ").append(sanitizeText(caption.text_));
 
-    const std::unordered_map<QString, std::function<QString()>> messageHandlers = {
-        {"messageAnimation", [&]() { return locale->getString("AttachGif").append(attachmentCaption); }},
-        {"messageAudio",
+        return result;
+    };
+
+    const std::unordered_map<int, std::function<QString()>> messageHandlers = {
+        {td::td_api::messageAnimation::ID,
+         [&]() { return locale->getString("AttachGif").append(captionText(*static_cast<const td::td_api::messageAnimation *>(content.get())->caption_)); }},
+        {td::td_api::messageAudio::ID,
          [&]() {
-             const auto audioInfo = messageContent.value("audio").toMap();
-             auto title = detail::getAudioTitle(audioInfo).isEmpty() ? locale->getString("AttachMusic") : detail::getAudioTitle(audioInfo);
-             return title.append(attachmentCaption);
+             const auto &audio = static_cast<const td::td_api::messageAudio *>(content.get())->audio_;
+
+             auto title = getAudioTitle(*audio).isEmpty() ? locale->getString("AttachMusic") : getAudioTitle(*audio);
+             return title.append(captionText(*static_cast<const td::td_api::messageAudio *>(content.get())->caption_));
          }},
-        {"messageCall",
+        {td::td_api::messageCall::ID,
          [&]() {
-             const auto callText = detail::getCallContent(senderInfo, messageContent, store, locale);
-             if (const auto duration = messageContent.value("duration").toInt(); duration > 0)
+             const auto &call = static_cast<const td::td_api::messageCall *>(content.get());
+
+             const auto callText = getCallContent(static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_, *call, store, locale);
+             if (const auto duration = call->duration_; duration > 0)
              {
                  return locale->getString("CallMessageWithDuration").arg(callText).arg(locale->formatCallDuration(duration));
              }
              return callText;
          }},
-        {"messageDocument",
+        {td::td_api::messageDocument::ID,
          [&]() {
-             const auto documentInfo = messageContent.value("document").toMap();
-             if (auto fileName = documentInfo.value("file_name").toString(); !fileName.isEmpty())
-             {
-                 return fileName.append(attachmentCaption);
-             }
-             return locale->getString("AttachDocument").append(attachmentCaption);
-         }},
-        {"messageInvoice", [&]() { return messageContent.value("title").toString().append(attachmentCaption); }},
-        {"messageLocation", [&]() { return locale->getString("AttachLocation").append(attachmentCaption); }},
-        {"messagePhoto", [&]() { return locale->getString("AttachPhoto").append(attachmentCaption); }},
-        {"messagePoll",
-         [&]() {
-             return QString::fromUtf8("\xf0\x9f\x93\x8a\x20").append(messageContent.value("poll").toMap().value("question").toString());
-         }},
-        {"messageSticker",
-         [&]() {
-             const auto stickerInfo = messageContent.value("sticker").toMap();
-             const auto emoji = stickerInfo.value("emoji").toString();
-             return locale->getString("AttachSticker").append(": ").append(emoji);
-         }},
-        {"messageText", [&]() { return sanitizeText(messageContent.value("text").toMap().value("text").toString()); }},
-        {"messageVideo", [&]() { return locale->getString("AttachVideo").append(attachmentCaption); }},
-        {"messageVideoNote", [&]() { return locale->getString("AttachRound").append(attachmentCaption); }},
-        {"messageVoiceNote", [&]() { return locale->getString("AttachAudio").append(attachmentCaption); }}};
+             const auto &caption = static_cast<const td::td_api::messageDocument *>(content.get())->caption_;
+             const auto &document = static_cast<const td::td_api::messageDocument *>(content.get())->document_;
 
-    if (const auto handler = messageHandlers.find(contentType); handler != messageHandlers.end())
+             if (auto fileName = QString::fromStdString(document->file_name_); !fileName.isEmpty())
+             {
+                 return fileName.append(captionText(*caption));
+             }
+             return locale->getString("AttachDocument").append(captionText(*caption));
+         }},
+        {td::td_api::messageInvoice::ID,
+         [&]() {
+             const auto &productInfo = static_cast<const td::td_api::messageInvoice *>(content.get())->product_info_;
+
+             return sanitizeText(productInfo->title_);
+         }},
+        {td::td_api::messageLocation::ID, [&]() { return locale->getString("AttachLocation"); }},
+        {td::td_api::messagePhoto::ID,
+         [&]() { return locale->getString("AttachPhoto").append(captionText(*static_cast<const td::td_api::messagePhoto *>(content.get())->caption_)); }},
+        {td::td_api::messagePoll::ID,
+         [&]() {
+             const auto &poll = static_cast<const td::td_api::messagePoll *>(content.get())->poll_;
+
+             return QString::fromUtf8("\xf0\x9f\x93\x8a\x20").append(captionText(*poll->question_));
+         }},
+        {td::td_api::messageSticker::ID,
+         [&]() {
+             const auto &sticker = static_cast<const td::td_api::messageSticker *>(content.get())->sticker_;
+             return locale->getString("AttachSticker").append(": ").append(QString::fromStdString(sticker->emoji_));
+         }},
+        {td::td_api::messageText::ID,
+         [&]() {
+             const auto &text = static_cast<const td::td_api::messageText *>(content.get())->text_;
+
+             return sanitizeText(text->text_);
+         }},
+        {td::td_api::messageVideo::ID,
+         [&]() { return locale->getString("AttachVideo").append(captionText(*static_cast<const td::td_api::messageVideo *>(content.get())->caption_)); }},
+        {td::td_api::messageVideoNote::ID, [&]() { return locale->getString("AttachRound"); }},
+        {td::td_api::messageVoiceNote::ID,
+         [&]() { return locale->getString("AttachAudio").append(captionText(*static_cast<const td::td_api::messageVoiceNote *>(content.get())->caption_)); }}};
+
+    if (const auto handler = messageHandlers.find(content->get_id()); handler != messageHandlers.end())
     {
         return handler->second();
     }
 
     // Service messages that require getServiceMessageContent
-    const std::unordered_set<QString> serviceMessageTypes = {
-        "messageBasicGroupChatCreate", "messageChatAddMembers",      "messageChatChangePhoto",
-        "messageChatChangeTitle",      "messageChatDeleteMember",    "messageChatDeletePhoto",
-        "messageChatJoinByLink",       "messageChatUpgradeFrom",     "messageChatUpgradeTo",
-        "messageContactRegistered",    "messageCustomServiceAction", "messageExpiredPhoto",
-        "messageExpiredVideo",         "messageGameScore",           "messagePassportDataReceived",
-        "messagePassportDataSent",     "messagePaymentSuccessful",   "messagePaymentSuccessfulBot",
-        "messagePinMessage",           "messageScreenshotTaken",     "messageSupergroupChatCreate",
-        "messageUnsupported",          "messageWebsiteConnected"};
 
     // Check if contentType is a service message type
-    if (serviceMessageTypes.contains(contentType))
+    if (isServiceMessage(message))
     {
         return getServiceMessageContent(message, store, locale);
     }
@@ -744,81 +706,55 @@ QString getContent(const Message *message, StorageManager *store, Locale *locale
     return locale->getString("UnsupportedAttachment");
 }
 
-bool isChatUnread(qint64 chatId, StorageManager *store) noexcept
+bool Utils::isChatUnread(qint64 chatId, StorageManager *store) noexcept
 {
     const auto chat = store->getChat(chatId);
 
-    return chat->isMarkedAsUnread() || chat->unreadCount() > 0;
+    return chat->is_marked_as_unread_ || chat->unread_count_ > 0;
 }
 
-QString getMessageSenderName(const Message *message, StorageManager *store, Locale *locale) noexcept
+QString Utils::getMessageSenderName(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept
 {
     if (isServiceMessage(message))
         return QString();
 
-    const auto sender = message->senderId();
-    const auto chat = store->getChat(message->chatId());
-    const auto chatType = chat->type().value("@type").toString();
+    const auto sender = static_cast<const td::td_api::MessageSender *>(message.sender_id_.get());
 
-    static const std::unordered_map<QString, std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
-        chatTypeHandlers = {
-            {"chatTypeBasicGroup",
-             [](const QVariantMap &sender, const Chat *chat, StorageManager *store, Locale *locale) {
-                 if (detail::isChannelChat(chat))
-                     return QString();
+    const auto chat = store->getChat(message.chat_id_);
 
-                 const auto senderType = sender.value("@type").toString();
-                 static const std::unordered_map<QString,
-                                                 std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
-                     senderTypeHandlers = {{"messageSenderUser",
-                                            [](const QVariantMap &sender, const Chat *, StorageManager *store, Locale *locale) {
-                                                if (detail::isMeUser(sender.value("user_id").toLongLong(), store))
-                                                    return locale->getString("FromYou");
-
-                                                return getUserShortName(sender.value("user_id").toLongLong(), store, locale);
-                                            }},
-                                           {"messageSenderChat", [](const QVariantMap &, const Chat *chat, StorageManager *store,
-                                                                    Locale *locale) { return getChatTitle(chat->id(), store, locale); }}};
-
-                 if (auto it = senderTypeHandlers.find(senderType); it != senderTypeHandlers.end())
-                 {
-                     return it->second(sender, chat, store, locale);
-                 }
-                 return QString();
-             }},
-            {"chatTypeSupergroup", [](const QVariantMap &sender, const Chat *chat, StorageManager *store, Locale *locale) {
-                 if (detail::isChannelChat(chat))
-                     return QString();
-
-                 const auto senderType = sender.value("@type").toString();
-                 static const std::unordered_map<QString,
-                                                 std::function<QString(const QVariantMap &, const Chat *, StorageManager *, Locale *)>>
-                     senderTypeHandlers = {{"messageSenderUser",
-                                            [](const QVariantMap &sender, const Chat *, StorageManager *store, Locale *locale) {
-                                                if (detail::isMeUser(sender.value("user_id").toLongLong(), store))
-                                                    return locale->getString("FromYou");
-
-                                                return getUserShortName(sender.value("user_id").toLongLong(), store, locale);
-                                            }},
-                                           {"messageSenderChat", [](const QVariantMap &, const Chat *chat, StorageManager *store,
-                                                                    Locale *locale) { return getChatTitle(chat->id(), store, locale); }}};
-
-                 if (auto it = senderTypeHandlers.find(senderType); it != senderTypeHandlers.end())
-                 {
-                     return it->second(sender, chat, store, locale);
-                 }
-                 return QString();
-             }}};
-
-    if (auto it = chatTypeHandlers.find(chatType); it != chatTypeHandlers.end())
+    switch (chat->type_->get_id())
     {
-        return it->second(sender, chat, store, locale);
-    }
+        case td::td_api::chatTypePrivate::ID:
+        case td::td_api::chatTypeSecret::ID:
+            return QString();
+        case td::td_api::chatTypeBasicGroup::ID:
+        case td::td_api::chatTypeSupergroup::ID: {
+            if (isChannelChat(chat))
+            {
+                return QString();
+            }
 
-    return QString();
+            switch (sender->get_id())
+            {
+                case td::td_api::messageSenderUser::ID: {
+                    auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+                    if (isMeUser(userId, store))
+                        return locale->getString("FromYou");
+
+                    return getUserShortName(userId, store, locale);
+                }
+                case td::td_api::messageSenderChat::ID: {
+                    return getChatTitle(static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_, store, locale);
+                }
+            }
+        }
+
+        default:
+            return QString();
+    }
 }
 
-void copyToClipboard(const QVariantMap &content) noexcept
+void Utils::copyToClipboard(const QVariantMap &content) noexcept
 {
     const auto contentType = content.value("@type").toString();
     if (contentType != QLatin1String("messageText"))
@@ -830,7 +766,7 @@ void copyToClipboard(const QVariantMap &content) noexcept
     clipboard->setText(text);
 }
 
-QImage getThumb(const QVariantMap &thumbnail) noexcept
+QImage Utils::getThumb(const QVariantMap &thumbnail) noexcept
 {
     QByteArray thumb = "data:image/jpeg;base64, " + thumbnail.value("data").toByteArray();
     QBuffer buf(&thumb);
@@ -840,23 +776,23 @@ QImage getThumb(const QVariantMap &thumbnail) noexcept
     return reader.read();
 }
 
-bool isMessageUnread(qint64 chatId, const Message *message, StorageManager *store) noexcept
+bool Utils::isMessageUnread(const td::td_api::message &message, StorageManager *store) noexcept
 {
-    const auto chat = store->getChat(chatId);
+    const auto chat = store->getChat(message.chat_id_);
 
-    if (message->isOutgoing())
+    if (message.is_outgoing_)
     {
         if (isMeChat(chat, store))
         {
             return false;
         }
-        return message->id() > chat->lastReadOutboxMessageId();
+        return message.id_ > chat->last_read_outbox_message_id_;
     }
 
-    return message->id() > chat->lastReadInboxMessageId();
+    return message.id_ > chat->last_read_inbox_message_id_;
 }
 
-QString getViews(int views) noexcept
+QString Utils::getViews(int views) noexcept
 {
     if (views < 1000)
     {
@@ -878,7 +814,7 @@ QString getViews(int views) noexcept
     }
 }
 
-QString getFileSize(const QVariantMap &file) noexcept
+QString Utils::getFileSize(const QVariantMap &file) noexcept
 {
     const auto size = file.value("size").toInt();
     if (size <= 0)
@@ -898,7 +834,7 @@ QString getFileSize(const QVariantMap &file) noexcept
         return QString("%1 GB").arg(static_cast<double>(size) / GB, 0, 'f', 2);
 }
 
-QString formatTime(int totalSeconds) noexcept
+QString Utils::formatTime(int totalSeconds) noexcept
 {
     QString result;
     QTextStream stream(&result);
@@ -928,5 +864,3 @@ QString formatTime(int totalSeconds) noexcept
 
     return result;
 }
-
-}  // namespace Utils

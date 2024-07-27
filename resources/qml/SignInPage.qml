@@ -99,9 +99,8 @@ Page {
         }
     }
 
-    CountryModel {
+    ListModel {
         id: countryModel
-        countries: app.countries
     }
 
     SelectionDialog {

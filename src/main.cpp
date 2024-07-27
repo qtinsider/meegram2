@@ -1,28 +1,16 @@
 #include <QApplication>
+#include <QDebug>
 #include <QDeclarativeComponent>
-#include <QDeclarativeContext>
-#include <QDeclarativeEngine>
 #include <QDeclarativeView>
 #include <QFontDatabase>
 #include <QTextCodec>
 
-#include "TextFormatter.hpp"
 #include "Application.hpp"
-#include "Authorization.hpp"
-#include "Chat.hpp"
-#include "ChatModel.hpp"
-#include "Client.hpp"
 #include "Common.hpp"
 #include "DBusAdaptor.hpp"
-#include "ImageProviders.hpp"
-#include "Localization.hpp"
 #include "LottieAnimation.hpp"
-#include "MessageModel.hpp"
-#include "NotificationManager.hpp"
-#include "SelectionModel.hpp"
-#include "Settings.hpp"
-#include "StorageManager.hpp"
 #include "TdApi.hpp"
+#include "TextFormatter.hpp"
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
@@ -39,37 +27,17 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
-    qRegisterMetaType<QModelIndex>("QModelIndex");
-
-    qmlRegisterType<Authorization>("MyComponent", 1, 0, "Authorization");
-    qmlRegisterType<Chat>("MyComponent", 1, 0, "Chat");
-
-    qmlRegisterType<ChatModel>("MyComponent", 1, 0, "ChatModel");
-    qmlRegisterType<ChatFolderModel>("MyComponent", 1, 0, "ChatFolderModel");
-    qmlRegisterType<CountryModel>("MyComponent", 1, 0, "CountryModel");
-    qmlRegisterType<FlexibleListModel>("MyComponent", 1, 0, "FlexibleListModel");
-    qmlRegisterType<MessageModel>("MyComponent", 1, 0, "MessageModel");
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 
     qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");
 
-    StorageManager storageManager;
-    Application application(&storageManager);
-
     QDeclarativeView viewer;
+
+    Application application(&viewer);
+
     new DBusAdaptor(&app, &viewer);
-
-    viewer.rootContext()->setContextProperty("app", &application);
-    viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
-    viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
-
-    QObject::connect(viewer.engine(), SIGNAL(quit()), &viewer, SLOT(close()));
-
-    viewer.setResizeMode(QDeclarativeView::SizeRootObjectToView);
-    viewer.setSource(QUrl("qrc:/qml/main.qml"));
-    viewer.showFullScreen();
 
     return app.exec();
 }

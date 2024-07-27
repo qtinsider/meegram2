@@ -22,10 +22,7 @@ Page {
             top: header.bottom
         }
 
-        model: FlexibleListModel {
-            id: languagePackModel
-            values: app.languagePackInfo
-        }
+        model: languagePackModel
 
         delegate: ListItem {
             Column {
@@ -53,7 +50,7 @@ Page {
                     font.family: "Nokia Pure Light"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
-                    text: model.native_name
+                    text: model.nativeName
                 }
             }
 
@@ -64,14 +61,14 @@ Page {
                     rightMargin: 12
                     verticalCenter: parent.verticalCenter
                 }
-                source: app.settings.languagePackId !== model.id
+                source: settings.languagePackId !== model.id
                     ? "image://theme/meegotouch-button-checkbox-background"
                     : "image://theme/meegotouch-button-radiobutton-background-selected"
             }
 
             onClicked: {
-                app.settings.languagePackId = model.id
-                app.settings.languagePluralId = model.plural_code
+                settings.languagePackId = model.id
+                settings.languagePluralId = model.pluralCode
                 appWindow.pageStack.pop()
             }
         }

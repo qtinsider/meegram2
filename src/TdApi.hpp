@@ -33,3 +33,9 @@ public:
         ChatListFolder,
     };
 };
+
+struct ChatList
+{
+    int folderId;
+    TdApi::ChatList type;
+};

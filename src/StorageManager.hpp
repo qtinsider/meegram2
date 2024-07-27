@@ -1,15 +1,6 @@
 #pragma once
 
-#include "BasicGroup.hpp"
-#include "BasicGroupFullInfo.hpp"
-#include "Chat.hpp"
-#include "Client.hpp"
-#include "File.hpp"
-#include "Message.hpp"
-#include "Supergroup.hpp"
-#include "SupergroupFullInfo.hpp"
-#include "User.hpp"
-#include "UserFullInfo.hpp"
+#include <td/telegram/td_api.h>
 
 #include <QObject>
 #include <QVariant>
@@ -18,29 +9,27 @@
 #include <unordered_map>
 #include <vector>
 
+class Client;
+
 class StorageManager : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QVariantList chatFolders READ getChatFolders NOTIFY chatFoldersChanged)
-
 public:
-    explicit StorageManager(QObject *parent = nullptr);
+    explicit StorageManager(Client *client, QObject *parent = nullptr);
 
     Client *client() const noexcept;
 
     std::vector<qint64> getChatIds() const noexcept;
 
-    Q_INVOKABLE BasicGroup *getBasicGroup(qint64 groupId) const;
-    Q_INVOKABLE BasicGroupFullInfo *getBasicGroupFullInfo(qint64 groupId) const;
-    Q_INVOKABLE Chat *getChat(qint64 chatId) const;
-    Q_INVOKABLE File *getFile(qint32 fileId) const;
-    Q_INVOKABLE QVariant getOption(const QString &name) const;
-    Q_INVOKABLE Supergroup *getSupergroup(qint64 groupId) const;
-    Q_INVOKABLE SupergroupFullInfo *getSupergroupFullInfo(qint64 groupId) const;
-    Q_INVOKABLE User *getUser(qint64 userId) const;
-    Q_INVOKABLE UserFullInfo *getUserFullInfo(qint64 userId) const;
-
-    QVariantList getChatFolders() const noexcept;
+    const td::td_api::basicGroup *getBasicGroup(qint64 groupId) const;
+    const td::td_api::basicGroupFullInfo *getBasicGroupFullInfo(qint64 groupId) const;
+    const td::td_api::chat *getChat(qint64 chatId) const;
+    const td::td_api::file *getFile(qint32 fileId) const;
+    QVariant getOption(const QString &name) const;
+    const td::td_api::supergroup *getSupergroup(qint64 groupId) const;
+    const td::td_api::supergroupFullInfo *getSupergroupFullInfo(qint64 groupId) const;
+    const td::td_api::user *getUser(qint64 userId) const;
+    const td::td_api::userFullInfo *getUserFullInfo(qint64 userId) const;
 
     Q_INVOKABLE qint64 getMyId() const noexcept;
 
@@ -48,25 +37,22 @@ signals:
     void updateChatItem(qint64 chatId);
     void updateChatPosition(qint64 chatId);
 
-    void chatFoldersChanged();
-
 private slots:
-    void handleResult(const QVariantMap &object);
+    void handleResult(td::td_api::Object *object);
 
 private:
-    void setChatPositions(qint64 chatId, const QVariantList &positions) noexcept;
+    void setChatPositions(qint64 chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;
 
     Client *m_client{nullptr};
 
     QVariantMap m_options;
-    QVariantList m_chatFolders;
 
-    std::unordered_map<qint64, std::unique_ptr<BasicGroup>> m_basicGroup;
-    std::unordered_map<qint64, std::unique_ptr<BasicGroupFullInfo>> m_basicGroupFullInfo;
-    std::unordered_map<qint64, std::unique_ptr<Chat>> m_chats;
-    std::unordered_map<qint32, std::unique_ptr<File>> m_files;
-    std::unordered_map<qint64, std::unique_ptr<Supergroup>> m_supergroup;
-    std::unordered_map<qint64, std::unique_ptr<SupergroupFullInfo>> m_supergroupFullInfo;
-    std::unordered_map<qint64, std::unique_ptr<User>> m_users;
-    std::unordered_map<qint64, std::unique_ptr<UserFullInfo>> m_userFullInfo;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroup>> m_basicGroup;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroupFullInfo>> m_basicGroupFullInfo;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::chat>> m_chats;
+    std::unordered_map<int32_t, td::td_api::object_ptr<td::td_api::file>> m_files;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::supergroup>> m_supergroup;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::supergroupFullInfo>> m_supergroupFullInfo;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::user>> m_users;
+    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::userFullInfo>> m_userFullInfo;
 };
