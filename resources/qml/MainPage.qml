@@ -62,7 +62,10 @@ Page {
                     Button {
                         text: app.getString("StartMessaging") + app.emptyString
                         platformStyle: ButtonStyle { inverted: true }
-                        onClicked: pageStack.push(signInPage)
+                        onClicked: {
+                            authentication.target = authorization
+                            pageStack.push(signInPage)
+                        }
                     }
                 }
             }
@@ -98,7 +101,8 @@ Page {
     }
 
     Connections {
-        target: authorization
+        id: authentication
+        target: null
         onCodeRequested: internal.changePage(codeEnterPage, {
             phoneNumber: phoneNumber,
             type: type,
@@ -116,6 +120,7 @@ Page {
             showPopup: showPopup
         })
         onError: appWindow.showBanner(errorString)
+        onReady: { pageStack.push(Qt.createComponent("ChatsPage.qml"), { storage: storageManager }); }
     }
 
     AboutDialog {

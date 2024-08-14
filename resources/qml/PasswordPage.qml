@@ -77,12 +77,25 @@ Page {
         ToolButtonRow {
             ToolButton {
                 text: app.getString("Next") + app.emptyString
-                onClicked: authorization.checkPassword(password.text)
+                onClicked: {
+                    authorization.loading = true;
+                    authorization.checkPassword(password.text)
+                }
             }
             ToolButton {
                 text: app.getString("Cancel") + app.emptyString
-                onClicked: root.cancelClicked()
+                onClicked: {
+                    authorization.loading = false;
+                    root.cancelClicked()
+                }
             }
         }
+    }
+
+    BusyIndicator {
+        anchors.centerIn: parent
+        running: authorization.loading
+        visible: authorization.loading
+        platformStyle: BusyIndicatorStyle { size: "large" }
     }
 }

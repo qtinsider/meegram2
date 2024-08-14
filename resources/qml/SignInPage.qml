@@ -87,6 +87,7 @@ Page {
                 text: app.getString("Next") + app.emptyString
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
+                        authorization.loading = true
                         authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text);
                     }
                 }
@@ -94,7 +95,10 @@ Page {
 
             ToolButton {
                 text: app.getString("Cancel") + app.emptyString
-                onClicked: root.cancelClicked()
+                onClicked: {
+                    authorization.loading = false
+                    root.cancelClicked()
+                }
             }
         }
     }
@@ -109,5 +113,12 @@ Page {
         titleText: app.getString("ChooseCountry") + app.emptyString
         selectedIndex: countryModel.defaultIndex
         model: countryModel
+    }
+
+    BusyIndicator {
+        anchors.centerIn: parent
+        running: authorization.loading
+        visible: authorization.loading
+        platformStyle: BusyIndicatorStyle { size: "large" }
     }
 }

@@ -42,7 +42,13 @@ void Authorization::checkCode(const QString &code) noexcept
     request.insert("@type", "checkAuthenticationCode");
     request.insert("code", code);
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::checkPassword(const QString &password) noexcept
@@ -51,7 +57,13 @@ void Authorization::checkPassword(const QString &password) noexcept
     request.insert("@type", "checkAuthenticationPassword");
     request.insert("password", password);
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::logOut() noexcept
@@ -59,7 +71,13 @@ void Authorization::logOut() noexcept
     QVariantMap request;
     request.insert("@type", "logOut");
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::registerUser(const QString &firstName, const QString &lastName) noexcept
@@ -69,7 +87,13 @@ void Authorization::registerUser(const QString &firstName, const QString &lastNa
     request.insert("first_name", firstName);
     request.insert("last_name", lastName);
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::setPhoneNumber(const QString &phoneNumber) noexcept
@@ -78,7 +102,13 @@ void Authorization::setPhoneNumber(const QString &phoneNumber) noexcept
     request.insert("@type", "setAuthenticationPhoneNumber");
     request.insert("phone_number", phoneNumber);
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::resendCode() noexcept
@@ -86,7 +116,13 @@ void Authorization::resendCode() noexcept
     QVariantMap request;
     request.insert("@type", "resendAuthenticationCode");
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 void Authorization::deleteAccount(const QString &reason) noexcept
@@ -95,7 +131,13 @@ void Authorization::deleteAccount(const QString &reason) noexcept
     request.insert("@type", "deleteAccount");
     request.insert("reason", reason);
 
-    m_client->send(request);
+    m_client->send(request, [this](const auto &value) {
+        if (value.value("@type").toString() == "error")
+        {
+            emit error(value.value("message").toString());
+        }
+        setLoading(false);
+    });
 }
 
 QString Authorization::formatTime(int totalSeconds) const noexcept

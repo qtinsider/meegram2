@@ -62,6 +62,7 @@ Page {
 
                         onTextChanged: {
                             if(text.length >= getCodeLength()) {
+                                authorization.loading = true
                                 authorization.checkCode(code.text)
                             }
                         }
@@ -135,11 +136,17 @@ Page {
         ToolButtonRow {
             ToolButton {
                 text: app.getString("Next") + app.emptyString
-                onClicked: authorization.checkCode(code.text)
+                onClicked: {
+                    authorization.loading = true;
+                    authorization.checkCode(code.text);
+                }
             }
             ToolButton {
                 text: app.getString("Cancel") + app.emptyString
-                onClicked: root.cancelClicked()
+                onClicked: {
+                    authorization.loading = false;
+                    root.cancelClicked();
+                }
             }
         }
     }
@@ -186,9 +193,15 @@ Page {
         return type.length || 0;
     }
 
-
     onTimeoutChanged: {
         codeExpireTimer.start()
         codeTimeText.text = authorization.formatTime(timeout / 1000)
+    }
+
+    BusyIndicator {
+        anchors.centerIn: parent
+        running: authorization.loading
+        visible: authorization.loading
+        platformStyle: BusyIndicatorStyle { size: "large" }
     }
 }

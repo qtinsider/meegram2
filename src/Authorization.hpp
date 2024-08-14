@@ -54,5 +54,5 @@ private:
 
     Client *m_client{};
 
-    bool m_loading = true;
+    bool m_loading = false;
 };

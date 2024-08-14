@@ -1,6 +1,7 @@
 #include "SelectionModel.hpp"
 
 #include <QDebug>
+#include <QStringList>
 
 #include <algorithm>
 

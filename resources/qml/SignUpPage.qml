@@ -83,11 +83,17 @@ Page {
         ToolButtonRow {
             ToolButton {
                 text: app.getString("Next") + app.emptyString
-                onClicked: authorization.registerUser(firstName.text, lastName.text)
+                onClicked: {
+                    authorization.loading = true;
+                    authorization.registerUser(firstName.text, lastName.text);
+                }
             }
             ToolButton {
                 text: app.getString("Cancel") + app.emptyString
-                onClicked: root.cancelClicked()
+                onClicked: {
+                    authorization.loading = false;
+                    root.cancelClicked()
+                }
             }
         }
     }
@@ -97,5 +103,12 @@ Page {
         titleText: app.getString("TermsOfService") + app.emptyString
         message: app.getString("TermsOfServiceLogin") + app.emptyString
         rejectButtonText: app.getString("Close") + app.emptyString
+    }
+
+    BusyIndicator {
+        anchors.centerIn: parent
+        running: authorization.loading
+        visible: authorization.loading
+        platformStyle: BusyIndicatorStyle { size: "large" }
     }
 }
