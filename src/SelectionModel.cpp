@@ -1,8 +1,5 @@
 #include "SelectionModel.hpp"
 
-#include "Localization.hpp"
-#include "Serialize.hpp"
-
 #include <QDebug>
 
 #include <algorithm>
@@ -113,9 +110,15 @@ void ChatFolderModel::setLocaleString(const QString &value)
     chatFolder.insert("id", 0);
     chatFolder.insert("title", value);
 
-    beginInsertRows(QModelIndex(), 0, 0);
-    m_chatFolders.insert(0, chatFolder);
-    endInsertRows();
+    auto it = std::ranges::find_if(m_chatFolders, [](const auto &folder) { return folder.toMap().value("id").toInt() == 0; });
+    if (it != m_chatFolders.end())
+    {
+        *it = std::move(chatFolder);
+    }
+    else
+    {
+        m_chatFolders.prepend(std::move(chatFolder));
+    }
 
     emit countChanged();
 }
@@ -130,7 +133,8 @@ void ChatFolderModel::setChatFolders(QVariantList value) noexcept
     if (m_chatFolders != value)
     {
         beginResetModel();
-        m_chatFolders.append(std::move(value));
+        m_chatFolders = std::move(value);
+        setLocaleString(m_localeString);  // Assuming `m_localeString` is still valid here
         endResetModel();
 
         emit chatFoldersChanged();

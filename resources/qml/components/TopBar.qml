@@ -5,7 +5,7 @@ Item {
     id: root
     z: 100
 
-    property alias title: label.text
+    property string title
     property bool isArchived: false
 
     property color color: isArchived ? "#424345" :  theme.selectionColor
@@ -47,10 +47,26 @@ Item {
         font.pixelSize: 32
         color: "#ffffff"
         elide: Text.ElideRight
+        text: getTitle()
     }
 
     MouseArea {
         anchors.fill: parent
         onClicked: root.clicked()
+    }
+
+    function getTitle() {
+        switch (app.connectionStateString) {
+        case "Updating":
+            return app.getString("Updating") + app.emptyString;
+        case "Connecting":
+            return app.getString("Connecting") + app.emptyString;
+        case "ConnectingToProxy":
+            return app.getString("ConnectingToProxy") + app.emptyString;
+        case "WaitingForNetwork":
+            return app.getString("WaitingForNetwork") + app.emptyString;
+        default:
+            return app.getString(title) + app.emptyString;
+        }
     }
 }

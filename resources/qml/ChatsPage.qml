@@ -13,7 +13,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.getString("Chats") + app.emptyString
+        title: "MeeGram"
 
         Image {
             anchors {
@@ -32,7 +32,7 @@ Page {
         MenuLayout {
             MenuItem {
                 text: app.getString("ArchivedChats") + app.emptyString
-                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { storage: app.storageManager })
+                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { storage: storageManager })
             }
             MenuItem {
                 text: app.getString("SETTINGS") + app.emptyString
@@ -101,6 +101,7 @@ Page {
 
     ChatFolderModel {
         id: mychatFolderModel
+        localeString: app.getString("FilterAllChats")
         chatFolders: storageManager.chatFolders
     }
 

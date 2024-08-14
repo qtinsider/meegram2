@@ -7,13 +7,13 @@ import "components"
 Page {
     id: root
 
-    property alias storage: myChatModel.storageManager
+    property alias storage: myChatModel.store
 
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
         id: header
-        title: app.getString("ArchivedChats") + app.emptyString
+        title: "ArchivedChats"
         isArchived: true
     }
 

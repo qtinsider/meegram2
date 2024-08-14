@@ -10,7 +10,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.getString("SETTINGS") + app.emptyString
+        title: "SETTINGS"
     }
 
     ListView {

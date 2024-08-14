@@ -145,57 +145,47 @@ Page {
     }
 
     function getCodeTitle() {
-        if (type.type === "authenticationCodeTypeTelegramMessage") {
+        switch (type.type) {
+        case "authenticationCodeTypeTelegramMessage":
             return app.getString("SentAppCodeTitle");
-        }
-        if (type.type === "authenticationCodeTypeCall" || type.type === "authenticationCodeTypeSms") {
+        case "authenticationCodeTypeCall":
+        case "authenticationCodeTypeSms":
             return app.getString("SentSmsCodeTitle");
+        default:
+            return app.getString("Title");
         }
-
-        return app.getString("Title");
     }
 
     function getCodeSubtitle() {
-        if (type.type === "authenticationCodeTypeCall") {
+        switch (type.type) {
+        case "authenticationCodeTypeCall":
             return app.getString("SentCallCode").arg(phoneNumber);
-        }
-        if (type.type === "authenticationCodeTypeFlashCall") {
+        case "authenticationCodeTypeFlashCall":
             return app.getString("SentCallOnly").arg(phoneNumber);
-        }
-        if (type.type === "authenticationCodeTypeSms") {
+        case "authenticationCodeTypeSms":
             return app.getString("SentSmsCode").arg(phoneNumber);
-        }
-        if (type.type === "authenticationCodeTypeTelegramMessage") {
+        case "authenticationCodeTypeTelegramMessage":
             return app.getString("SentAppCode");
+        default:
+            return "";
         }
-
-        return "";
     }
 
     function getCodeNextTypeString() {
-        if (nextType.type === "authenticationCodeTypeCall") {
+        switch (nextType.type) {
+        case "authenticationCodeTypeCall":
             return app.getString("CallText");
-        }
-        if (nextType.type === "authenticationCodeTypeSms") {
+        case "authenticationCodeTypeSms":
             return app.getString("SmsText");
+        default:
+            return "";
         }
-
-        return "";
     }
 
     function getCodeLength() {
-        if (type.type === "authenticationCodeTypeCall") {
-            return type.length;
-        }
-        if (type.type === "authenticationCodeTypeSms") {
-            return type.length;
-        }
-        if (type.type === "authenticationCodeTypeTelegramMessage") {
-            return type.length;
-        }
-
-        return 0;
+        return type.length || 0;
     }
+
 
     onTimeoutChanged: {
         codeExpireTimer.start()
