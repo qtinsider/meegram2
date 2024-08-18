@@ -11,7 +11,11 @@ find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(boostable QUIET qdeclarative-boostable)
+option(BUILD_HARMATTAN "Build for MeeGo 1.2 Harmattan Device" OFF)
+
+if (BUILD_HARMATTAN)
+    pkg_check_modules(boostable QUIET qdeclarative-boostable)
+endif()
 
 set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
@@ -83,9 +87,20 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
-target_link_libraries(meegram PRIVATE rlottie::rlottie Td::TdJson Qt4::QtCore Qt4::QtDBus Qt4::QtGui Qt4::QtSvg Qt4::QtXml Qt4::QtDeclarative ZLIB::ZLIB Threads::Threads)
+target_link_libraries(meegram PRIVATE
+    rlottie::rlottie
+    Td::TdJson
+    Qt4::QtCore
+    Qt4::QtDBus
+    Qt4::QtDeclarative
+    Qt4::QtGui
+    Qt4::QtSvg
+    Qt4::QtXml
+    ZLIB::ZLIB
+    Threads::Threads
+)
 
-if (boostable_FOUND)
+if (BUILD_HARMATTAN)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})
     target_include_directories(meegram PRIVATE ${boostable_INCLUDE_DIRS})
 
