@@ -1,0 +1,63 @@
+name: Bug report
+description: Report a bug or unexpected behavior in MeeGram.
+title: "[BUG] "
+labels: [bug]
+assignees: ''
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug in MeeGram! Please fill out the form below.
+
+  - type: input
+    id: bug_description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Please provide details about the issue.
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide a step-by-step list to reproduce the issue.
+      placeholder: 1. Go to '...'\n2. Click on '...'\n3. Scroll down to '...'\n4. See error
+      required: true
+
+  - type: input
+    id: expected_behavior
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+      placeholder: The expected outcome of the steps above.
+      required: true
+
+  - type: input
+    id: actual_behavior
+    attributes:
+      label: Actual behavior
+      description: Describe what actually happened.
+      placeholder: The actual outcome of the steps above.
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Select the environment where the issue occurred.
+      options:
+        - MeeGram Version: v0.1.0
+        - MeeGram Version: v0.1.1
+        - MeeGram Version: v0.1.5
+        - MeeGram Version: Other
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem here, such as logs or screenshots.
+      placeholder: Provide any additional information that could help in diagnosing the issue.
+      required: false

@@ -1,0 +1,42 @@
+name: Feature request
+description: Suggest a new feature or improvement for MeeGram.
+title: "[FEATURE] "
+labels: [enhancement]
+assignees: ''
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        We appreciate your suggestion to make MeeGram better! Please fill out the form below.
+
+  - type: input
+    id: feature_description
+    attributes:
+      label: Feature description
+      description: A clear and concise description of the feature or enhancement you would like.
+      placeholder: Please describe the feature in detail.
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: Why is this feature important? How would it improve the app?
+      placeholder: Please explain why this feature is needed.
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you considered any alternative solutions or features?
+      placeholder: Describe any alternative solutions you've thought of.
+      required: false
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any other context or screenshots about the feature request.
+      required: false

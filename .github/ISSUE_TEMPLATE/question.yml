@@ -1,0 +1,21 @@
+name: Question
+description: Ask a question about MeeGram.
+title: "[QUESTION] "
+labels: [question]
+assignees: ''
+
+body:
+  - type: input
+    id: question
+    attributes:
+      label: Your Question
+      description: A clear and concise question about the application.
+      placeholder: Please enter your question here.
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any additional details that might help in answering your question.
+      required: false
