@@ -88,8 +88,8 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
 target_link_libraries(meegram PRIVATE
-    rlottie::rlottie
     Td::TdJson
+    rlottie::rlottie
     Qt4::QtCore
     Qt4::QtDBus
     Qt4::QtDeclarative

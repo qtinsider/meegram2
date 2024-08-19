@@ -1,29 +1,43 @@
+meegram (0.1.5) unstable; urgency=low
+
+  * Updated Device with GCC 14.2, OpenSSL 1.1.1w, TDLib 1.8.35, zlib 1.3.1, the latest nlohmann JSON library, and enhanced rlottie support.
+  * Replaced QMake with CMake.
+  * Implemented localization support with new strings.
+  * Renamed Chats component to FilterChats.
+  * Enhanced message handling and introduced a settings class.
+  * Added additional strings for localization.
+  * Updated README file with contribution guidelines and contact information.
+  * Resolved issues with the authentication process at #6.
+  * Removed MoreIndicator component from chat list for a cleaner UI.
+
+ -- Chukwudi Nwutobo <nwutobo@outlook.com>  Mon, 19 Aug 2024 10:09:00 +0100
+
 meegram (0.1.4) unstable; urgency=low
 
-  * Upgraded the Telegram Database Library (TDLib) to version 1.8.1 for better functionality and stability.
-  * Applied squircle (rounded square) masks to avatars for a more polished look.
-  * Implemented a feature to display the mention count in the chat list.
+  * Upgraded TDLib to version 1.8.1 for improved functionality and stability.
+  * Applied rounded square (squircle) masks to avatars for a cleaner appearance.
+  * Added mention count display in the chat list.
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Wed, 02 Feb 2022 23:07:46 +0100
 
 meegram (0.1.3) unstable; urgency=low
 
-  * Added a menu option to mute chats directly from the chat list.
-  * Various bug fixes and optimizations for better performance.
+  * Added option to mute chats directly from the chat list.
+  * Implemented various bug fixes and performance optimizations.
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Fri, 07 Jan 2022 19:47:26 +0100
 
 meegram (0.1.1) unstable; urgency=low
 
-  * Various bug fixes and optimizations for better performance.
+  * Applied various bug fixes and performance enhancements.
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Tue, 04 Jan 2022 11:34:35 +0100
 
 meegram (0.1.0) unstable; urgency=high
 
-  * Upgraded the Telegram Database Library (TDLib) to version 1.8.0 for enhanced functionality.
+  * Upgraded TDLib to version 1.8.0 for enhanced functionality.
   * Updated OpenSSL to version 1.1.1m for improved security and compatibility.
-  * Various bug fixes and optimizations for better performance.
+  * Implemented various bug fixes and performance improvements.
 
  -- Chukwudi Nwutobo <nwutobo@outlook.com>  Mon, 03 Jan 2022 14:57:19 +0100
 
