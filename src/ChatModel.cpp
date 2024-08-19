@@ -89,7 +89,7 @@ bool ChatModel::canFetchMore(const QModelIndex &parent) const
     if (parent.isValid())
         return false;
 
-    return m_count < m_chatIds.size();
+    return m_count < static_cast<int>(m_chatIds.size());
 }
 
 void ChatModel::fetchMore(const QModelIndex &parent)

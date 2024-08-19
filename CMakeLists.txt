@@ -4,6 +4,8 @@ project(MeeGram VERSION 0.1.5 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 find_package(Td REQUIRED)
 find_package(rlottie REQUIRED)
 find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtSvg QtXml QtDeclarative REQUIRED)
@@ -104,7 +106,35 @@ if (BUILD_HARMATTAN)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})
     target_include_directories(meegram PRIVATE ${boostable_INCLUDE_DIRS})
 
-    target_link_options(meegram PRIVATE -static-libstdc++ -Wl,--dynamic-linker=/lib/ld-linux.so.3 -pie -rdynamic)
+    target_link_options(meegram PRIVATE -Wl,-rpath,/opt/meegram/lib -Wl,--dynamic-linker=/lib/ld-linux.so.3 -pie -rdynamic)
 
     target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES})
+
+   if(NOT EXISTS "${CMAKE_BINARY_DIR}/debian")
+        file(COPY ${CMAKE_SOURCE_DIR}/debian DESTINATION ${CMAKE_BINARY_DIR})
+    endif()
+
+    install(FILES resources/meegram_harmattan.desktop DESTINATION /usr/share/applications)
+    install(FILES resources/meegram80.png DESTINATION /usr/share/icons/hicolor/80x80/apps)
+    install(FILES resources/meegram-splash.png DESTINATION /opt/meegram/share)
+
+    install(FILES
+        lib/libcrypto.so.1.1
+        lib/libssl.so.1.1
+        lib/libtdjson.so.1.8.35
+        lib/librlottie.so.0
+        lib/libz.so.1
+        lib/libstdc++.so.6
+        DESTINATION /opt/meegram/lib
+    )
+
+    install(TARGETS meegram DESTINATION /opt/meegram/bin)
+
+    add_custom_target(package
+        COMMAND mad dpkg-buildpackage -nc -uc -us
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Building Debian package with mad..."
+    )
+
 endif()
+
