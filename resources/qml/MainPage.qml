@@ -120,7 +120,7 @@ Page {
             showPopup: showPopup
         })
         onError: appWindow.showBanner(errorString)
-        onReady: { pageStack.push(Qt.createComponent("ChatsPage.qml"), { storage: storageManager }); }
+        onReady: { pageStack.push(Qt.createComponent("ChatsPage.qml")); }
     }
 
     AboutDialog {
@@ -143,7 +143,7 @@ Page {
         target: app
         onAppInitialized: {
             if (app.authorized) {
-                pageStack.push(Qt.createComponent("ChatsPage.qml"), { storage: storageManager });
+                pageStack.push(Qt.createComponent("ChatsPage.qml"));
             } else {
                 loader.sourceComponent = infoComponent;
             }

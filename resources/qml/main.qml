@@ -22,7 +22,6 @@ PageStackWindow {
 
     Authorization {
         id: authorization
-        client: tdclient
     }
 
     function showInfoBanner(message) {
@@ -34,10 +33,7 @@ PageStackWindow {
         var component = Qt.createComponent("ChatPage.qml");
 
         if (component.status === Component.Ready) {
-            pageStack.push(component, {
-                chat: storageManager.getChat(chatId),
-                storage: storageManager
-            });
+            pageStack.push(component, { chatId: chatId });
         } else {
             console.debug("Error loading component:", component.errorString());
         }

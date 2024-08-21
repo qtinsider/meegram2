@@ -1,16 +1,8 @@
 #include "MessageModel.hpp"
 
-#include "BasicGroup.hpp"
-#include "Chat.hpp"
-#include "ChatModel.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
-#include "Localization.hpp"
-#include "Serialize.hpp"
 #include "StorageManager.hpp"
-#include "Supergroup.hpp"
-#include "SupergroupFullInfo.hpp"
-#include "User.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>
@@ -21,13 +13,14 @@
 #include <algorithm>
 #include <utility>
 
-namespace detail {
-QString getBasicGroupStatus(const BasicGroup *basicGroup, int onlineCount, Locale *locale) noexcept
-{
-    const auto statusType = basicGroup->status().value("@type").toByteArray();
-    const auto count = basicGroup->memberCount();
+namespace {
 
-    if (statusType == "chatMemberStatusBanned")
+QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int onlineCount, Locale *locale) noexcept
+{
+    const auto count = basicGroup->member_count_;
+    const auto statusId = basicGroup->status_->get_id();
+
+    if (statusId == td::td_api::chatMemberStatusBanned::ID)
     {
         return locale->getString("YouWereKicked");
     }
@@ -46,26 +39,22 @@ QString getBasicGroupStatus(const BasicGroup *basicGroup, int onlineCount, Local
     return memberString;
 }
 
-QString getChannelStatus(const Supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
+QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
 {
-    const auto isChannel = supergroup->isChannel();
-    if (!isChannel)
+    if (!supergroup->is_channel_)
     {
-        return QString();
+        return {};
     }
 
-    auto count = supergroup->memberCount();
-    const auto username = supergroup->usernames();  // ???
-
+    auto count = supergroup->member_count_;
     if (count == 0)
     {
-        const auto fullInfo = store->getSupergroupFullInfo(supergroup->id());
-        count = fullInfo->memberCount();
+        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
     }
 
     if (count <= 0)
     {
-        return !username.isEmpty() ? locale->getString("ChannelPublic") : locale->getString("ChannelPrivate");
+        return supergroup->usernames_ ? locale->getString("ChannelPublic") : locale->getString("ChannelPrivate");
     }
 
     const auto subscriberString = locale->formatPluralString("Subscribers", count);
@@ -82,23 +71,20 @@ QString getChannelStatus(const Supergroup *supergroup, int onlineCount, StorageM
     return subscriberString;
 }
 
-QString getSupergroupStatus(const Supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
+QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
 {
-    const auto statusType = supergroup->status().value("@type").toByteArray();
-    const auto username = supergroup->usernames();
-    const auto hasLocation = supergroup->hasLocation();
+    const auto hasLocation = supergroup->has_location_;
+    auto count = supergroup->member_count_;
+    const auto statusId = supergroup->status_->get_id();
 
-    auto count = supergroup->memberCount();
-
-    if (statusType == "chatMemberStatusBanned")
+    if (statusId == td::td_api::chatMemberStatusBanned::ID)
     {
         return locale->getString("YouWereKicked");
     }
 
     if (count == 0)
     {
-        const auto fullInfo = store->getSupergroupFullInfo(supergroup->id());
-        count = fullInfo->memberCount();
+        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
     }
 
     if (count <= 0)
@@ -107,8 +93,7 @@ QString getSupergroupStatus(const Supergroup *supergroup, int onlineCount, Stora
         {
             return locale->getString("MegaLocation");
         }
-
-        return !username.isEmpty() ? locale->getString("MegaPublic") : locale->getString("MegaPrivate");
+        return supergroup->usernames_ ? locale->getString("MegaPublic") : locale->getString("MegaPrivate");
     }
 
     const auto memberString = locale->formatPluralString("Members", count);
@@ -125,100 +110,81 @@ QString getSupergroupStatus(const Supergroup *supergroup, int onlineCount, Stora
     return memberString;
 }
 
-QString getUserStatus(const User *user, Locale *locale) noexcept
+QString getUserStatus(const td::td_api::user *user, Locale *locale) noexcept
 {
-    if (std::ranges::any_of(ServiceNotificationsUserIds, [user](auto id) { return id == user->id(); }))
+    if (std::ranges::contains(ServiceNotificationsUserIds, user->id_))
     {
         return locale->getString("ServiceNotifications");
     }
 
-    if (user->isSupport())
+    if (user->is_support_)
     {
         return locale->getString("SupportStatus");
     }
 
-    const auto userType = user->type().value("@type").toByteArray();
-    if (userType == "userTypeBot")
+    if (user->type_->get_id() == td::td_api::userTypeBot::ID)
     {
         return locale->getString("Bot");
     }
 
-    const auto statusType = user->status().value("@type").toByteArray();
-    if (statusType == "userStatusEmpty")
+    switch (user->status_->get_id())
     {
-        return locale->getString("ALongTimeAgo");
-    }
-    else if (statusType == "userStatusLastMonth")
-    {
-        return locale->getString("WithinAMonth");
-    }
-    else if (statusType == "userStatusLastWeek")
-    {
-        return locale->getString("WithinAWeek");
-    }
-    else if (statusType == "userStatusOffline")
-    {
-        const auto was_online = user->status().value("was_online").toLongLong();
-        if (was_online == 0)
-        {
-            return locale->getString("Invisible");
+        case td::td_api::userStatusEmpty::ID:
+            return locale->getString("ALongTimeAgo");
+        case td::td_api::userStatusLastMonth::ID:
+            return locale->getString("WithinAMonth");
+        case td::td_api::userStatusLastWeek::ID:
+            return locale->getString("WithinAWeek");
+        case td::td_api::userStatusOffline::ID: {
+            const auto was_online = static_cast<const td::td_api::userStatusOffline &>(*user->status_).was_online_;
+            if (was_online == 0)
+            {
+                return locale->getString("Invisible");
+            }
+
+            const auto wasOnline = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(was_online) * 1000);
+            const auto currentDate = QDate::currentDate();
+
+            if (currentDate == wasOnline.date())
+            {
+                return locale->getString("LastSeenFormatted")
+                    .arg(locale->getString("TodayAtFormatted"))
+                    .arg(wasOnline.toString(locale->getString("formatterDay12H")));
+            }
+            else if (wasOnline.date().daysTo(currentDate) < 2)
+            {
+                return locale->getString("LastSeenFormatted")
+                    .arg(locale->getString("YesterdayAtFormatted"))
+                    .arg(wasOnline.toString(locale->getString("formatterDay12H")));
+            }
+
+            return locale->getString("LastSeenDateFormatted")
+                .arg(locale->getString("formatDateAtTime")
+                         .arg(wasOnline.toString(locale->getString("formatterYear")))
+                         .arg(wasOnline.toString(locale->getString("formatterDay12H"))));
         }
-
-        const auto wasOnline = QDateTime::fromMSecsSinceEpoch(was_online * 1000);
-        const auto currentDate = QDate::currentDate();
-
-        if (currentDate == wasOnline.date())  // TODAY
-        {
-            return locale->getString("LastSeenFormatted")
-                .arg(locale->getString("TodayAtFormatted"))
-                .arg(wasOnline.toString(locale->getString("formatterDay12H")));
-        }
-        else if (wasOnline.date().daysTo(currentDate) < 2)  // YESTERDAY
-        {
-            return locale->getString("LastSeenFormatted")
-                .arg(locale->getString("YesterdayAtFormatted"))
-                .arg(wasOnline.toString(locale->getString("formatterDay12H")));
-        }
-
-        // OTHER DAYS
-        return locale->getString("LastSeenDateFormatted")
-            .arg(locale->getString("formatDateAtTime")
-                     .arg(wasOnline.toString(locale->getString("formatterYear")))
-                     .arg(wasOnline.toString(locale->getString("formatterDay12H"))));
+        case td::td_api::userStatusOnline::ID:
+            return locale->getString("Online");
+        case td::td_api::userStatusRecently::ID:
+            return locale->getString("Lately");
+        default:
+            return {};
     }
-    else if (statusType == "userStatusOnline")
-    {
-        return locale->getString("Online");
-    }
-    else if (statusType == "userStatusRecently")
-    {
-        return locale->getString("Lately");
-    }
-
-    return QString();
 }
 
-}  // namespace detail
+}  // namespace
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    setRoleNames(roleNames());
-}
-
-QObject *MessageModel::storageManager() const
-{
-    return m_storageManager;
-}
-
-void MessageModel::setStorageManager(QObject *storageManager)
-{
-    m_storageManager = qobject_cast<StorageManager *>(storageManager);
+    m_storageManager = &StorageManager::instance();
 
     m_client = m_storageManager->client();
     m_locale = m_storageManager->locale();
 
-    connect(m_client, SIGNAL(result(const QVariantMap &)), SLOT(handleResult(const QVariantMap &)));
+    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+
+    setRoleNames(roleNames());
 }
 
 int MessageModel::rowCount(const QModelIndex &parent) const
@@ -234,11 +200,14 @@ bool MessageModel::canFetchMore(const QModelIndex &parent) const
     if (parent.isValid())
         return false;
 
+    if (!m_selectedChat)
+        return {};
+
     if (!m_messages.empty())
     {
         if (auto max = std::ranges::max(m_messageIds); max.has_value())
         {
-            return !m_loading && m_selectedChat->lastMessage()->id() != *max;
+            return !m_loading && m_selectedChat->last_message_->id_ != *max;
         }
     }
 
@@ -271,75 +240,89 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     switch (role)
     {
         case IdRole:
-            return message->id();
+            return QString::number(message->id_);
         case SenderRole: {
-            if (message->isOutgoing())
+            if (message->is_outgoing_)
                 return QString();
 
-            return Utils::getTitle(message.get(), m_storageManager, m_locale);
+            return Utils::getTitle(*message, m_storageManager, m_locale);
         }
-        case ChatIdRole:
-            return message->chatId();
-        case SendingStateRole:
-            return message->sendingState();
-        case SchedulingStateRole:
-            return message->schedulingState();
+        // case ChatIdRole:
+        //     return message->chatId();
+        // case SendingStateRole:
+        //     return message->sendingState();
+        // case SchedulingStateRole:
+        //     return message->schedulingState();
         case IsOutgoingRole:
-            return message->isOutgoing();
-        case IsPinnedRole:
-            return message->isPinned();
-        case CanBeEditedRole:
-            return message->canBeEdited();
-        case CanBeForwardedRole:
-            return message->canBeForwarded();
-        case CanBeDeletedOnlyForSelfRole:
-            return message->canBeDeletedOnlyForSelf();
-        case CanBeDeletedForAllUsersRole:
-            return message->canBeDeletedForAllUsers();
-        case CanGetStatisticsRole:
-            return message->canGetStatistics();
-        case CanGetMessageThreadRole:
-            return message->canGetMessageThread();
-        case IsChannelPostRole:
-            return message->isChannelPost();
-        case ContainsUnreadMentionRole:
-            return message->containsUnreadMention();
+            return message->is_outgoing_;
+        // case IsPinnedRole:
+        //     return message->isPinned();
+        // case CanBeEditedRole:
+        //     return message->canBeEdited();
+        // case CanBeForwardedRole:
+        //     return message->canBeForwarded();
+        // case CanBeDeletedOnlyForSelfRole:
+        //     return message->canBeDeletedOnlyForSelf();
+        // case CanBeDeletedForAllUsersRole:
+        //     return message->canBeDeletedForAllUsers();
+        // case CanGetStatisticsRole:
+        //     return message->canGetStatistics();
+        // case CanGetMessageThreadRole:
+        //     return message->canGetMessageThread();
+        // case IsChannelPostRole:
+        //     return message->isChannelPost();
+        // case ContainsUnreadMentionRole:
+        //     return message->containsUnreadMention();
         case DateRole: {
-            auto date = QDateTime::fromMSecsSinceEpoch(message->date() * 1000);
+            auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->date_) * 1000);
 
             return date.toString(m_locale->getString("formatterDay12H"));
         }
         case EditDateRole: {
-            auto date = QDateTime::fromMSecsSinceEpoch(message->editDate() * 1000);
+            auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->edit_date_) * 1000);
 
             return date.toString(m_locale->getString("formatterDay12H"));
         }
-        case ForwardInfoRole:
-            return message->forwardInfo();
-        case InteractionInfoRole:
-            return message->interactionInfo();
-        case MessageThreadIdRole:
-            return message->messageThreadId();
-        case ViaBotUserIdRole:
-            return message->viaBotUserId();
-        case AuthorSignatureRole:
-            return message->authorSignature();
-        case MediaAlbumIdRole:
-            return message->mediaAlbumId();
-        case RestrictionReasonRole:
-            return message->restrictionReason();
-        case ContentRole:
-            return message->content();
-        case ReplyMarkupRole:
-            return message->replyMarkup();
+            // case ForwardInfoRole:
+            //     return message->forwardInfo();
+            // case InteractionInfoRole:
+            //     return message->interactionInfo();
+            // case MessageThreadIdRole:
+            //     return message->messageThreadId();
+            // case ViaBotUserIdRole:
+            //     return message->viaBotUserId();
+            // case AuthorSignatureRole:
+            //     return message->authorSignature();
+            // case MediaAlbumIdRole:
+            //     return message->mediaAlbumId();
+            // case RestrictionReasonRole:
+            //     return message->restrictionReason();
+        case ContentRole: {
+            const auto *content = message->content_.get();
+
+            if (content->get_id() == td::td_api::messageText::ID) {
+                // Cast to const td::td_api::messageText*
+                const auto *formattedText = static_cast<const td::td_api::messageText *>(content);
+                // Access text_ safely
+                const auto *text = formattedText->text_.get();
+                // Cast const pointer to void* safely
+                return QVariant::fromValue(const_cast<void *>(static_cast<const void *>(text)));
+            }
+
+            return QVariant();
+        }
+
+
+            // case ReplyMarkupRole:
+            //     return message->replyMarkup();
 
         case BubbleColorRole:
             return QVariant();
         case IsServiceMessageRole: {
-            return Utils::isServiceMessage(message.get());
+            return Utils::isServiceMessage(*message);
         }
         case SectionRole: {
-            const auto date = QDateTime::fromMSecsSinceEpoch(message->date() * 1000);
+            const auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->date_) * 1000);
 
             const auto days = date.daysTo(QDateTime::currentDateTime());
 
@@ -351,7 +334,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return date.toString(m_locale->getString("chatFullDate"));
         }
         case ServiceMessageRole: {
-            return Utils::getServiceMessageContent(message.get(), m_storageManager, m_locale, true);
+            return Utils::getServiceMessageContent(*message, m_storageManager, m_locale, true);
         }
     }
     return QVariant();
@@ -409,16 +392,24 @@ bool MessageModel::loadingHistory() const noexcept
     return m_loadingHistory;
 }
 
-Chat *MessageModel::selectedChat() const
+QString MessageModel::getChatId() const noexcept
 {
-    return m_selectedChat;
+    if (!m_selectedChat)
+        return {};
+
+    return QString::number(m_selectedChat->id_);
 }
 
-void MessageModel::setSelectedChat(Chat *value) noexcept
+void MessageModel::setChatId(const QString &value) noexcept
 {
-    if (m_selectedChat != value)
+    auto chat = m_storageManager->getChat(value.toLongLong());
+
+    if (chat && (!m_selectedChat || m_selectedChat->id_ != chat->id_))
     {
-        m_selectedChat = value;
+        m_selectedChat = chat;
+
+        openChat();      //
+        loadMessages();  //
 
         emit selectedChatChanged();
     }
@@ -426,48 +417,65 @@ void MessageModel::setSelectedChat(Chat *value) noexcept
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    static const std::unordered_map<QString, std::function<QString(const QVariantMap &, int, StorageManager *, Locale *)>> chatTypeHandlers = {
-        {"chatTypeBasicGroup",
-         [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
-             return detail::getBasicGroupStatus(store->getBasicGroup(type.value("basic_group_id").toLongLong()), onlineCount, locale);
-         }},
-        {"chatTypePrivate", [](const QVariantMap &type, int, StorageManager *store,
-                               Locale *locale) { return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale); }},
-        {"chatTypeSecret", [](const QVariantMap &type, int, StorageManager *store,
-                              Locale *locale) { return detail::getUserStatus(store->getUser(type.value("user_id").toLongLong()), locale); }},
-        {"chatTypeSupergroup", [](const QVariantMap &type, int onlineCount, StorageManager *store, Locale *locale) {
-             const auto supergroup = store->getSupergroup(type.value("supergroup_id").toLongLong());
-             return supergroup->isChannel() ? detail::getChannelStatus(supergroup, onlineCount, store, locale)
-                                            : detail::getSupergroupStatus(supergroup, onlineCount, store, locale);
-         }}};
+    if (!m_selectedChat)
+        return {};
 
-    const auto type = m_selectedChat->type();
-    const auto chatType = m_selectedChat->type().value("@type").toString();
+    const auto chatTypeId = m_selectedChat->type_->get_id();
 
-    if (auto it = chatTypeHandlers.find(chatType); it != chatTypeHandlers.end())
+    switch (chatTypeId)
     {
-        return it->second(type, m_onlineCount, m_storageManager, m_locale);
-    }
+        case td::td_api::chatTypePrivate::ID: {
+            const auto userId = static_cast<const td::td_api::chatTypePrivate *>(m_selectedChat->type_.get())->user_id_;
+            return getUserStatus(m_storageManager->getUser(userId), m_locale);
+        }
 
-    return QString();
+        case td::td_api::chatTypeSecret::ID: {
+            const auto secretChatId = static_cast<const td::td_api::chatTypeSecret *>(m_selectedChat->type_.get())->secret_chat_id_;
+            return getUserStatus(m_storageManager->getUser(secretChatId), m_locale);
+        }
+
+        case td::td_api::chatTypeBasicGroup::ID: {
+            const auto basicGroupId = static_cast<const td::td_api::chatTypeBasicGroup *>(m_selectedChat->type_.get())->basic_group_id_;
+            return getBasicGroupStatus(m_storageManager->getBasicGroup(basicGroupId), m_onlineCount, m_locale);
+        }
+
+        case td::td_api::chatTypeSupergroup::ID: {
+            const auto *type = static_cast<const td::td_api::chatTypeSupergroup *>(m_selectedChat->type_.get());
+            const auto supergroup = m_storageManager->getSupergroup(type->supergroup_id_);
+            return type->is_channel_ ? getChannelStatus(supergroup, m_onlineCount, m_storageManager, m_locale)
+                                     : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager, m_locale);
+        }
+
+        default:
+            return {};
+    }
 }
 
 QString MessageModel::getChatTitle() const noexcept
 {
-    if (const auto title = m_selectedChat->title(); !Utils::isMeChat(m_selectedChat, m_storageManager))
-        return title.isEmpty() ? m_locale->getString("HiddenName") : title;
+    if (!m_selectedChat)
+        return {};
 
-    return m_locale->getString("SavedMessages");
+    const auto title = QString::fromStdString(m_selectedChat->title_);
+    if (Utils::isMeChat(m_selectedChat, m_storageManager))
+        return m_locale->getString("SavedMessages");
+
+    return title.isEmpty() ? m_locale->getString("HiddenName") : title;
 }
 
 QString MessageModel::getChatPhoto() const noexcept
 {
-    const auto smallPhoto = m_selectedChat->photo().value("small").toMap();
-    const auto localPhoto = smallPhoto.value("local").toMap();
+    if (!m_selectedChat)
+        return "image://theme/icon-l-content-avatar-placeholder";
 
-    if (localPhoto.value("is_downloading_completed").toBool())
+    const auto &chatPhoto = m_selectedChat->photo_;
+    if (chatPhoto && chatPhoto->small_)
     {
-        return "image://chatPhoto/" + localPhoto.value("path").toString();
+        const auto &smallPhoto = chatPhoto->small_;
+        if (smallPhoto->local_ && smallPhoto->local_->is_downloading_completed_)
+        {
+            return QString::fromStdString("image://chatPhoto/" + smallPhoto->local_->path_);
+        }
     }
 
     return "image://theme/icon-l-content-avatar-placeholder";
@@ -499,81 +507,91 @@ void MessageModel::loadHistory() noexcept
 
 void MessageModel::openChat() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "openChat");
-    request.insert("chat_id", m_selectedChat->id());
+    if (!m_selectedChat)
+        return;
 
-    m_client->send(request);
+    m_client->send(td::td_api::make_object<td::td_api::openChat>(m_selectedChat->id_), {});
 
     loadMessages();
 }
 
 void MessageModel::closeChat() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "closeChat");
-    request.insert("chat_id", m_selectedChat->id());
+    if (!m_selectedChat)
+        return;
 
-    m_client->send(request);
+    m_client->send(td::td_api::make_object<td::td_api::closeChat>(m_selectedChat->id_), {});
 }
 
 void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
 {
-    QVariantMap request;
-    request.insert("@type", "getChatHistory");
-    request.insert("chat_id", m_selectedChat->id());
-    request.insert("from_message_id", fromMessageId);
-    request.insert("offset", offset);
-    request.insert("limit", limit);
-    request.insert("only_local", false);
+    if (!m_selectedChat)
+        return;
 
-    m_client->send(request, [this](const auto &messages) { handleMessages(messages); });
+    auto request = td::td_api::make_object<td::td_api::getChatHistory>();
+
+    request->chat_id_ = m_selectedChat->id_;
+    request->from_message_id_ = fromMessageId;
+    request->offset_ = offset;
+    request->limit_ = limit;
+    request->only_local_ = false;
+
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::messages::ID)
+            handleMessages(td::move_tl_object_as<td::td_api::messages>(response));
+    });
 }
 
 void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
 {
-    QVariantMap formattedText, inputMessageContent;
-    formattedText.insert("@type", "formattedText");
-    formattedText.insert("text", message);
+    if (!m_selectedChat)
+        return;
 
-    inputMessageContent.insert("@type", "inputMessageText");
-    inputMessageContent.insert("text", formattedText);
+    auto request = td::td_api::make_object<td::td_api::sendMessage>();
 
-    QVariantMap request;
-    request.insert("@type", "sendMessage");
-    request.insert("chat_id", m_selectedChat->id());
+    auto inputMessageContent = td::td_api::make_object<td::td_api::inputMessageText>();
+
+    inputMessageContent->text_ = td::td_api::make_object<td::td_api::formattedText>();
+    inputMessageContent->text_->text_ = message.toStdString();
+
+    request->chat_id_ = m_selectedChat->id_;
 
     if (replyToMessageId != 0)
     {
-        request.insert("reply_to_message_id", replyToMessageId);
+        request->reply_to_ = td::td_api::make_object<td::td_api::inputMessageReplyToMessage>(m_selectedChat->id_, replyToMessageId, nullptr);
     }
 
-    request.insert("input_message_content", inputMessageContent);
+    request->input_message_content_ = std::move(inputMessageContent);
 
-    m_client->send(request);
+    m_client->send(std::move(request), {});
 }
 
-void MessageModel::viewMessages(const QVariantList &messageIds)
+void MessageModel::viewMessages(std::vector<int64_t> &&messageIds)
 {
-    QVariantMap request;
-    request.insert("@type", "viewMessages");
-    request.insert("chat_id", m_selectedChat->id());
-    request.insert("message_thread_id", 0);
-    request.insert("message_ids", messageIds);
-    request.insert("force_read", true);
+    if (!m_selectedChat)
+        return;
 
-    m_client->send(request);
+    auto request = td::td_api::make_object<td::td_api::viewMessages>();
+
+    request->chat_id_ = m_selectedChat->id_;
+    request->message_ids_ = std::move(messageIds);
+    request->force_read_ = true;
+
+    m_client->send(std::move(request), {});
 }
 
 void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "deleteMessages");
-    request.insert("chat_id", m_selectedChat->id());
-    request.insert("message_ids", QVariantList() << messageId);
-    request.insert("revoke", revoke);
+    if (!m_selectedChat)
+        return;
 
-    m_client->send(request);
+    auto request = td::td_api::make_object<td::td_api::deleteMessages>();
+
+    request->chat_id_ = m_selectedChat->id_;
+    request->message_ids_ = std::move(std::vector<int64_t>(messageId));
+    request->revoke_ = revoke;
+
+    m_client->send(std::move(request), {});
 }
 
 void MessageModel::refresh() noexcept
@@ -592,108 +610,103 @@ void MessageModel::refresh() noexcept
     emit countChanged();
 }
 
-void MessageModel::handleResult(const QVariantMap &object)
+void MessageModel::handleResult(td::td_api::Object *object)
 {
-    static const std::unordered_map<QString, std::function<void(const QVariantMap &)>> handlers = {
-        {"updateNewMessage", [this](const QVariantMap &obj) { handleNewMessage(obj.value("message").toMap()); }},
-        {"updateMessageSendSucceeded",
-         [this](const QVariantMap &obj) { handleMessageSendSucceeded(obj.value("message").toMap(), obj.value("old_message_id").toLongLong()); }},
-        {"updateMessageSendFailed",
-         [this](const QVariantMap &obj) {
-             handleMessageSendFailed(obj.value("message").toMap(), obj.value("old_message_id").toLongLong(), obj.value("error_code").toInt(),
-                                     obj.value("error_message").toString());
-         }},
-        {"updateMessageContent",
-         [this](const QVariantMap &obj) {
-             handleMessageContent(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("new_content").toMap());
-         }},
-        {"updateMessageEdited",
-         [this](const QVariantMap &obj) {
-             handleMessageEdited(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("edit_date").toInt(),
-                                 obj.value("reply_markup").toMap());
-         }},
-        {"updateMessageIsPinned",
-         [this](const QVariantMap &obj) {
-             handleMessageIsPinned(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("is_pinned").toBool());
-         }},
-        {"updateMessageInteractionInfo",
-         [this](const QVariantMap &obj) {
-             handleMessageInteractionInfo(obj.value("chat_id").toLongLong(), obj.value("message_id").toLongLong(), obj.value("interaction_info").toMap());
-         }},
-        {"updateChatOnlineMemberCount",
-         [this](const QVariantMap &obj) { handleChatOnlineMemberCount(obj.value("chat_id").toLongLong(), obj.value("online_member_count").toInt()); }},
-        {"updateChatReadInbox",
-         [this](const QVariantMap &obj) {
-             handleChatReadInbox(obj.value("chat_id").toLongLong(), obj.value("last_read_inbox_message_id").toLongLong(), obj.value("online_count").toInt());
-         }},
-        {"updateChatReadOutbox",
-         [this](const QVariantMap &obj) { handleChatReadOutbox(obj.value("chat_id").toLongLong(), obj.value("last_read_outbox_message_id").toLongLong()); }},
-    };
-
-    if (const auto it = handlers.find(object.value("@type").toString()); it != handlers.end())
-    {
-        it->second(object);
-    }
+    td::td_api::downcast_call(
+        *object,
+        detail::Overloaded{
+            [this](td::td_api::updateNewMessage &value) { handleNewMessage(std::move(value.message_)); },
+            [this](td::td_api::updateMessageSendSucceeded &value) { handleMessageSendSucceeded(std::move(value.message_), value.old_message_id_); },
+            [this](td::td_api::updateMessageSendFailed &value) {
+                handleMessageSendFailed(std::move(value.message_), value.old_message_id_, std::move(value.error_));
+            },
+            [this](td::td_api::updateMessageContent &value) { handleMessageContent(value.chat_id_, value.message_id_, std::move(value.new_content_)); },
+            [this](td::td_api::updateMessageEdited &value) {
+                handleMessageEdited(value.chat_id_, value.message_id_, value.edit_date_, std::move(value.reply_markup_));
+            },
+            [this](td::td_api::updateMessageIsPinned &value) { handleMessageIsPinned(value.chat_id_, value.message_id_, value.is_pinned_); },
+            [this](td::td_api::updateMessageInteractionInfo &value) {
+                handleMessageInteractionInfo(value.chat_id_, value.message_id_, std::move(value.interaction_info_));
+            },
+            [this](td::td_api::updateDeleteMessages &value) {
+                handleDeleteMessages(value.chat_id_, std::move(value.message_ids_), value.is_permanent_, value.from_cache_);
+            },
+            [this](td::td_api::updateChatOnlineMemberCount &value) { handleChatOnlineMemberCount(value.chat_id_, value.online_member_count_); },
+            [this](td::td_api::updateChatReadInbox &value) { handleChatReadInbox(value.chat_id_, value.last_read_inbox_message_id_, value.unread_count_); },
+            [this](td::td_api::updateChatReadOutbox &value) { handleChatReadOutbox(value.chat_id_, value.last_read_outbox_message_id_); }, [](auto &) {}});
 }
 
-void MessageModel::handleNewMessage(const QVariantMap &message)
+void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message)
 {
-    if (m_selectedChat->id() != message.value("chat_id").toLongLong())
+    if (!m_selectedChat)
         return;
 
-    if (auto lastMessage = m_selectedChat->lastMessage(); m_messageIds.contains(lastMessage->id()))
+    if (m_selectedChat->id_ != message->chat_id_)
+        return;
+
+    if (auto &lastMessage = m_selectedChat->last_message_; !m_messageIds.contains(lastMessage->id_))
     {
         beginInsertRows(QModelIndex(), rowCount(), rowCount());
 
-        auto newMessage = std::make_unique<Message>();
-        newMessage->setFromVariantMap(message);
-
-        auto id = newMessage->id();
+        auto id = message->id_;
         m_messageIds.insert(id);
 
-        m_messages.push_back(std::move(newMessage));
+        m_messages.emplace_back(std::move(message));
 
         endInsertRows();
 
-        viewMessages(QVariantList() << id);
+        viewMessages({id});
 
         emit countChanged();
     }
 }
 
-void MessageModel::handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId)
+void MessageModel::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId)
 {
+    qDebug() << QString::fromStdString(td::td_api::to_string(message));
 }
 
-void MessageModel::handleMessageSendFailed(const QVariantMap &message, qint64 oldMessageId, int errorCode, const QString &errorMessage)
+void MessageModel::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId,
+                                           td::td_api::object_ptr<td::td_api::error> &&error)
 {
+    qDebug() << QString::fromStdString(td::td_api::to_string(message));
 }
 
-void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, const QVariantMap &newContent)
+void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
 {
-    if (chatId != m_selectedChat->id())
+    qDebug() << QString::fromStdString(td::td_api::to_string(newContent));
+
+    if (!m_selectedChat)
         return;
 
-    auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; });
+    if (chatId != m_selectedChat->id_)
+        return;
+
+    auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id_ == messageId; });
 
     if (it != m_messages.end())
     {
-        (*it)->setContent(newContent);
+        (*it)->content_ = std::move(newContent);
 
         auto index = std::distance(m_messages.begin(), it);
         itemChanged(index);
     }
 }
 
-void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, const QVariantMap &replyMarkup)
+void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
 {
-    if (chatId != m_selectedChat->id())
+    qDebug() << QString::fromStdString(td::td_api::to_string(replyMarkup));
+
+    if (!m_selectedChat)
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
+    if (chatId != m_selectedChat->id_)
+        return;
+
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id_ == messageId; }); it != m_messages.end())
     {
-        (*it)->setEditDate(editDate);
-        (*it)->setReplyMarkup(replyMarkup);
+        (*it)->edit_date_ = editDate;
+        (*it)->reply_markup_ = std::move(replyMarkup);
 
         auto index = std::distance(m_messages.begin(), it);
         itemChanged(index);
@@ -702,41 +715,51 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
 
 void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
 {
-    if (chatId != m_selectedChat->id())
+    if (!m_selectedChat)
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
+    if (chatId != m_selectedChat->id_)
+        return;
+
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id_ == messageId; }); it != m_messages.end())
     {
-        (*it)->setIsPinned(isPinned);
+        (*it)->is_pinned_ = isPinned;
 
         auto index = std::distance(m_messages.begin(), it);
         itemChanged(index);
     }
 }
 
-void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, const QVariantMap &interactionInfo)
+void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
 {
-    if (chatId != m_selectedChat->id())
+    qDebug() << QString::fromStdString(td::td_api::to_string(interactionInfo));
+
+    if (!m_selectedChat)
         return;
 
-    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
+    if (chatId != m_selectedChat->id_)
+        return;
+
+    if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id_ == messageId; }); it != m_messages.end())
     {
-        (*it)->setInteractionInfo(interactionInfo);
+        (*it)->interaction_info_ = std::move(interactionInfo);
 
         auto index = std::distance(m_messages.begin(), it);
         itemChanged(index);
     }
 }
 
-void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messageIds, bool isPermanent, bool fromCache)
+void MessageModel::handleDeleteMessages(qint64 chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache)
 {
-    if (chatId != m_selectedChat->id())
+    if (!m_selectedChat)
         return;
 
-    for (const auto &value : messageIds)
+    if (chatId != m_selectedChat->id_)
+        return;
+
+    for (auto id : messageIds)
     {
-        auto messageId = value.toLongLong();
-        if (auto it = std::ranges::find_if(m_messages, [messageId](const auto &message) { return message->id() == messageId; }); it != m_messages.end())
+        if (auto it = std::ranges::find_if(m_messages, [id](const auto &message) { return message->id_ == id; }); it != m_messages.end())
         {
             auto index = std::distance(m_messages.begin(), it);
 
@@ -749,7 +772,10 @@ void MessageModel::handleDeleteMessages(qint64 chatId, const QVariantList &messa
 
 void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount)
 {
-    if (chatId == m_selectedChat->id())
+    if (!m_selectedChat)
+        return;
+
+    if (chatId == m_selectedChat->id_)
     {
         m_onlineCount = onlineMemberCount;
 
@@ -759,10 +785,13 @@ void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCo
 
 void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
 {
-    if (chatId == m_selectedChat->id())
+    if (!m_selectedChat)
+        return;
+
+    if (chatId == m_selectedChat->id_)
     {
-        m_selectedChat->setLastReadInboxMessageId(lastReadInboxMessageId);
-        m_selectedChat->setUnreadCount(unreadCount);
+        // m_selectedChat->last_read_inbox_message_id_ = lastReadInboxMessageId;
+        // m_selectedChat->unread_count_ = unreadCount;
 
         emit selectedChatChanged();
     }
@@ -770,43 +799,33 @@ void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessag
 
 void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId)
 {
-    if (chatId != m_selectedChat->id())
+    if (!m_selectedChat)
+        return;
+
+    if (chatId != m_selectedChat->id_)
     {
-        m_selectedChat->setLastReadOutboxMessageId(lastReadOutboxMessageId);
+        // m_selectedChat->last_read_outbox_message_id_ = lastReadOutboxMessageId;
 
         emit selectedChatChanged();
     }
 }
 
-void MessageModel::handleMessages(const QVariantMap &messages)
+void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messages)
 {
-    auto list = messages.value("messages").toList();
-
-    std::vector<std::unique_ptr<Message>> result;
-
-    result.reserve(list.size());
-
-    for (const auto &value : list)
-    {
-        auto message = std::make_unique<Message>();
-        message->setFromVariantMap(value.toMap());
-        result.push_back(std::move(message));
-    }
-
-    if (result.empty())
+    if (!messages)
     {
         finalizeLoading();
     }
     else
     {
-        std::ranges::sort(result, std::ranges::less{}, &Message::id);
-        insertMessages(std::move(result));
+        std::ranges::sort(messages->messages_, std::ranges::less{}, &td::td_api::message::id_);
+        insertMessages(std::move(messages->messages_));
     }
 
     emit countChanged();
 }
 
-void MessageModel::insertMessages(std::vector<std::unique_ptr<Message>> messages) noexcept
+void MessageModel::insertMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept
 {
     processMessages(messages);
 
@@ -815,13 +834,16 @@ void MessageModel::insertMessages(std::vector<std::unique_ptr<Message>> messages
         m_loadingHistory = false;
         auto count = static_cast<int>(messages.size());
 
-        beginInsertRows(QModelIndex(), 0, count - 1);
+        if (count > 0)
+        {
+            beginInsertRows(QModelIndex(), 0, count - 1);
 
-        // Insert messages
-        m_messages.insert(m_messages.begin(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
+            // Insert messages
+            m_messages.insert(m_messages.begin(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
 
-        endInsertRows();
-        emit moreHistoriesLoaded(count);
+            endInsertRows();
+            emit moreHistoriesLoaded(count);
+        }
     }
     else if (m_loading)
     {
@@ -841,47 +863,71 @@ void MessageModel::finalizeLoading() noexcept
     emit loadingChanged();
 }
 
-void MessageModel::processMessages(const std::vector<std::unique_ptr<Message>> &messages) noexcept
+void MessageModel::processMessages(const std::vector<td::td_api::object_ptr<td::td_api::message>> &messages) noexcept
 {
     for (const auto &message : messages)
     {
-        m_messageIds.emplace(message->id());
+        m_messageIds.emplace(message->id_);
     }
 }
 
-void MessageModel::handleNewMessages(std::vector<std::unique_ptr<Message>> messages) noexcept
+void MessageModel::handleNewMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept
 {
+    // Check if the selected chat is valid
+    if (!m_selectedChat)
+        return;
+
     m_loading = false;
 
-    auto rowCountBefore = rowCount();
-    auto count = static_cast<int>(messages.size());
-
-    beginInsertRows(QModelIndex(), rowCountBefore, rowCountBefore + count - 1);
-    m_messages.insert(m_messages.end(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
-    endInsertRows();
-
-    if (m_selectedChat && m_selectedChat->unreadCount() > 0)
+    // Handle unread messages first
+    if (m_selectedChat->unread_count_ > 0 && !messages.empty())
     {
-        QVariantList messageIds;
+        std::vector<int64_t> messageIds;
+        messageIds.reserve(messages.size());  // Reserve space to avoid reallocations
+
         for (const auto &message : messages)
         {
-            auto id = message->id();
-            if (!message->isOutgoing() && id > m_selectedChat->lastReadInboxMessageId())
+            if (message)  // Ensure the message is valid
             {
-                messageIds.append(id);
+                auto id = message->id_;
+                if (!message->is_outgoing_ && id > m_selectedChat->last_read_inbox_message_id_)
+                {
+                    messageIds.emplace_back(id);
+                }
             }
         }
 
-        if (!messageIds.isEmpty())
-            viewMessages(messageIds);
+        if (!messageIds.empty())
+        {
+            viewMessages(std::move(messageIds));  // Move the message IDs to viewMessages
+        }
     }
+
+    // Insert messages into the model
+    auto rowCountBefore = rowCount();
+    auto count = static_cast<int>(messages.size());
+
+    if (count > 0)
+    {
+        beginInsertRows(QModelIndex(), rowCountBefore, rowCountBefore + count - 1);
+
+        // Move messages into m_messages
+        m_messages.insert(m_messages.end(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
+
+        endInsertRows();
+    }
+
+    emit loadingChanged();  // Emit signal to notify that loading state has changed
 }
 
 void MessageModel::loadMessages() noexcept
 {
-    const auto unread = m_selectedChat->unreadCount() > 0;
+    if (!m_selectedChat)
+        return;
 
-    const auto fromMessageId = unread ? m_selectedChat->lastReadInboxMessageId() : m_selectedChat->lastMessage()->id();
+    const auto unread = m_selectedChat->unread_count_ > 0;
+
+    const auto fromMessageId = unread ? m_selectedChat->last_read_inbox_message_id_ : m_selectedChat->last_message_->id_;
 
     const auto offset = unread ? -1 - MessageSliceLimit : 0;
     const auto limit = unread ? 2 * MessageSliceLimit : MessageSliceLimit;

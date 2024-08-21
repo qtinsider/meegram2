@@ -1,17 +1,15 @@
 #include "Client.hpp"
 
-#include "Serialize.hpp"
-
-#include <td/telegram/td_json_client.h>
-
 #include <mutex>
 
 Client::Client(QObject *parent)
     : QObject(parent)
-    , m_clientId(td_create_client_id())  // Ensure client ID is initialized properly
+    , m_clientManager(std::make_unique<td::ClientManager>())
 {
     // disable TDLib logging
-    td_execute(R"({"@type":"setLogVerbosityLevel", "new_verbosity_level":0})");
+    td::ClientManager::execute(td::td_api::make_object<td::td_api::setLogVerbosityLevel>(1));
+
+    m_clientId = m_clientManager->create_client_id();
 
     initialize();
 }
@@ -21,23 +19,16 @@ int Client::clientId() const noexcept
     return m_clientId;
 }
 
-void Client::send(const QVariantMap &request, std::function<void(const QVariantMap &)> callback)
+void Client::send(td::td_api::object_ptr<td::td_api::Function> request, std::function<void(td::td_api::object_ptr<td::td_api::Object>)> callback)
 {
     auto id = m_requestId.fetch_add(1, std::memory_order_relaxed);
-    nlohmann::json json = nlohmann::json(request);
-    json["@extra"] = id;
+    if (callback)
     {
         std::unique_lock lock(m_handlerMutex);
-        m_handlers[id] = std::move(callback);  // Use move to avoid unnecessary copy
+
+        m_handlers.emplace(id, std::move(callback));
     }
-
-    td_send(m_clientId, json.dump().c_str());
-}
-
-QVariantMap Client::execute(const QVariantMap &request)
-{
-    auto result = td_execute(nlohmann::json(request).dump().c_str());
-    return nlohmann::json::parse(result).get<QVariantMap>();  // Ensure correct JSON to QVariantMap conversion
+    m_clientManager->send(m_clientId, id, std::move(request));
 }
 
 void Client::initialize()
@@ -46,31 +37,36 @@ void Client::initialize()
     m_worker = std::jthread([this](std::stop_token token) {
         while (!token.stop_requested())
         {
-            if (const char *value = td_receive(30.0))
+            auto response = m_clientManager->receive(30.0);
+            if (!response.object)
             {
-                nlohmann::json json = nlohmann::json::parse(value);
-                if (json.contains("@extra"))
+                continue;
+            }
+
+            if (response.request_id != 0)
+            {
+                std::function<void(td::td_api::object_ptr<td::td_api::Object>)> handler;
                 {
-                    auto id = json["@extra"].get<std::uint64_t>();
-                    std::function<void(const QVariantMap &)> handler;
+                    std::shared_lock lock(m_handlerMutex);
+                    auto it = m_handlers.find(response.request_id);
+                    if (it != m_handlers.end())
                     {
-                        std::shared_lock lock(m_handlerMutex);
-                        if (auto it = m_handlers.find(id); it != m_handlers.end())
-                        {
-                            handler = std::move(it->second);  // Use move to avoid unnecessary copy
-                        }
-                    }
-                    if (handler)
-                    {
-                        handler(json.get<QVariantMap>());
-                        {
-                            std::unique_lock lock(m_handlerMutex);
-                            m_handlers.erase(id);
-                        }
+                        handler = std::move(it->second);
                     }
                 }
-                else
-                    emit result(json.get<QVariantMap>());
+
+                if (handler)
+                {
+                    handler(std::move(response.object));
+                    {
+                        std::unique_lock lock(m_handlerMutex);
+                        m_handlers.erase(response.request_id);
+                    }
+                }
+            }
+            else
+            {
+                emit result(response.object.release());
             }
         }
     });

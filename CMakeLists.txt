@@ -24,13 +24,13 @@ set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING 
 set(src_files
     src/Application.cpp
     src/Authorization.cpp
-    src/BasicGroup.cpp
-    src/BasicGroupFullInfo.cpp
+    # src/BasicGroup.cpp
+    # src/BasicGroupFullInfo.cpp
     src/Chat.cpp
     src/ChatModel.cpp
     src/Client.cpp
     src/DBusAdaptor.cpp
-    src/File.cpp
+    # src/File.cpp
     src/ImageProviders.cpp
     src/Localization.cpp
     src/LottieAnimation.cpp
@@ -42,25 +42,25 @@ set(src_files
     src/Settings.cpp
     src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
-    src/SupergroupFullInfo.cpp
-    src/Supergroup.cpp
+    # src/SupergroupFullInfo.cpp
+    # src/Supergroup.cpp
     src/TextFormatter.cpp
-    src/User.cpp
-    src/UserFullInfo.cpp
+    # src/User.cpp
+    # src/UserFullInfo.cpp
     src/Utils.cpp
 )
 
 set(header_files
     src/Application.hpp
     src/Authorization.hpp
-    src/BasicGroup.hpp
-    src/BasicGroupFullInfo.hpp
+    # src/BasicGroup.hpp
+    # src/BasicGroupFullInfo.hpp
     src/Chat.hpp
     src/ChatModel.hpp
     src/Client.hpp
     src/Common.hpp
     src/DBusAdaptor.hpp
-    src/File.hpp
+    # src/File.hpp
     src/ImageProviders.hpp
     src/Localization.hpp
     src/LottieAnimation.hpp
@@ -68,16 +68,16 @@ set(header_files
     src/MessageModel.hpp
     src/NotificationManager.hpp
     src/SelectionModel.hpp
-    src/Serialize.hpp
+    # src/Serialize.hpp
     src/Settings.hpp
     src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
-    src/Supergroup.hpp
-    src/SupergroupFullInfo.hpp
+    # src/Supergroup.hpp
+    # src/SupergroupFullInfo.hpp
     src/TdApi.hpp
     src/TextFormatter.hpp
-    src/User.hpp
-    src/UserFullInfo.hpp
+    # src/User.hpp
+    # src/UserFullInfo.hpp
     src/Utils.hpp
 )
 
@@ -90,7 +90,7 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
 target_link_libraries(meegram PRIVATE
-    Td::TdJson
+    Td::TdStatic
     rlottie::rlottie
     Qt4::QtCore
     Qt4::QtDBus
@@ -110,7 +110,7 @@ if (BUILD_HARMATTAN)
 
     target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES})
 
-   if(NOT EXISTS "${CMAKE_BINARY_DIR}/debian")
+    if(NOT EXISTS "${CMAKE_BINARY_DIR}/debian")
         file(COPY ${CMAKE_SOURCE_DIR}/debian DESTINATION ${CMAKE_BINARY_DIR})
     endif()
 

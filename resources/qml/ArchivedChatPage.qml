@@ -7,8 +7,6 @@ import "components"
 Page {
     id: root
 
-    property alias storage: myChatModel.store
-
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {

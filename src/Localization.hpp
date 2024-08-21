@@ -2,8 +2,9 @@
 
 #include "Common.hpp"
 
-#include <QObject>
-#include <QVariant>
+#include <td/telegram/td_api.h>
+
+#include <QString>
 
 #include <memory>
 #include <unordered_map>
@@ -37,7 +38,7 @@ public:
     QString formatTtl(int ttl) const;
 
     void setLanguagePlural(const QString &value);
-    void setLanguagePackStrings(const QVariantMap &languagePackStrings);
+    void setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> value);
 
 private:
     QString stringForQuantity(PluralRules::Quantity quantity) const;

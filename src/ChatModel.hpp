@@ -15,8 +15,6 @@ class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QObject *store READ storageManager WRITE setStorageManager)
-
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
@@ -39,9 +37,6 @@ public:
         UnreadCountRole,
         IsMutedRole,
     };
-
-    QObject *storageManager() const;
-    void setStorageManager(QObject *storageManager);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
@@ -84,8 +79,6 @@ private slots:
     void handleChatItem(qint64 chatId);
     void handleChatPosition(qint64 chatId);
 
-    void handleChatPhoto(const QVariantMap &file);
-
 private:
     void clear();
 
@@ -97,13 +90,10 @@ private:
 
     int m_count{};
 
-    int m_chatFolderId{};
-    TdApi::ChatList m_chatList{TdApi::ChatListMain};
+    ChatList m_chatList;
 
     QTimer *m_sortTimer;
     QTimer *m_loadingTimer;
-
-    QVariantMap m_list;
 
     std::vector<int64_t> m_chatIds;
 };

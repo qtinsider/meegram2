@@ -1,56 +1,78 @@
 #pragma once
 
+#include "TdApi.hpp"
+
+#include <td/telegram/td_api.h>
+
 #include <QImage>
 #include <QObject>
 #include <QVariant>
 
-class Message;
-class Chat;
-class User;
-
 class Locale;
 class StorageManager;
 
-namespace Utils {
-QVariantMap getChatPosition(qint64 chatId, const QVariantMap &chatList,
-                            StorageManager *store);
-bool isChatPinned(qint64 chatId, const QVariantMap &chatList,
-                  StorageManager *store);
-qint64 getChatOrder(qint64 chatId, const QVariantMap &chatList,
-                    StorageManager *store);
-bool chatListEquals(const QVariantMap &list1, const QVariantMap &list2);
+struct ChatListComparator
+{
+    bool operator()(const auto &a, const auto &b) const
+    {
+        if (!a || !b)
+        {
+            return false;
+        }
 
-QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale,
-                     bool showSavedMessages = false);
-bool isChatMuted(qint64 chatId, StorageManager *store);
-int getChatMuteFor(qint64 chatId, StorageManager *store);
+        if (a->get_id() != b->get_id())
+        {
+            return false;
+        }
 
-bool isMeChat(const Chat *chat, StorageManager *store) noexcept;
+        if (a->get_id() == td::td_api::chatListFolder::ID)
+        {
+            const auto *folderA = static_cast<const td::td_api::chatListFolder *>(a.get());
+            const auto *folderB = static_cast<const td::td_api::chatListFolder *>(b.get());
+            if (folderA && folderB)
+            {
+                return folderA->chat_folder_id_ == folderB->chat_folder_id_;
+            }
+        }
 
-QString getServiceMessageContent(const Message *message, StorageManager *store,
-                                 Locale *locale, bool openUser = false);
-bool isServiceMessage(const Message *message);
+        return true;
+    }
+};
 
-QString getUserShortName(qint64 userId, StorageManager *store,
-                         Locale *locale) noexcept;
+class Utils
+{
+public:
+    static td::td_api::object_ptr<td::td_api::ChatList> toChatList(const ChatList &list);
 
-QString getContent(const Message *message, StorageManager *store,
-                   Locale *locale) noexcept;
-QString getTitle(const Message *message, StorageManager *store,
-                 Locale *locale) noexcept;
-QString getMessageDate(const Message *message, Locale *locale) noexcept;
-QString getMessageSenderName(const Message *message, StorageManager *store,
-                             Locale *locale) noexcept;
+    static td::td_api::object_ptr<td::td_api::chatPosition> getChatPosition(const td::td_api::chat *chat, const ChatList &chatList);
 
-bool isChatUnread(qint64 chatId, StorageManager *store) noexcept;
-bool isMessageUnread(qint64 chatId, const QVariantMap &message,
-                     StorageManager *store) noexcept;
+    static bool isChatPinned(const td::td_api::chat *chat, const ChatList &chatList);
+    static qint64 getChatOrder(const td::td_api::chat *chat, const ChatList &chatList);
 
-QString getFileSize(const QVariantMap &file) noexcept;
+    static QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages = false);
+    static bool isChatMuted(qint64 chatId, StorageManager *store);
+    static int getChatMuteFor(qint64 chatId, StorageManager *store);
 
-void copyToClipboard(const QVariantMap &content) noexcept;
-QImage getThumb(const QVariantMap &thumbnail) noexcept;
-QString getViews(int views) noexcept;
+    static bool isMeChat(const td::td_api::chat *chat, StorageManager *store) noexcept;
 
-QString formatTime(int totalSeconds) noexcept;
-} // namespace Utils
+    static QString getServiceMessageContent(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser = false);
+    static bool isServiceMessage(const td::td_api::message &message);
+
+    static QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept;
+
+    static QString getContent(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
+    static QString getTitle(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
+    static QString getMessageDate(const td::td_api::message &message, Locale *locale) noexcept;
+    static QString getMessageSenderName(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
+
+    static bool isChatUnread(qint64 chatId, StorageManager *store) noexcept;
+    static bool isMessageUnread(const td::td_api::message &message, StorageManager *store) noexcept;
+
+    static QString getFileSize(const QVariantMap &file) noexcept;
+
+    static void copyToClipboard(const QVariantMap &content) noexcept;
+    static QImage getThumb(const QVariantMap &thumbnail) noexcept;
+    static QString getViews(int views) noexcept;
+
+    static QString formatTime(int totalSeconds) noexcept;
+};

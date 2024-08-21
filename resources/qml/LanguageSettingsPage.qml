@@ -22,9 +22,8 @@ Page {
             top: header.bottom
         }
 
-        model: FlexibleListModel {
+        model: LanguagePackInfoModel {
             id: languagePackModel
-            values: storageManager.languagePackInfo
         }
 
         delegate: ListItem {
@@ -53,7 +52,7 @@ Page {
                     font.family: "Nokia Pure Light"
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
-                    text: model.native_name
+                    text: model.nativeName
                 }
             }
 
@@ -71,7 +70,7 @@ Page {
 
             onClicked: {
                 settings.languagePackId = model.id
-                settings.languagePluralId = model.plural_code
+                settings.languagePluralId = model.pluralCode
 
                 appWindow.pageStack.pop()
             }

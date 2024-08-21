@@ -105,7 +105,6 @@ Page {
 
     CountryModel {
         id: countryModel
-        countries: storageManager.countries
     }
 
     SelectionDialog {

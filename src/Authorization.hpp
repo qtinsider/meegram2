@@ -1,5 +1,7 @@
 #pragma once
 
+#include <td/telegram/td_api.h>
+
 #include <QObject>
 #include <QVariant>
 
@@ -8,15 +10,12 @@ class Client;
 class Authorization : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QObject *client READ client WRITE setClient)
     Q_PROPERTY(bool loading READ loading WRITE setLoading NOTIFY loadingChanged)
 public:
     explicit Authorization(QObject *parent = nullptr);
 
-    QObject *client() const noexcept;
-    void setClient(QObject *client) noexcept;
-
     bool loading() const;
+    void setLoading(bool value);
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
@@ -33,7 +32,7 @@ signals:
     void ready();
     void loggingOut();
 
-    void error(const QString &errorString);
+    void error(const QString &message);
 
     void loadingChanged();
 
@@ -41,16 +40,14 @@ public slots:
     QString formatTime(int totalSeconds) const noexcept;
 
 private slots:
-    void handleResult(const QVariantMap &object);
+    void handleResult(td::td_api::Object *object);
 
 private:
-    void setLoading(bool value);
-
-    void handleAuthorizationStateWaitPhoneNumber(const QVariantMap &authorizationState);
-    void handleAuthorizationStateWaitCode(const QVariantMap &authorizationState);
-    void handleAuthorizationStateWaitPassword(const QVariantMap &authorizationState);
-    void handleAuthorizationStateWaitRegistration(const QVariantMap &authorizationState);
-    void handleAuthorizationStateReady(const QVariantMap &authorizationState);
+    void handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *authorizationState);
+    void handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *authorizationState);
+    void handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *authorizationState);
+    void handleAuthorizationStateWaitRegistration(const td::td_api::authorizationStateWaitRegistration *authorizationState);
+    void handleAuthorizationStateReady(const td::td_api::authorizationStateReady *authorizationState);
 
     Client *m_client{};
 

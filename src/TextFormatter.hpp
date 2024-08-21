@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.hpp"
+#include <td/telegram/td_api.h>
 
 #include <QObject>
 #include <QTextCursor>
@@ -20,7 +20,6 @@ class TextFormatter : public QObject
 
 public:
     explicit TextFormatter(QObject *parent = nullptr);
-    ~TextFormatter() override;
 
     QString text() const;
 
@@ -44,5 +43,5 @@ private:
     std::unique_ptr<QTextDocument> m_document;
     std::unique_ptr<QTextCursor> m_cursor;
 
-    static const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> s_formatters;
+    static const std::unordered_map<int, std::function<void(QTextCharFormat &, const QString &, const td::td_api::TextEntityType &)>> s_formatters;
 };

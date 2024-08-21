@@ -3,15 +3,15 @@
 #include <QTextCharFormat>
 
 // clang-format off
-const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QString &, const QVariantMap &)>> TextFormatter::s_formatters = {
-    {"textEntityTypeBold", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontWeight(QFont::Bold); }},
-    {"textEntityTypeItalic", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontItalic(true); }},
-    {"textEntityTypeUnderline", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontUnderline(true); }},
-    {"textEntityTypeStrikethrough", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontStrikeOut(true); }},
-    {"textEntityTypeCode", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFamily("Courier"); }},
-    {"textEntityTypePre", [](QTextCharFormat &format, const QString &, const QVariantMap &) { format.setFontFamily("Courier"); }},
-    {"textEntityTypeTextUrl", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &type) {
-         QString url = type.value("url").toString();
+const std::unordered_map<int, std::function<void(QTextCharFormat &, const QString &, const td::td_api::TextEntityType &)>> TextFormatter::s_formatters = {
+    {td::td_api::textEntityTypeBold::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontWeight(QFont::Bold); }},
+    {td::td_api::textEntityTypeItalic::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontItalic(true); }},
+    {td::td_api::textEntityTypeUnderline::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontUnderline(true); }},
+    {td::td_api::textEntityTypeStrikethrough::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontStrikeOut(true); }},
+    {td::td_api::textEntityTypeCode::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontFamily("Courier"); }},
+    {td::td_api::textEntityTypePre::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &) { format.setFontFamily("Courier"); }},
+    {td::td_api::textEntityTypeTextUrl::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &type) {
+         QString url = QString::fromStdString( static_cast<const td::td_api::textEntityTypeTextUrl &>(type).url_);
          if (url.isEmpty())
          {
              url = entityText;
@@ -20,36 +20,36 @@ const std::unordered_map<QString, std::function<void(QTextCharFormat &, const QS
          format.setAnchorHref(url);
          format.setFontUnderline(true);
      }},
-    {"textEntityTypeUrl", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeUrl::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref(entityText);
          format.setFontUnderline(true);
      }},
-    {"textEntityTypeEmailAddress", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeEmailAddress::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("mailto:" + entityText);
      }},
-    {"textEntityTypePhoneNumber", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypePhoneNumber::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("tel:" + entityText);
      }},
-    {"textEntityTypeMention", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeMention::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("mention:" + entityText);
      }},
-    {"textEntityTypeMentionName", [](QTextCharFormat &format, const QString &, const QVariantMap &entity) {
+    {td::td_api::textEntityTypeMentionName::ID, [](QTextCharFormat &format, const QString &, const td::td_api::TextEntityType &entity) {
          format.setAnchor(true);
-         format.setAnchorHref("mention_name:" + QString::number(entity.value("user_id").toInt()));
+         format.setAnchorHref("mention_name:" + QString::number(static_cast<const td::td_api::textEntityTypeMentionName &>(entity).user_id_));
      }},
-    {"textEntityTypeHashtag", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeHashtag::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("hashtag:" + entityText);
      }},
-    {"textEntityTypeCashtag", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeCashtag::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("cashtag:" + entityText);
      }},
-    {"textEntityTypeBotCommand", [](QTextCharFormat &format, const QString &entityText, const QVariantMap &) {
+    {td::td_api::textEntityTypeBotCommand::ID, [](QTextCharFormat &format, const QString &entityText, const td::td_api::TextEntityType &) {
          format.setAnchor(true);
          format.setAnchorHref("botCommand:" + entityText);
      }}};
@@ -63,8 +63,6 @@ TextFormatter::TextFormatter(QObject *parent)
 {
     connect(this, SIGNAL(formattedTextChanged()), this, SLOT(applyFormatting()));
 }
-
-TextFormatter::~TextFormatter() = default;
 
 QString TextFormatter::text() const
 {
@@ -101,21 +99,17 @@ void TextFormatter::setFormattedText(const QVariant &value)
 
 void TextFormatter::applyFormatting()
 {
-    if (m_formattedText.canConvert<QString>())
+    // Safely retrieve and cast the pointer from QVariant
+    auto formattedText = static_cast<td::td_api::formattedText *>(m_formattedText.value<void *>());
+
+    if (!formattedText || formattedText->text_.empty())
     {
-        m_document->setPlainText(m_formattedText.toString());
-        emit textChanged();
+        // Handle the case where formattedText is null or text_ is empty
         return;
     }
 
-    const auto formattedText = m_formattedText.toMap();
-    if (formattedText.value("@type").toString() != "formattedText" || formattedText.value("text").toString().isEmpty())
-    {
-        return;
-    }
-
-    const auto text = formattedText.value("text").toString();
-    const auto entities = formattedText.value("entities").toList();
+    const auto &text = QString::fromStdString(formattedText->text_);
+    const auto &entities = formattedText->entities_;
 
     bool removeLineBreakAfterCodeBlock = false;
     int currentIndex = 0;
@@ -132,13 +126,11 @@ void TextFormatter::applyFormatting()
         }
     };
 
-    for (const auto &entityRef : entities)
+    for (const auto &entity : entities)
     {
-        const auto entity = entityRef.toMap();
-        const auto offset = entity.value("offset").toInt();
-        const auto length = entity.value("length").toInt();
-        const auto type = entity.value("type").toMap();
-        const auto entityType = type.value("@type").toString();
+        const auto offset = entity->offset_;
+        const auto length = entity->length_;
+        const auto entityType = entity->type_->get_id();
 
         if (currentIndex > offset)
         {
@@ -152,8 +144,8 @@ void TextFormatter::applyFormatting()
 
         if (auto it = s_formatters.find(entityType); it != s_formatters.end())
         {
-            it->second(format, entityText, entity);
-            if (entityType == "textEntityTypePre")
+            it->second(format, entityText, *entity->type_);
+            if (entityType == td::td_api::textEntityTypePre::ID)
             {
                 removeLineBreakAfterCodeBlock = true;
             }

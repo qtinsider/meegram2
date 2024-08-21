@@ -48,7 +48,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<ChatModel>("MyComponent", 1, 0, "ChatModel");
     qmlRegisterType<ChatFolderModel>("MyComponent", 1, 0, "ChatFolderModel");
     qmlRegisterType<CountryModel>("MyComponent", 1, 0, "CountryModel");
-    qmlRegisterType<FlexibleListModel>("MyComponent", 1, 0, "FlexibleListModel");
+    qmlRegisterType<LanguagePackInfoModel>("MyComponent", 1, 0, "LanguagePackInfoModel");
     qmlRegisterType<MessageModel>("MyComponent", 1, 0, "MessageModel");
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
@@ -59,17 +59,11 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     QDeclarativeView viewer;
     new DBusAdaptor(&app, &viewer);
 
-    Client client;
-    Locale locale;
-    Settings settings;
-    StorageManager storageManager(&client, &locale);
-
-    Application application(&settings, &storageManager);
+    Application application;
 
     viewer.rootContext()->setContextProperty("app", &application);
-    viewer.rootContext()->setContextProperty("tdclient", &client);
-    viewer.rootContext()->setContextProperty("settings", &settings);
-    viewer.rootContext()->setContextProperty("storageManager", &storageManager);
+    viewer.rootContext()->setContextProperty("client", StorageManager::instance().client());
+    viewer.rootContext()->setContextProperty("settings", StorageManager::instance().settings());
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);

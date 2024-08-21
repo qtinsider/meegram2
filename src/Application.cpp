@@ -1,31 +1,27 @@
 #include "Application.hpp"
-#include "Client.hpp"
+
 #include "Common.hpp"
-#include "Localization.hpp"
-#include "Serialize.hpp"
-#include "Settings.hpp"
 #include "StorageManager.hpp"
-#include "User.hpp"
 
 #include <QApplication>
-#include <QDebug>
 #include <QDir>
 #include <QLocale>
 #include <QStringList>
 
 #include <algorithm>
 
-Application::Application(Settings *settings, StorageManager *storageManager, QObject *parent)
+Application::Application(QObject *parent)
     : QObject(parent)
-    , m_settings(settings)
-    , m_storageManager(storageManager)
 {
+    m_storageManager = &StorageManager::instance();
+
     m_client = m_storageManager->client();
     m_locale = m_storageManager->locale();
+    m_settings = m_storageManager->settings();
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
 
-    connect(m_client, SIGNAL(result(const QVariantMap &)), this, SLOT(handleResult(const QVariantMap &)));
+    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(initializeLanguagePack()));
@@ -53,50 +49,35 @@ QString Application::getString(const QString &key) const noexcept
 
 void Application::close() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "close");
-
-    m_client->send(request);
+    m_client->send(td::td_api::make_object<td::td_api::close>(), {});
 }
 
 void Application::setOption(const QString &name, const QVariant &value)
 {
-    QVariantMap optionValue;
+    td::td_api::object_ptr<td::td_api::OptionValue> optionValue;
 
     switch (value.type())
     {
         case QVariant::Bool:
-            optionValue.insert("@type", "optionValueBoolean");
-            optionValue.insert("value", value.toBool());
+            optionValue = td::td_api::make_object<td::td_api::optionValueBoolean>(value.toBool());
             break;
         case QVariant::Int:
         case QVariant::LongLong:
-            optionValue.insert("@type", "optionValueInteger");
-            optionValue.insert("value", value.toInt());
+            optionValue = td::td_api::make_object<td::td_api::optionValueInteger>(value.toLongLong());
             break;
         case QVariant::String:
-            optionValue.insert("@type", "optionValueString");
-            optionValue.insert("value", value.toString());
+            optionValue = td::td_api::make_object<td::td_api::optionValueString>(value.toString().toStdString());
             break;
         default:
-            optionValue.insert("@type", "optionValueEmpty");
-            optionValue.insert("value", QVariant());
+            optionValue = td::td_api::make_object<td::td_api::optionValueEmpty>();
     }
 
-    QVariantMap request;
-    request.insert("@type", "setOption");
-    request.insert("name", name);
-    request.insert("value", optionValue);
-
-    m_client->send(request);
+    m_client->send(td::td_api::make_object<td::td_api::setOption>(name.toStdString(), std::move(optionValue)), {});
 }
 
 void Application::initialize() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "getOption");
-    request.insert("name", "version");
-    m_client->send(request);
+    m_client->send(td::td_api::make_object<td::td_api::getOption>("version"), {});
 
     setOption("language_pack_database_path", QString(QDir::homePath() + DatabaseDirectory + "/langpack"));
     setOption("localization_target", "android");
@@ -110,22 +91,22 @@ void Application::initialize() noexcept
 
 void Application::initializeParameters() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "setTdlibParameters");
-    request.insert("database_directory", QString(QDir::homePath() + DatabaseDirectory));
-    request.insert("use_file_database", true);
-    request.insert("use_chat_info_database", true);
-    request.insert("use_message_database", true);
-    request.insert("use_secret_chats", true);
-    request.insert("api_id", ApiId);
-    request.insert("api_hash", ApiHash);
-    request.insert("system_language_code", DefaultLanguageCode);
-    request.insert("device_model", DeviceModel);
-    request.insert("system_version", SystemVersion);
-    request.insert("application_version", AppVersion);
+    auto request = td::td_api::make_object<td::td_api::setTdlibParameters>();
 
-    m_client->send(request, [this](const auto &value) {
-        if (value.value("@type").toByteArray() == "ok")
+    request->database_directory_ = QString(QDir::homePath() + DatabaseDirectory).toStdString();
+    request->use_file_database_ = true;
+    request->use_chat_info_database_ = true;
+    request->use_message_database_ = true;
+    request->use_secret_chats_ = true;
+    request->api_id_ = ApiId;
+    request->api_hash_ = ApiHash;
+    request->system_language_code_ = "en";
+    request->device_model_ = DeviceModel;
+    request->system_version_ = SystemVersion;
+    request->application_version_ = AppVersion;
+
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::ok::ID)
         {
             m_initializationStatus[0] = true;
             checkInitializationStatus();
@@ -135,16 +116,15 @@ void Application::initializeParameters() noexcept
 
 void Application::initializeLanguagePack() noexcept
 {
-    QVariantMap request;
+    auto request = td::td_api::make_object<td::td_api::getLanguagePackStrings>();
 
-    request.insert("@type", "getLanguagePackStrings");
-    request.insert("language_pack_id", m_settings->languagePackId());
+    request->language_pack_id_ = m_settings->languagePackId().toStdString();
 
-    m_client->send(request, [this](const auto &value) {
-        if (value.value("@type").toByteArray() == "languagePackStrings")
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::languagePackStrings::ID)
         {
             m_locale->setLanguagePlural(m_settings->languagePluralId());
-            m_locale->setLanguagePackStrings(value);
+            m_locale->setLanguagePackStrings(td::move_tl_object_as<td::td_api::languagePackStrings>(response));
 
             if (!m_initializationStatus[1])
             {
@@ -157,13 +137,11 @@ void Application::initializeLanguagePack() noexcept
 
 void Application::initializeCountries() noexcept
 {
-    QVariantMap request;
-    request.insert("@type", "getCountries");
-
-    m_client->send(request, [this](const auto &value) {
-        if (value.value("@type").toByteArray() == "countries")
+    m_client->send(td::td_api::make_object<td::td_api::getCountries>(), [this](auto &&response) {
+        if (response->get_id() == td::td_api::countries::ID)
         {
-            m_storageManager->setCountries(value.value("countries").toList());
+            m_storageManager->setCountries(td::move_tl_object_as<td::td_api::countries>(response));
+
             m_initializationStatus[2] = true;
             checkInitializationStatus();
         }
@@ -178,30 +156,28 @@ void Application::checkInitializationStatus() noexcept
     }
 }
 
-void Application::handleResult(const QVariantMap &object)
+void Application::handleResult(td::td_api::Object *object)
 {
-    const auto type = object.value("@type").toString();
-
-    if (type == QLatin1String("updateAuthorizationState"))
+    if (object->get_id() == td::td_api::updateAuthorizationState::ID)
     {
-        handleAuthorizationState(object.value("authorization_state").toMap());
+        handleAuthorizationState(*static_cast<const td::td_api::updateAuthorizationState *>(object)->authorization_state_);
     }
-    if (type == QLatin1String("updateConnectionState"))
+
+    if (object->get_id() == td::td_api::updateConnectionState::ID)
     {
-        handleConnectionState(object.value("state").toMap());
+        handleConnectionState(*static_cast<const td::td_api::updateConnectionState *>(object)->state_);
     }
 }
 
 void Application::initializeLanguagePackInfo()
 {
-    QVariantMap request;
-    request.insert("@type", "getLocalizationTargetInfo");
-    request.insert("only_local", true);
+    auto request = td::td_api::make_object<td::td_api::getLocalizationTargetInfo>();
+    request->only_local_ = true;
 
-    m_client->send(request, [this](const auto &value) {
-        if (value.value("@type").toByteArray() == "localizationTargetInfo")
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::localizationTargetInfo::ID)
         {
-            m_storageManager->setLanguagePackInfo(value.value("language_packs").toList());
+            m_storageManager->setLanguagePackInfo(td::move_tl_object_as<td::td_api::localizationTargetInfo>(response));
 
             m_initializationStatus[3] = true;
             checkInitializationStatus();
@@ -209,36 +185,31 @@ void Application::initializeLanguagePackInfo()
     });
 }
 
-void Application::handleAuthorizationState(const QVariantMap &authorizationState)
+void Application::handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState)
 {
-    if (const auto authorizationStateType = authorizationState.value("@type").toString(); authorizationStateType == "authorizationStateReady")
+    if (authorizationState.get_id() == td::td_api::authorizationStateReady::ID)
     {
-        QVariantMap request;
-        request.insert("@type", "loadChats");
-        request.insert("chat_list", {});
-        request.insert("limit", ChatSliceLimit);
-        m_client->send(request);
+        auto request = td::td_api::make_object<td::td_api::loadChats>();
+
+        request->limit_ = ChatSliceLimit;
+
+        m_client->send(std::move(request), {});
 
         m_isAuthorized = true;
         emit authorizedChanged();
     }
 }
 
-void Application::handleConnectionState(const QVariantMap &connectionState)
+void Application::handleConnectionState(const td::td_api::ConnectionState &connectionState)
 {
-    const auto connectionStateType = connectionState.value("@type").toString();
+    static const std::unordered_map<int, std::string> stateMap = {{td::td_api::connectionStateReady::ID, "Ready"},
+                                                                  {td::td_api::connectionStateConnecting::ID, "Connecting"},
+                                                                  {td::td_api::connectionStateUpdating::ID, "Updating"},
+                                                                  {td::td_api::connectionStateWaitingForNetwork::ID, "WaitingForNetwork"}};
 
-    static const std::unordered_map<QString, std::function<void()>> handlers = {
-        {"connectionStateReady", [this]() { m_connectionStateString = "Ready"; }},
-        {"connectionStateUpdating", [this]() { m_connectionStateString = "Updating"; }},
-        {"connectionStateConnecting", [this]() { m_connectionStateString = "Connecting"; }},
-        {"connectionStateConnectingToProxy", [this]() { m_connectionStateString = "ConnectingToProxy"; }},
-        {"connectionStateWaitingForNetwork", [this]() { m_connectionStateString = "WaitingForNetwork"; }},
-    };
-
-    if (const auto it = handlers.find(connectionStateType); it != handlers.end())
+    if (const auto it = stateMap.find(connectionState.get_id()); it != stateMap.end())
     {
-        it->second();
+        m_connectionStateString = QString::fromStdString(it->second);
         emit connectionStateChanged();
     }
 }

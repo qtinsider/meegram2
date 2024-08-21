@@ -6,8 +6,7 @@ import "components"
 Page {
     id: root
 
-    property alias chat: myMessageModel.selectedChat
-    property alias storage: myMessageModel.store
+    property alias chatId: myMessageModel.chatId
 
     property int replyMessageId: 0
     property int editMessageId: 0
@@ -132,7 +131,7 @@ Page {
                             id: loader
                             width: parent.width
                             height: childrenRect.height
-                            sourceComponent: model.isServiceMessage ? textMessageComponent : deleglateChooser.get(model.content)
+                            sourceComponent: model.isServiceMessage ? notSupportedMessageComponent : textMessageComponent
 
                             Component {
                                 id: textMessageComponent
@@ -142,7 +141,7 @@ Page {
 
                                     content: FormattedText {
                                         id: messageText
-                                        formattedText: model.isServiceMessage ? model.serviceMessage.trim() : model.content.text
+                                        formattedText: model.isServiceMessage ? model.serviceMessage.trim() : model.content
                                         color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                         width: isPortrait ? 380 : 754
                                         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
@@ -178,18 +177,6 @@ Page {
                                         wrapMode: Text.Wrap
                                         color: model.isOutgoing ? "black" : "white"
                                         text: "The message is not supported on MeeGram yet"
-                                    }
-                                }
-                            }
-
-                            QtObject {
-                                id: deleglateChooser
-                                function get(content) {
-                                    switch (content['@type']) {
-                                    case 'messageText':
-                                        return textMessageComponent;
-                                    default:
-                                        return notSupportedMessageComponent;
                                     }
                                 }
                             }

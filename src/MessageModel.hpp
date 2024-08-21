@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Message.hpp"
+#include <td/telegram/td_api.h>
 
 #include <QAbstractListModel>
 
@@ -9,7 +9,6 @@
 #include <unordered_set>
 #include <vector>
 
-class Chat;
 class Client;
 class Locale;
 class StorageManager;
@@ -18,9 +17,7 @@ class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
 
-    Q_PROPERTY(QObject *store READ storageManager WRITE setStorageManager)
-
-    Q_PROPERTY(Chat *selectedChat READ selectedChat WRITE setSelectedChat NOTIFY selectedChatChanged)
+    Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY selectedChatChanged)
 
     Q_PROPERTY(QString chatSubtitle READ getChatSubtitle NOTIFY selectedChatChanged)
     Q_PROPERTY(QString chatTitle READ getChatTitle NOTIFY selectedChatChanged)
@@ -67,9 +64,6 @@ public:
         ServiceMessageRole,
     };
 
-    QObject *storageManager() const;
-    void setStorageManager(QObject *storageManager);
-
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
 
     bool canFetchMore(const QModelIndex &parent = QModelIndex()) const override;
@@ -84,8 +78,8 @@ public:
     bool loading() const noexcept;
     bool loadingHistory() const noexcept;
 
-    Chat *selectedChat() const;
-    void setSelectedChat(Chat *value) noexcept;
+    QString getChatId() const noexcept;
+    void setChatId(const QString &value) noexcept;
 
     QString getChatSubtitle() const noexcept;
     QString getChatTitle() const noexcept;
@@ -96,7 +90,7 @@ public:
     Q_INVOKABLE void openChat() noexcept;
     Q_INVOKABLE void closeChat() noexcept;
     Q_INVOKABLE void getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit);
-    Q_INVOKABLE void viewMessages(const QVariantList &messageIds);
+    void viewMessages(std::vector<int64_t> &&messageIds);
     Q_INVOKABLE void deleteMessage(qint64 messageId, bool revoke = false) noexcept;
 
     Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
@@ -111,35 +105,33 @@ public slots:
     void refresh() noexcept;
 
 private slots:
-    void handleResult(const QVariantMap &object);
+    void handleResult(td::td_api::Object *object);
 
-    void handleNewMessage(const QVariantMap &message);
-    void handleMessageSendSucceeded(const QVariantMap &message, qint64 oldMessageId);
-    void handleMessageSendFailed(const QVariantMap &message, qint64 oldMessageId, int errorCode, const QString &errorMessage);
-    void handleMessageContent(qint64 chatId, qint64 messageId, const QVariantMap &newContent);
-    void handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, const QVariantMap &replyMarkup);
+private:
+    void handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message);
+    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId);
+    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
+    void handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
+    void handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
     void handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned);
-    void handleMessageInteractionInfo(qint64 chatId, qint64 messageId, const QVariantMap &interactionInfo);
-    void handleDeleteMessages(qint64 chatId, const QVariantList &messageIds, bool isPermanent, bool fromCache);
+    void handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
+    void handleDeleteMessages(qint64 chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache);
 
     void handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount);
 
     void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
     void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
 
-private:
-    void handleMessages(const QVariantMap &messages);
-    void insertMessages(std::vector<std::unique_ptr<Message>> messages) noexcept;
+    void handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messages);
+    void insertMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept;
 
     void finalizeLoading() noexcept;
-    void processMessages(const std::vector<std::unique_ptr<Message>> &messages) noexcept;
-    void handleNewMessages(std::vector<std::unique_ptr<Message>> messages) noexcept;
+    void processMessages(const std::vector<td::td_api::object_ptr<td::td_api::message> > &messages) noexcept;
+    void handleNewMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept;
 
     void loadMessages() noexcept;
 
     void itemChanged(int64_t index);
-
-    Chat *m_selectedChat{};
 
     Client *m_client{};
     Locale *m_locale{};
@@ -150,6 +142,8 @@ private:
     bool m_loading = true;
     bool m_loadingHistory = true;
 
-    std::vector<std::unique_ptr<Message>> m_messages;
+    const td::td_api::chat *m_selectedChat{};
+
     std::unordered_set<std::optional<qint64>> m_messageIds;
+    std::vector<td::td_api::object_ptr<td::td_api::message>> m_messages;
 };

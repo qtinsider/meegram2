@@ -2,6 +2,8 @@
 
 #include "TdApi.hpp"
 
+#include <td/telegram/td_api.h>
+
 #include <QVariant>
 
 #include <array>
@@ -20,7 +22,7 @@ class Application : public QObject
     Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
 
 public:
-    explicit Application(Settings *settings, StorageManager *storageManager, QObject *parent = nullptr);
+    explicit Application(QObject *parent = nullptr);
 
     bool isAuthorized() const noexcept;
 
@@ -44,7 +46,7 @@ public slots:
     void initialize() noexcept;
 
 private slots:
-    void handleResult(const QVariantMap &object);
+    void handleResult(td::td_api::Object *object);
 
     void initializeLanguagePack() noexcept;
 
@@ -55,8 +57,8 @@ private:
 
     void checkInitializationStatus() noexcept;
 
-    void handleAuthorizationState(const QVariantMap &authorizationState);
-    void handleConnectionState(const QVariantMap &connectionState);
+    void handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState);
+    void handleConnectionState(const td::td_api::ConnectionState &connectionState);
 
     Client *m_client{};
     Locale *m_locale{};

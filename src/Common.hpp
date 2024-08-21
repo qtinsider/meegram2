@@ -31,6 +31,19 @@ constexpr auto MessageSliceLimit = 20;
 constexpr auto MutedValueMax = 2147483647;  // int32.max = 2^32 - 1
 constexpr auto MutedValueMin = 0;
 
+namespace detail {
+
+template <class... Ts>
+struct Overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts>
+Overloaded(Ts...) -> Overloaded<Ts...>;
+
+}  // namespace detail
+
 namespace std {
 template <>
 struct hash<QString>
