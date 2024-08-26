@@ -5,18 +5,26 @@
 
 Authorization::Authorization(QObject *parent)
     : QObject(parent)
+    , m_client(StorageManager::instance().client())
 {
-    m_client = StorageManager::instance().client();
+    m_responseCallback = [this](auto response) {
+        if (response->get_id() == td::td_api::error::ID)
+        {
+            auto err = td::move_tl_object_as<td::td_api::error>(response);
+            emit error(err->code_, QString::fromStdString(err->message_));
+        }
+        setLoading(false);
+    };
 
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
-bool Authorization::loading() const
+bool Authorization::loading() const noexcept
 {
     return m_loading;
 }
 
-void Authorization::setLoading(bool value)
+void Authorization::setLoading(bool value) noexcept
 {
     if (m_loading != value)
     {
@@ -27,38 +35,17 @@ void Authorization::setLoading(bool value)
 
 void Authorization::checkCode(const QString &code) noexcept
 {
-    m_client->send(td::td_api::make_object<td::td_api::checkAuthenticationCode>(code.toStdString()), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
-
-        setLoading(false);
-    });
+    m_client->send(td::td_api::make_object<td::td_api::checkAuthenticationCode>(code.toStdString()), m_responseCallback);
 }
 
 void Authorization::checkPassword(const QString &password) noexcept
 {
-    m_client->send(td::td_api::make_object<td::td_api::checkAuthenticationPassword>(password.toStdString()), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
-
-        setLoading(false);
-    });
+    m_client->send(td::td_api::make_object<td::td_api::checkAuthenticationPassword>(password.toStdString()), m_responseCallback);
 }
 
 void Authorization::logOut() noexcept
 {
-    m_client->send(td::td_api::make_object<td::td_api::logOut>(), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
-
-        setLoading(false);
-    });
+    m_client->send(td::td_api::make_object<td::td_api::logOut>(), m_responseCallback);
 }
 
 void Authorization::registerUser(const QString &firstName, const QString &lastName) noexcept
@@ -66,54 +53,29 @@ void Authorization::registerUser(const QString &firstName, const QString &lastNa
     auto request = td::td_api::make_object<td::td_api::registerUser>();
     request->first_name_ = firstName.toStdString();
     request->last_name_ = lastName.toStdString();
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
 
-        setLoading(false);
-    });
+    m_client->send(std::move(request), m_responseCallback);
 }
 
 void Authorization::setPhoneNumber(const QString &phoneNumber) noexcept
 {
     auto request = td::td_api::make_object<td::td_api::setAuthenticationPhoneNumber>();
     request->phone_number_ = phoneNumber.toStdString();
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
 
-        setLoading(false);
-    });
+    m_client->send(std::move(request), m_responseCallback);
 }
 
 void Authorization::resendCode() noexcept
 {
-    m_client->send(td::td_api::make_object<td::td_api::resendAuthenticationCode>(), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
-
-        setLoading(false);
-    });
+    m_client->send(td::td_api::make_object<td::td_api::resendAuthenticationCode>(), m_responseCallback);
 }
 
 void Authorization::deleteAccount(const QString &reason) noexcept
 {
     auto request = td::td_api::make_object<td::td_api::deleteAccount>();
     request->reason_ = reason.toStdString();
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::error::ID)
-        {
-            emit error(QString::fromStdString(td::move_tl_object_as<td::td_api::error>(response)->message_));
-        }
 
-        setLoading(false);
-    });
+    m_client->send(std::move(request), m_responseCallback);
 }
 
 QString Authorization::formatTime(int totalSeconds) const noexcept
@@ -123,68 +85,73 @@ QString Authorization::formatTime(int totalSeconds) const noexcept
 
 void Authorization::handleResult(td::td_api::Object *object)
 {
-    if (object->get_id() == td::td_api::updateAuthorizationState::ID)
+    switch (object->get_id())
     {
-        const auto *updateAuthState = static_cast<const td::td_api::updateAuthorizationState *>(object);
-        const auto *authorizationState = updateAuthState->authorization_state_.get();
+        case td::td_api::updateAuthorizationState::ID: {
+            const auto *updateAuthState = static_cast<const td::td_api::updateAuthorizationState *>(object);
+            const auto *authorizationState = updateAuthState->authorization_state_.get();
 
-        switch (authorizationState->get_id())
-        {
-            case td::td_api::authorizationStateWaitPhoneNumber::ID:
-                handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));
-                break;
-
-            case td::td_api::authorizationStateWaitCode::ID:
-                handleAuthorizationStateWaitCode(static_cast<const td::td_api::authorizationStateWaitCode *>(authorizationState));
-                break;
-
-            case td::td_api::authorizationStateWaitPassword::ID:
-                handleAuthorizationStateWaitPassword(static_cast<const td::td_api::authorizationStateWaitPassword *>(authorizationState));
-                break;
-
-            case td::td_api::authorizationStateWaitRegistration::ID:
-                handleAuthorizationStateWaitRegistration(static_cast<const td::td_api::authorizationStateWaitRegistration *>(authorizationState));
-                break;
-
-            case td::td_api::authorizationStateReady::ID:
-                handleAuthorizationStateReady(static_cast<const td::td_api::authorizationStateReady *>(authorizationState));
-                break;
-
-            default:
-                break;
+            switch (authorizationState->get_id())
+            {
+                case td::td_api::authorizationStateWaitPhoneNumber::ID:
+                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));
+                    break;
+                case td::td_api::authorizationStateWaitCode::ID:
+                    handleAuthorizationStateWaitCode(static_cast<const td::td_api::authorizationStateWaitCode *>(authorizationState));
+                    break;
+                case td::td_api::authorizationStateWaitPassword::ID:
+                    handleAuthorizationStateWaitPassword(static_cast<const td::td_api::authorizationStateWaitPassword *>(authorizationState));
+                    break;
+                case td::td_api::authorizationStateWaitRegistration::ID:
+                    handleAuthorizationStateWaitRegistration(static_cast<const td::td_api::authorizationStateWaitRegistration *>(authorizationState));
+                    break;
+                case td::td_api::authorizationStateReady::ID:
+                    handleAuthorizationStateReady(static_cast<const td::td_api::authorizationStateReady *>(authorizationState));
+                    break;
+                default:
+                    break;
+            }
+            break;
         }
-    }
-    else if (object->get_id() == td::td_api::error::ID)
-    {
+        case td::td_api::error::ID:
+            // Handle error if needed
+            break;
+        default:
+            break;
     }
 }
 
 void Authorization::handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *)
 {
-    // Handle wait phone number state (empty function as per the original code)
+    // Handle wait phone number state
 }
 
-namespace {
-QVariantMap getCodeTypeMap(const td::td_api::AuthenticationCodeType &type)
+QVariantMap Authorization::getCodeTypeMap(const td::td_api::AuthenticationCodeType &type)
 {
     QVariantMap typeMap;
 
     switch (type.get_id())
     {
+        case td::td_api::authenticationCodeTypeTelegramMessage::ID:
+            typeMap.insert("type", "TelegramMessage");
+            typeMap.insert("length", static_cast<const td::td_api::authenticationCodeTypeTelegramMessage &>(type).length_);
+            break;
         case td::td_api::authenticationCodeTypeSms::ID:
+            typeMap.insert("type", "Sms");
             typeMap.insert("length", static_cast<const td::td_api::authenticationCodeTypeSms &>(type).length_);
             break;
         case td::td_api::authenticationCodeTypeCall::ID:
+            typeMap.insert("type", "Call");
             typeMap.insert("length", static_cast<const td::td_api::authenticationCodeTypeCall &>(type).length_);
             break;
         case td::td_api::authenticationCodeTypeFlashCall::ID:
+            typeMap.insert("type", "FlashCall");
             typeMap.insert("pattern", QString::fromStdString(static_cast<const td::td_api::authenticationCodeTypeFlashCall &>(type).pattern_));
             break;
     }
 
     return typeMap;
 }
-}  // namespace
 
 void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *authorizationState)
 {
@@ -192,12 +159,10 @@ void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authoriza
         return;
 
     const auto &codeInfo = *authorizationState->code_info_;
-
     auto phoneNumber = QString::fromStdString(codeInfo.phone_number_);
     auto timeout = codeInfo.timeout_;
-
-    QVariantMap type = codeInfo.type_ ? getCodeTypeMap(*codeInfo.type_) : QVariantMap();
-    QVariantMap nextType = codeInfo.next_type_ ? getCodeTypeMap(*codeInfo.next_type_) : QVariantMap();
+    auto type = codeInfo.type_ ? getCodeTypeMap(*codeInfo.type_) : QVariantMap();
+    auto nextType = codeInfo.next_type_ ? getCodeTypeMap(*codeInfo.next_type_) : QVariantMap();
 
     emit codeRequested(phoneNumber, type, nextType, timeout);
 }
@@ -207,9 +172,9 @@ void Authorization::handleAuthorizationStateWaitPassword(const td::td_api::autho
     if (!authorizationState)
         return;
 
-    QString passwordHint = QString::fromStdString(authorizationState->password_hint_);
+    auto passwordHint = QString::fromStdString(authorizationState->password_hint_);
     bool hasRecoveryEmail = authorizationState->has_recovery_email_address_;
-    QString recoveryEmailPattern = QString::fromStdString(authorizationState->recovery_email_address_pattern_);
+    auto recoveryEmailPattern = QString::fromStdString(authorizationState->recovery_email_address_pattern_);
 
     emit passwordRequested(passwordHint, hasRecoveryEmail, recoveryEmailPattern);
 }
@@ -221,9 +186,8 @@ void Authorization::handleAuthorizationStateWaitRegistration(const td::td_api::a
 
     const auto &termsOfService = *authorizationState->terms_of_service_;
     const auto &text = *termsOfService.text_;
-
-    QString termsText = QString::fromStdString(text.text_);
-    int minUserAge = termsOfService.min_user_age_;
+    auto termsText = QString::fromStdString(text.text_);
+    auto minUserAge = termsOfService.min_user_age_;
     bool showPopup = termsOfService.show_popup_;
 
     emit registrationRequested(termsText, minUserAge, showPopup);

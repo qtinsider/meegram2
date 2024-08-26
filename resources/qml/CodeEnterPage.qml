@@ -153,10 +153,10 @@ Page {
 
     function getCodeTitle() {
         switch (type.type) {
-        case "authenticationCodeTypeTelegramMessage":
+        case "TelegramMessage":
             return app.getString("SentAppCodeTitle");
-        case "authenticationCodeTypeCall":
-        case "authenticationCodeTypeSms":
+        case "Call":
+        case "Sms":
             return app.getString("SentSmsCodeTitle");
         default:
             return app.getString("Title");
@@ -165,13 +165,13 @@ Page {
 
     function getCodeSubtitle() {
         switch (type.type) {
-        case "authenticationCodeTypeCall":
+        case "Call":
             return app.getString("SentCallCode").arg(phoneNumber);
-        case "authenticationCodeTypeFlashCall":
+        case "FlashCall":
             return app.getString("SentCallOnly").arg(phoneNumber);
-        case "authenticationCodeTypeSms":
+        case "Sms":
             return app.getString("SentSmsCode").arg(phoneNumber);
-        case "authenticationCodeTypeTelegramMessage":
+        case "TelegramMessage":
             return app.getString("SentAppCode");
         default:
             return "";
@@ -180,9 +180,9 @@ Page {
 
     function getCodeNextTypeString() {
         switch (nextType.type) {
-        case "authenticationCodeTypeCall":
+        case "Call":
             return app.getString("CallText");
-        case "authenticationCodeTypeSms":
+        case "Sms":
             return app.getString("SmsText");
         default:
             return "";
