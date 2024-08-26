@@ -21,6 +21,8 @@ endif()
 
 set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
+include(cmake/qr_code_generator.cmake)
+
 set(src_files
     src/Application.cpp
     src/Authorization.cpp
@@ -38,6 +40,7 @@ set(src_files
     src/Message.cpp
     src/MessageModel.cpp
     src/NotificationManager.cpp
+    src/QrCode.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
     src/SortFilterProxyModel.cpp
@@ -67,6 +70,7 @@ set(header_files
     src/Message.hpp
     src/MessageModel.hpp
     src/NotificationManager.hpp
+    src/QrCode.hpp
     src/SelectionModel.hpp
     # src/Serialize.hpp
     src/Settings.hpp
@@ -90,6 +94,7 @@ set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
 target_link_libraries(meegram PRIVATE
+    QRCodeGenerator
     Td::TdStatic
     rlottie::rlottie
     Qt4::QtCore
