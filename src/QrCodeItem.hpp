@@ -4,7 +4,7 @@
 #include <QDeclarativeItem>
 #include <QImage>
 
-class QrCode : public QDeclarativeItem
+class QrCodeItem : public QDeclarativeItem
 {
     Q_OBJECT
     Q_PROPERTY(QString text READ text WRITE setText NOTIFY textChanged)
@@ -13,7 +13,7 @@ class QrCode : public QDeclarativeItem
     Q_PROPERTY(QColor background READ background WRITE setBackground NOTIFY backgroundChanged)
 
 public:
-    QrCode(QDeclarativeItem *parent = nullptr);
+    QrCodeItem(QDeclarativeItem *parent = nullptr);
 
     QString text() const;
     void setText(const QString &text);

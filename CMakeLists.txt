@@ -40,7 +40,7 @@ set(src_files
     src/Message.cpp
     src/MessageModel.cpp
     src/NotificationManager.cpp
-    src/QrCode.cpp
+    src/QrCodeItem.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
     src/SortFilterProxyModel.cpp
@@ -70,7 +70,7 @@ set(header_files
     src/Message.hpp
     src/MessageModel.hpp
     src/NotificationManager.hpp
-    src/QrCode.hpp
+    src/QrCodeItem.hpp
     src/SelectionModel.hpp
     # src/Serialize.hpp
     src/Settings.hpp

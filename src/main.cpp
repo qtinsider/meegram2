@@ -9,6 +9,7 @@
 #include "Application.hpp"
 #include "Authorization.hpp"
 #include "Chat.hpp"
+#include "QrCodeItem.hpp"
 #include "ChatModel.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
@@ -52,6 +53,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<MessageModel>("MyComponent", 1, 0, "MessageModel");
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
+    qmlRegisterType<QrCodeItem>("MyComponent", 1, 0, "QrCode");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 
     qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");
