@@ -40,6 +40,7 @@ set(src_files
     src/Message.cpp
     src/MessageModel.cpp
     src/NotificationManager.cpp
+    src/PluralRules.cpp
     src/QrCodeItem.cpp
     src/SelectionModel.cpp
     src/Settings.cpp
@@ -70,6 +71,7 @@ set(header_files
     src/Message.hpp
     src/MessageModel.hpp
     src/NotificationManager.hpp
+    src/PluralRules.hpp
     src/QrCodeItem.hpp
     src/SelectionModel.hpp
     # src/Serialize.hpp

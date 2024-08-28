@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Common.hpp"
+#include "PluralRules.hpp"
+
 
 #include <td/telegram/td_api.h>
 
@@ -8,24 +10,6 @@
 
 #include <memory>
 #include <unordered_map>
-
-class PluralRules
-{
-public:
-    virtual ~PluralRules() = default;
-
-    enum Quantity {
-        QuantityOther = 0x0000,
-        QuantityZero = 0x0001,
-        QuantityOne = 0x0002,
-        QuantityTwo = 0x0004,
-        QuantityFew = 0x0008,
-        QuantityMany = 0x0010,
-    };
-
-    virtual Quantity quantityForNumber(int count) const = 0;
-    virtual std::unique_ptr<PluralRules> clone() const = 0;
-};
 
 class Locale final
 {
@@ -48,6 +32,7 @@ private:
 
     QString m_languagePlural;
     std::unordered_map<QString, QString> m_languagePack;
-    std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
+    
     std::unique_ptr<PluralRules> m_currentPluralRules;
+    std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
 };
