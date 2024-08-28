@@ -22,6 +22,7 @@ public:
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
+    Q_INVOKABLE void requestQrCode() noexcept;
     Q_INVOKABLE void logOut() noexcept;
     Q_INVOKABLE void registerUser(const QString &firstName, const QString &lastName) noexcept;
     Q_INVOKABLE void setPhoneNumber(const QString &phoneNumber) noexcept;
@@ -32,6 +33,7 @@ public:
 
 signals:
     void error(int code, const QString &message);
+    void qrCodeRequested(const QString &link);
     void codeRequested(const QString &phoneNumber, const QVariantMap &type, const QVariantMap &nextType, int timeout);
     void passwordRequested(const QString &passwordHint, bool hasRecoveryEmailAddress, const QString &recoveryEmailAddressPattern);
     void registrationRequested(const QString &text, int minUserAge, bool showPopup);
@@ -44,6 +46,7 @@ private slots:
 private:
     void handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *state);
     void handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *state);
+    void handleAuthorizationStateWaitOtherDeviceConfirmation(const td::td_api::authorizationStateWaitOtherDeviceConfirmation *state);
     void handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *state);
     void handleAuthorizationStateWaitRegistration(const td::td_api::authorizationStateWaitRegistration *state);
     void handleAuthorizationStateReady(const td::td_api::authorizationStateReady *state);

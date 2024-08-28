@@ -119,7 +119,7 @@ Page {
             minUserAge: minUserAge,
             showPopup: showPopup
         })
-        onError: appWindow.showBanner(errorString)
+        onError: appWindow.showBanner(message)
         onReady: { pageStack.push(Qt.createComponent("ChatsPage.qml")); }
     }
 

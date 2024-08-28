@@ -10,8 +10,8 @@ Authorization::Authorization(QObject *parent)
     m_responseCallback = [this](auto response) {
         if (response->get_id() == td::td_api::error::ID)
         {
-            auto err = td::move_tl_object_as<td::td_api::error>(response);
-            emit error(err->code_, QString::fromStdString(err->message_));
+            auto result = td::move_tl_object_as<td::td_api::error>(response);
+            emit error(result->code_, QString::fromStdString(result->message_));
         }
         setLoading(false);
     };
@@ -41,6 +41,11 @@ void Authorization::checkCode(const QString &code) noexcept
 void Authorization::checkPassword(const QString &password) noexcept
 {
     m_client->send(td::td_api::make_object<td::td_api::checkAuthenticationPassword>(password.toStdString()), m_responseCallback);
+}
+
+void Authorization::requestQrCode() noexcept
+{
+    m_client->send(td::td_api::make_object<td::td_api::requestQrCodeAuthentication>(), m_responseCallback);
 }
 
 void Authorization::logOut() noexcept
@@ -98,6 +103,10 @@ void Authorization::handleResult(td::td_api::Object *object)
                     break;
                 case td::td_api::authorizationStateWaitCode::ID:
                     handleAuthorizationStateWaitCode(static_cast<const td::td_api::authorizationStateWaitCode *>(authorizationState));
+                    break;
+                case td::td_api::authorizationStateWaitOtherDeviceConfirmation::ID:
+                    handleAuthorizationStateWaitOtherDeviceConfirmation(
+                        static_cast<const td::td_api::authorizationStateWaitOtherDeviceConfirmation *>(authorizationState));
                     break;
                 case td::td_api::authorizationStateWaitPassword::ID:
                     handleAuthorizationStateWaitPassword(static_cast<const td::td_api::authorizationStateWaitPassword *>(authorizationState));
@@ -159,12 +168,21 @@ void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authoriza
         return;
 
     const auto &codeInfo = *authorizationState->code_info_;
+
     auto phoneNumber = QString::fromStdString(codeInfo.phone_number_);
     auto timeout = codeInfo.timeout_;
     auto type = codeInfo.type_ ? getCodeTypeMap(*codeInfo.type_) : QVariantMap();
     auto nextType = codeInfo.next_type_ ? getCodeTypeMap(*codeInfo.next_type_) : QVariantMap();
 
     emit codeRequested(phoneNumber, type, nextType, timeout);
+}
+
+void Authorization::handleAuthorizationStateWaitOtherDeviceConfirmation(const td::td_api::authorizationStateWaitOtherDeviceConfirmation *authorizationState)
+{
+    if (!authorizationState)
+        return;
+
+    emit qrCodeRequested(QString::fromStdString(authorizationState->link_));
 }
 
 void Authorization::handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *authorizationState)

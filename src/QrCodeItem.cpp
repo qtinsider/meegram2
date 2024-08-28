@@ -332,6 +332,8 @@ void QrCodeItem::updateQrCode()
     if (m_text.isEmpty())
     {
         m_qrCodeImage = QImage();
+        update();
+
         return;
     }
 
