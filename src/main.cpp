@@ -9,7 +9,6 @@
 #include "Application.hpp"
 #include "Authorization.hpp"
 #include "Chat.hpp"
-#include "QrCodeItem.hpp"
 #include "ChatModel.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
@@ -19,9 +18,11 @@
 #include "LottieAnimation.hpp"
 #include "MessageModel.hpp"
 #include "NotificationManager.hpp"
+#include "QrCodeItem.hpp"
 #include "SelectionModel.hpp"
 #include "Settings.hpp"
 #include "StorageManager.hpp"
+#include "SvgIconItem.hpp"
 #include "TdApi.hpp"
 #include "TextFormatter.hpp"
 
@@ -54,6 +55,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
     qmlRegisterType<QrCodeItem>("MyComponent", 1, 0, "QrCode");
+    qmlRegisterType<SvgIconItem>("MyComponent", 1, 0, "SvgIcon");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 
     qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");

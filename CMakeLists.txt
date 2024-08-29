@@ -48,6 +48,7 @@ set(src_files
     src/StorageManager.cpp
     # src/SupergroupFullInfo.cpp
     # src/Supergroup.cpp
+    src/SvgIconItem.cpp
     src/TextFormatter.cpp
     # src/User.cpp
     # src/UserFullInfo.cpp
@@ -80,6 +81,7 @@ set(header_files
     src/StorageManager.hpp
     # src/Supergroup.hpp
     # src/SupergroupFullInfo.hpp
+    src/SvgIconItem.hpp
     src/TdApi.hpp
     src/TextFormatter.hpp
     # src/User.hpp
