@@ -17,13 +17,10 @@ Page {
         id: loader
         anchors.fill: parent
         anchors.topMargin: header.height
-        sourceComponent: Item {
-            anchors.fill: parent
-            BusyIndicator {
-                anchors.centerIn: parent
-                running: true
-                platformStyle: BusyIndicatorStyle { size: "large" }
-            }
+        sourceComponent: BusyIndicator {
+            anchors.centerIn: parent
+            running: true
+            platformStyle: BusyIndicatorStyle { size: "large" }
         }
     }
 
@@ -33,39 +30,46 @@ Page {
             anchors.fill: parent
 
             Column {
+                spacing: 20
+                width: parent.width
+
                 anchors {
                     top: parent.top
                     left: parent.left
                     right: parent.right
-                    topMargin: 30
+                    topMargin: 60
                 }
-                spacing: 16
+
+                SvgIcon {
+                    source: "qrc:/icons/loginlogomobile.svg"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 220
+                    height: 220
+                    color: theme.selectionColor
+                }
+
+                Item {
+                    width: parent.width
+                    height: 20
+                }
 
                 Text {
-                    anchors {
-                        left: parent.left
-                        right: parent.right
-                        leftMargin: 24
-                        rightMargin: 24
-                    }
+                    id: infoText
                     text: "Different, Handy, Powerful"
                     wrapMode: Text.WordWrap
                     font.pixelSize: 30
                     color: "#777777"
                     horizontalAlignment: Text.AlignHCenter
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
 
-                Column {
+                Button {
+                    text: app.getString("StartMessaging") + app.emptyString
+                    platformStyle: ButtonStyle { inverted: true }
                     anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: 16
-
-                    Button {
-                        text: app.getString("StartMessaging") + app.emptyString
-                        platformStyle: ButtonStyle { inverted: true }
-                        onClicked: {
-                            authentication.target = authorization
-                            pageStack.push(signInPage)
-                        }
+                    onClicked: {
+                        authentication.target = authorization
+                        pageStack.push(signInPage)
                     }
                 }
             }
@@ -104,23 +108,23 @@ Page {
         id: authentication
         target: null
         onCodeRequested: internal.changePage(codeEnterPage, {
-            phoneNumber: phoneNumber,
-            type: type,
-            nextType: nextType,
-            timeout: timeout * 1000
-        })
+                                                 phoneNumber: phoneNumber,
+                                                 type: type,
+                                                 nextType: nextType,
+                                                 timeout: timeout * 1000
+                                             })
         onPasswordRequested: internal.changePage(passwordPage, {
-            passwordHint: passwordHint,
-            hasRecoveryEmailAddress: hasRecoveryEmailAddress,
-            recoveryEmailAddressPattern: recoveryEmailAddressPattern
-        })
+                                                     passwordHint: passwordHint,
+                                                     hasRecoveryEmailAddress: hasRecoveryEmailAddress,
+                                                     recoveryEmailAddressPattern: recoveryEmailAddressPattern
+                                                 })
         onRegistrationRequested: internal.changePage(signUpPage, {
-            text: text,
-            minUserAge: minUserAge,
-            showPopup: showPopup
-        })
+                                                         text: text,
+                                                         minUserAge: minUserAge,
+                                                         showPopup: showPopup
+                                                     })
         onError: appWindow.showBanner(message)
-        onReady: { pageStack.push(Qt.createComponent("ChatsPage.qml")); }
+        onReady: pageStack.push(Qt.createComponent("ChatsPage.qml"))
     }
 
     AboutDialog {
@@ -143,13 +147,13 @@ Page {
         target: app
         onAppInitialized: {
             if (app.authorized) {
-                pageStack.push(Qt.createComponent("ChatsPage.qml"));
+                pageStack.push(Qt.createComponent("ChatsPage.qml"))
             } else {
-                loader.sourceComponent = infoComponent;
+                loader.sourceComponent = infoComponent
             }
         }
         onLanguageChanged: {
-            console.log("Language changed, updating UI...");
+            console.log("Language changed, updating UI...")
         }
     }
 
