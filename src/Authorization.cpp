@@ -16,7 +16,7 @@ Authorization::Authorization(QObject *parent)
         setLoading(false);
     };
 
-    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
 bool Authorization::loading() const noexcept

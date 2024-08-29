@@ -94,32 +94,6 @@ const std::vector<const td::td_api::chatFolderInfo *> &StorageManager::chatFolde
     return m_chatFolders;
 }
 
-const std::vector<const td::td_api::countryInfo *> &StorageManager::countries() const noexcept
-{
-    return m_countries;
-}
-
-const std::vector<const td::td_api::languagePackInfo *> &StorageManager::languagePackInfo() const noexcept
-{
-    return m_languagePackInfo;
-}
-
-void StorageManager::setCountries(td::td_api::object_ptr<td::td_api::countries> &&value) noexcept
-{
-    m_countries.reserve(value->countries_.size());
-    std::ranges::transform(value->countries_, std::back_inserter(m_countries), [](const auto &countries) { return countries.get(); });
-
-    emit countriesChanged();
-}
-
-void StorageManager::setLanguagePackInfo(td::td_api::object_ptr<td::td_api::localizationTargetInfo> &&value) noexcept
-{
-    m_languagePackInfo.reserve(value->language_packs_.size());
-    std::ranges::transform(value->language_packs_, std::back_inserter(m_languagePackInfo), [](const auto &languagePack) { return languagePack.get(); });
-
-    emit languagePackInfoChanged();
-}
-
 qint64 StorageManager::myId() const noexcept
 {
     if (const auto value = getOption("my_id"); not value.isNull())

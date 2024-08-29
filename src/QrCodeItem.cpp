@@ -341,7 +341,7 @@ void QrCodeItem::updateQrCode()
     const auto qrData = Qr::Encode(m_text, Qr::Redundancy::Default);
 
     // Determine the pixel size for the QR code image
-    const int pixelSize = m_size / qrData.size;
+    const auto pixelSize = m_size / qrData.size;
 
     // Generate the QR code image
     m_qrCodeImage = Qr::Generate(qrData, pixelSize, m_foreground);

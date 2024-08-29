@@ -17,10 +17,13 @@ Page {
         id: loader
         anchors.fill: parent
         anchors.topMargin: header.height
-        sourceComponent: BusyIndicator {
-            anchors.centerIn: parent
-            running: true
-            platformStyle: BusyIndicatorStyle { size: "large" }
+        sourceComponent: Item {
+            anchors.fill: parent
+            BusyIndicator {
+                anchors.centerIn: parent
+                running: true
+                platformStyle: BusyIndicatorStyle { size: "large" }
+            }
         }
     }
 
@@ -37,20 +40,7 @@ Page {
                     top: parent.top
                     left: parent.left
                     right: parent.right
-                    topMargin: 60
-                }
-
-                SvgIcon {
-                    source: "qrc:/icons/loginlogomobile.svg"
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    width: 220
-                    height: 220
-                    color: theme.selectionColor
-                }
-
-                Item {
-                    width: parent.width
-                    height: 20
+                    topMargin: 30
                 }
 
                 Text {
@@ -123,7 +113,7 @@ Page {
                                                          minUserAge: minUserAge,
                                                          showPopup: showPopup
                                                      })
-        onError: appWindow.showBanner(message)
+        onError: appWindow.showInfoBanner(message)
         onReady: pageStack.push(Qt.createComponent("ChatsPage.qml"))
     }
 
@@ -151,9 +141,6 @@ Page {
             } else {
                 loader.sourceComponent = infoComponent
             }
-        }
-        onLanguageChanged: {
-            console.log("Language changed, updating UI...")
         }
     }
 

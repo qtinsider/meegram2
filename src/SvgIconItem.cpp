@@ -64,7 +64,7 @@ void SvgIconItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *optio
 
 void SvgIconItem::loadSvg()
 {
-    const QString filePath = urlToLocalFileOrQrc(m_source);
+    const auto filePath = urlToLocalFileOrQrc(m_source);
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly))
     {
@@ -72,7 +72,7 @@ void SvgIconItem::loadSvg()
         return;
     }
 
-    const QString svgContent = file.readAll();
+    const auto svgContent = file.readAll();
     file.close();
 
     QDomDocument doc;
@@ -88,17 +88,17 @@ void SvgIconItem::loadSvg()
 
 void SvgIconItem::updateSvgColors(QDomDocument &doc)
 {
-    QDomNodeList paths = doc.elementsByTagName("path");
+    auto paths = doc.elementsByTagName("path");
     for (int i = 0; i < paths.count(); ++i)
     {
-        QDomElement pathElement = paths.at(i).toElement();
+        auto pathElement = paths.at(i).toElement();
         pathElement.setAttribute("fill", m_color.name());
     }
 }
 
 void SvgIconItem::renderSvg(const QDomDocument &doc)
 {
-    const QByteArray svgData = doc.toString().toUtf8();
+    const auto svgData = doc.toString().toUtf8();
     if (!m_renderer->load(svgData))
     {
         qDebug() << "Failed to load SVG data into renderer.";

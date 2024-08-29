@@ -55,7 +55,7 @@ private:
 
     bool m_loading{false};
 
-    std::shared_ptr<Client> m_client;
+    Client* m_client;
 
     std::function<void(td::td_api::object_ptr<td::td_api::Object>)> m_responseCallback;
 };

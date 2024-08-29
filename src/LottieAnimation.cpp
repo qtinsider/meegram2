@@ -1,52 +1,91 @@
 #include "LottieAnimation.hpp"
 
+#include "SvgIconItem.hpp"
+
 #include <QFile>
 #include <QPainter>
 #include <QTimer>
 
 #include <zlib.h>
 
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace {
 
-bool loadFileContent(const QString &path, std::string &out)
+std::optional<std::string> loadFileContent(const QString &path)
 {
     QFile file(path);
 
     if (!file.open(QIODevice::ReadOnly))
-        return false;
-
-    // Use a larger buffer size for potentially better performance
-    constexpr size_t bufferSize = 16 * 1024;
-    std::vector<char> buffer(bufferSize);
-
-    gzFile gzf = gzdopen(file.handle(), "r");
-    if (!gzf)
-        return false;
-
-    std::string result;
-    while (true)
     {
-        int len = gzread(gzf, buffer.data(), buffer.size());
-
-        if (len < 0)
-        {
-            gzclose(gzf);
-            return false;
-        }
-
-        result.append(buffer.data(), len);
-
-        if (static_cast<size_t>(len) < buffer.size())
-            break;
+        return std::nullopt;
     }
 
-    gzclose(gzf);
-    out = std::move(result);
+    // Determine if the file is compressed or not
+    bool isCompressed = false;
 
-    return true;
+    // Read a small part of the file to check its compression status
+    constexpr size_t checkSize = 512;
+    std::vector<char> checkBuffer(checkSize);
+    qint64 bytesRead = file.read(checkBuffer.data(), checkSize);
+
+    if (bytesRead > 0)
+    {
+        // Simple heuristic: check for gzip magic number (0x1F 0x8B)
+        if (checkBuffer[0] == 0x1F && checkBuffer[1] == 0x8B)
+        {
+            isCompressed = true;
+        }
+    }
+
+    file.seek(0);  // Reset file position to start
+
+    if (isCompressed)
+    {
+        gzFile gzf = gzdopen(file.handle(), "r");
+        if (!gzf)
+        {
+            return std::nullopt;
+        }
+
+        std::string result;
+        result.reserve(64 * 1024);  // Reserve initial space
+
+        constexpr size_t bufferSize = 16 * 1024;
+        std::vector<char> buffer(bufferSize);
+
+        while (true)
+        {
+            int len = gzread(gzf, buffer.data(), buffer.size());
+
+            if (len < 0)
+            {
+                gzclose(gzf);
+                return std::nullopt;
+            }
+
+            result.append(buffer.data(), static_cast<std::size_t>(len));
+
+            if (static_cast<std::size_t>(len) < buffer.size())
+            {
+                break;
+            }
+        }
+
+        gzclose(gzf);
+        return result;
+    }
+    else
+    {
+        QByteArray byteArray = file.readAll();
+        if (byteArray.isEmpty())
+        {
+            return std::nullopt;
+        }
+        return std::string(byteArray.data(), byteArray.size());
+    }
 }
 
 }  // namespace
@@ -138,19 +177,20 @@ void LottieAnimation::setStatus(Status status)
 
 void LottieAnimation::load()
 {
-    std::string result;
-
     setStatus(Loading);
 
-    if (!loadFileContent(m_source.toLocalFile(), result))
+    const auto filePath = SvgIconItem::urlToLocalFileOrQrc(m_source);
+    const auto result = loadFileContent(filePath);
+
+    if (!result)
     {
         setStatus(Error);
         return;
     }
 
-    m_animation = rlottie::Animation::loadFromData(result, std::string(), std::string(), false);
+    m_animation = rlottie::Animation::loadFromData(*result, std::string(), std::string(), false);
 
-    if (m_animation == nullptr)
+    if (!m_animation)
     {
         setStatus(Error);
         return;
@@ -173,8 +213,8 @@ void LottieAnimation::load()
 
 void LottieAnimation::componentComplete()
 {
+    QDeclarativeItem::componentComplete();
+
     if (m_source.isValid())
         load();
-
-    QDeclarativeItem::componentComplete();
 }

@@ -40,11 +40,6 @@ public:
     [[nodiscard]] td::td_api::userFullInfo *getUserFullInfo(qint64 userId) noexcept;
 
     [[nodiscard]] const std::vector<const td::td_api::chatFolderInfo *> &chatFolders() const noexcept;
-    [[nodiscard]] const std::vector<const td::td_api::countryInfo *> &countries() const noexcept;
-    [[nodiscard]] const std::vector<const td::td_api::languagePackInfo *> &languagePackInfo() const noexcept;
-
-    void setCountries(td::td_api::object_ptr<td::td_api::countries> &&value) noexcept;
-    void setLanguagePackInfo(td::td_api::object_ptr<td::td_api::localizationTargetInfo> &&value) noexcept;
 
     [[nodiscard]] qint64 myId() const noexcept;
 
@@ -53,8 +48,6 @@ signals:
     void chatPositionUpdated(qint64 chatId);
 
     void chatFoldersChanged();
-    void countriesChanged();
-    void languagePackInfoChanged();
 
 private slots:
     void handleResult(td::td_api::Object *object);
@@ -81,8 +74,6 @@ private:
     std::unique_ptr<Settings> m_settings;
 
     std::vector<const td::td_api::chatFolderInfo *> m_chatFolders;
-    std::vector<const td::td_api::countryInfo *> m_countries;
-    std::vector<const td::td_api::languagePackInfo *> m_languagePackInfo;
 
     std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroup>> m_basicGroup;
     std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroupFullInfo>> m_basicGroupFullInfo;

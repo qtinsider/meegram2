@@ -24,7 +24,7 @@ Application::Application(QObject *parent)
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
-    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(initializeLanguagePack()));
+    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
 }
 
 bool Application::isAuthorized() const noexcept
@@ -83,13 +83,11 @@ void Application::initialize() noexcept
     setOption("localization_target", "android");
     setOption("language_pack_id", m_settings->languagePackId());
 
-    initializeParameters();
-    initializeLanguagePack();
-    initializeCountries();
-    initializeLanguagePackInfo();
+    setParameters();
+    loadLanguagePack();
 }
 
-void Application::initializeParameters() noexcept
+void Application::setParameters() noexcept
 {
     auto request = td::td_api::make_object<td::td_api::setTdlibParameters>();
 
@@ -114,7 +112,7 @@ void Application::initializeParameters() noexcept
     });
 }
 
-void Application::initializeLanguagePack() noexcept
+void Application::loadLanguagePack() noexcept
 {
     auto request = td::td_api::make_object<td::td_api::getLanguagePackStrings>();
 
@@ -131,19 +129,6 @@ void Application::initializeLanguagePack() noexcept
                 m_initializationStatus[1] = true;
                 checkInitializationStatus();
             }
-        }
-    });
-}
-
-void Application::initializeCountries() noexcept
-{
-    m_client->send(td::td_api::make_object<td::td_api::getCountries>(), [this](auto &&response) {
-        if (response->get_id() == td::td_api::countries::ID)
-        {
-            m_storageManager->setCountries(td::move_tl_object_as<td::td_api::countries>(response));
-
-            m_initializationStatus[2] = true;
-            checkInitializationStatus();
         }
     });
 }
@@ -169,31 +154,11 @@ void Application::handleResult(td::td_api::Object *object)
     }
 }
 
-void Application::initializeLanguagePackInfo()
-{
-    auto request = td::td_api::make_object<td::td_api::getLocalizationTargetInfo>();
-    request->only_local_ = true;
-
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::localizationTargetInfo::ID)
-        {
-            m_storageManager->setLanguagePackInfo(td::move_tl_object_as<td::td_api::localizationTargetInfo>(response));
-
-            m_initializationStatus[3] = true;
-            checkInitializationStatus();
-        }
-    });
-}
-
 void Application::handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState)
 {
     if (authorizationState.get_id() == td::td_api::authorizationStateReady::ID)
     {
-        auto request = td::td_api::make_object<td::td_api::loadChats>();
-
-        request->limit_ = ChatSliceLimit;
-
-        m_client->send(std::move(request), {});
+        m_client->send(td::td_api::make_object<td::td_api::loadChats>(), {});
 
         m_isAuthorized = true;
         emit authorizedChanged();

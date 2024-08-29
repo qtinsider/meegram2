@@ -29,11 +29,14 @@ set(src_files
     # src/BasicGroup.cpp
     # src/BasicGroupFullInfo.cpp
     src/Chat.cpp
+    src/ChatFolderModel.cpp
     src/ChatModel.cpp
     src/Client.cpp
+    src/CountryModel.cpp
     src/DBusAdaptor.cpp
     # src/File.cpp
     src/ImageProviders.cpp
+    src/LanguagePackInfoModel.cpp
     src/Localization.cpp
     src/LottieAnimation.cpp
     src/main.cpp
@@ -42,7 +45,6 @@ set(src_files
     src/NotificationManager.cpp
     src/PluralRules.cpp
     src/QrCodeItem.cpp
-    src/SelectionModel.cpp
     src/Settings.cpp
     src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
@@ -61,12 +63,15 @@ set(header_files
     # src/BasicGroup.hpp
     # src/BasicGroupFullInfo.hpp
     src/Chat.hpp
+    src/ChatFolderModel.hpp
     src/ChatModel.hpp
     src/Client.hpp
     src/Common.hpp
+    src/CountryModel.hpp
     src/DBusAdaptor.hpp
     # src/File.hpp
     src/ImageProviders.hpp
+    src/LanguagePackInfoModel.hpp
     src/Localization.hpp
     src/LottieAnimation.hpp
     src/Message.hpp
@@ -74,7 +79,6 @@ set(header_files
     src/NotificationManager.hpp
     src/PluralRules.hpp
     src/QrCodeItem.hpp
-    src/SelectionModel.hpp
     # src/Serialize.hpp
     src/Settings.hpp
     src/SortFilterProxyModel.hpp

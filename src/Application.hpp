@@ -48,12 +48,10 @@ public slots:
 private slots:
     void handleResult(td::td_api::Object *object);
 
-    void initializeLanguagePack() noexcept;
+    void loadLanguagePack() noexcept;
 
 private:
-    void initializeParameters() noexcept;
-    void initializeCountries() noexcept;
-    void initializeLanguagePackInfo();
+    void setParameters() noexcept;
 
     void checkInitializationStatus() noexcept;
 
@@ -69,5 +67,5 @@ private:
 
     QString m_connectionStateString;
 
-    std::array<bool, 4> m_initializationStatus{false, false, false, false};
+    std::array<bool, 2> m_initializationStatus{false, false};
 };
