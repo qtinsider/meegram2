@@ -40,6 +40,12 @@ Locale::Locale()
     // clang-format on
 }
 
+Locale &Locale::instance()
+{
+    static Locale staticObject;
+    return staticObject;
+}
+
 QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))

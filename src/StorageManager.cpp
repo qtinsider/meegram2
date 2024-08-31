@@ -8,8 +8,6 @@
 
 StorageManager::StorageManager()
     : m_client(std::make_unique<Client>())
-    , m_locale(std::make_unique<Locale>())
-    , m_settings(std::make_unique<Settings>())
 {
     connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
@@ -23,16 +21,6 @@ StorageManager &StorageManager::instance()
 Client *StorageManager::client() const noexcept
 {
     return m_client.get();
-}
-
-Locale *StorageManager::locale() const noexcept
-{
-    return m_locale.get();
-}
-
-Settings *StorageManager::settings() const noexcept
-{
-    return m_settings.get();
 }
 
 std::vector<int64_t> StorageManager::getChatIds() const noexcept

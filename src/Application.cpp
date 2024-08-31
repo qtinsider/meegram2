@@ -12,12 +12,11 @@
 
 Application::Application(QObject *parent)
     : QObject(parent)
+    , m_storageManager(&StorageManager::instance())
+    , m_client(StorageManager::instance().client())
+    , m_locale(&Locale::instance())
+    , m_settings(&Settings::instance())
 {
-    m_storageManager = &StorageManager::instance();
-
-    m_client = m_storageManager->client();
-    m_locale = m_storageManager->locale();
-    m_settings = m_storageManager->settings();
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
 

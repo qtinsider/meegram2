@@ -69,7 +69,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     viewer.rootContext()->setContextProperty("app", &application);
     viewer.rootContext()->setContextProperty("client", StorageManager::instance().client());
-    viewer.rootContext()->setContextProperty("settings", StorageManager::instance().settings());
+    viewer.rootContext()->setContextProperty("settings", &Settings::instance());
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);

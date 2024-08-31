@@ -2,12 +2,16 @@
 
 #include "StorageManager.hpp"
 
-NotificationManager::NotificationManager(QObject *parent)
-    : QObject(parent)
+NotificationManager::NotificationManager()
+    : m_client(StorageManager::instance().client())
 {
-    m_client = StorageManager::instance().client();
-
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+}
+
+NotificationManager &NotificationManager::instance()
+{
+    static NotificationManager staticObject;
+    return staticObject;
 }
 
 void NotificationManager::handleResult(td::td_api::Object *object)

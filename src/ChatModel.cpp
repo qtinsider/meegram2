@@ -42,34 +42,24 @@ QString chatTypeString(const td::td_api::object_ptr<td::td_api::ChatType> &type)
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_sortTimer(new QTimer(this))
-    , m_loadingTimer(new QTimer(this))
+    , m_storageManager(&StorageManager::instance())
+    , m_client(StorageManager::instance().client())
+    , m_locale(&Locale::instance())
 {
-    m_storageManager = &StorageManager::instance();
-
-    m_client = m_storageManager->client();
-    m_locale = m_storageManager->locale();
-
     connect(m_storageManager, SIGNAL(chatItemUpdated(qint64)), this, SLOT(handleChatItem(qint64)));
     connect(m_storageManager, SIGNAL(chatPositionUpdated(qint64)), this, SLOT(handleChatPosition(qint64)));
 
-    connect(m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
-    connect(m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
+    connect(&m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
+    connect(&m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
 
     connect(this, SIGNAL(chatListChanged()), this, SLOT(refresh()));
 
-    m_sortTimer->setInterval(500);
-    m_sortTimer->setSingleShot(true);
+    m_sortTimer.setInterval(500);
+    m_sortTimer.setSingleShot(true);
 
-    m_loadingTimer->setInterval(500);
+    m_loadingTimer.setInterval(500);
 
     setRoleNames(roleNames());
-}
-
-ChatModel::~ChatModel()
-{
-    delete m_sortTimer;
-    delete m_loadingTimer;
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -322,7 +312,7 @@ void ChatModel::refresh()
 
     clear();
 
-    m_loadingTimer->start();
+    m_loadingTimer.start();
 
     emit loadingChanged();
 }
@@ -375,8 +365,10 @@ void ChatModel::handleChatPosition(qint64 chatId)
     if (auto it = std::ranges::find(m_chatIds, chatId); it != m_chatIds.end())
     {
         // emit delayed event
-        if (not m_sortTimer->isActive())
-            m_sortTimer->start();
+        if (not m_sortTimer.isActive())
+        {
+            m_sortTimer.start();
+        }
     }
 }
 
@@ -392,7 +384,7 @@ void ChatModel::loadChats()
             if (td::move_tl_object_as<td::td_api::error>(response)->code_ == 404)
             {
                 m_loading = false;
-                m_loadingTimer->stop();
+                m_loadingTimer.stop();
 
                 emit loadingChanged();
             }

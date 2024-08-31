@@ -126,7 +126,7 @@ private:
     void insertMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept;
 
     void finalizeLoading() noexcept;
-    void processMessages(const std::vector<td::td_api::object_ptr<td::td_api::message> > &messages) noexcept;
+    void processMessages(const std::vector<td::td_api::object_ptr<td::td_api::message>> &messages) noexcept;
     void handleNewMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept;
 
     void loadMessages() noexcept;

@@ -22,7 +22,6 @@ class ChatModel : public QAbstractListModel
     Q_PROPERTY(int chatFolderId READ chatFolderId WRITE setChatFolderId NOTIFY chatListChanged)
 public:
     explicit ChatModel(QObject *parent = nullptr);
-    ~ChatModel() override;
 
     enum Roles {
         IdRole = Qt::UserRole + 1,
@@ -92,8 +91,8 @@ private:
 
     ChatList m_chatList;
 
-    QTimer *m_sortTimer;
-    QTimer *m_loadingTimer;
+    QTimer m_sortTimer;
+    QTimer m_loadingTimer;
 
     std::vector<int64_t> m_chatIds;
 };

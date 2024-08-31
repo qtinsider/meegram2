@@ -3,7 +3,6 @@
 #include "Common.hpp"
 #include "PluralRules.hpp"
 
-
 #include <td/telegram/td_api.h>
 
 #include <QString>
@@ -11,10 +10,13 @@
 #include <memory>
 #include <unordered_map>
 
-class Locale final
+class Locale : public QObject
 {
 public:
-    Locale();
+    static Locale &instance();
+
+    Locale(const Locale &) = delete;
+    Locale &operator=(const Locale &) = delete;
 
     QString getString(const QString &key) const;
     QString formatPluralString(const QString &key, int plural) const;
@@ -25,6 +27,8 @@ public:
     void setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> value);
 
 private:
+    Locale();
+
     QString stringForQuantity(PluralRules::Quantity quantity) const;
 
     void addRules(const QStringList &languages, std::unique_ptr<PluralRules> rules);
@@ -32,7 +36,7 @@ private:
 
     QString m_languagePlural;
     std::unordered_map<QString, QString> m_languagePack;
-    
+
     std::unique_ptr<PluralRules> m_currentPluralRules;
     std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
 };

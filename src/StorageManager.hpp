@@ -24,8 +24,6 @@ public:
     StorageManager &operator=(const StorageManager &) = delete;
 
     [[nodiscard]] Client *client() const noexcept;
-    [[nodiscard]] Locale *locale() const noexcept;
-    [[nodiscard]] Settings *settings() const noexcept;
 
     [[nodiscard]] std::vector<int64_t> getChatIds() const noexcept;
 
@@ -70,8 +68,6 @@ private:
     QVariantMap m_options;
 
     std::unique_ptr<Client> m_client;
-    std::unique_ptr<Locale> m_locale;
-    std::unique_ptr<Settings> m_settings;
 
     std::vector<const td::td_api::chatFolderInfo *> m_chatFolders;
 
