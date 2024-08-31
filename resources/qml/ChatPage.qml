@@ -314,6 +314,5 @@ Page {
         }
     }
 
-    Component.onCompleted: { myMessageModel.openChat() }
     Component.onDestruction: { myMessageModel.closeChat() }
 }

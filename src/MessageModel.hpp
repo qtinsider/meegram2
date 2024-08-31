@@ -3,6 +3,7 @@
 #include <td/telegram/td_api.h>
 
 #include <QAbstractListModel>
+#include <QDeclarativeParserStatus>
 
 #include <memory>
 #include <optional>
@@ -13,9 +14,10 @@ class Client;
 class Locale;
 class StorageManager;
 
-class MessageModel : public QAbstractListModel
+class MessageModel : public QAbstractListModel, public QDeclarativeParserStatus
 {
     Q_OBJECT
+    Q_INTERFACES(QDeclarativeParserStatus)
 
     Q_PROPERTY(QString chatId READ getChatId WRITE setChatId NOTIFY selectedChatChanged)
 
@@ -103,6 +105,10 @@ signals:
 
 public slots:
     void refresh() noexcept;
+
+protected:
+    void classBegin() override;
+    void componentComplete() override;
 
 private slots:
     void handleResult(td::td_api::Object *object);

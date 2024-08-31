@@ -407,9 +407,6 @@ void MessageModel::setChatId(const QString &value) noexcept
     {
         m_selectedChat = chat;
 
-        openChat();      //
-        loadMessages();  //
-
         emit selectedChatChanged();
     }
 }
@@ -510,8 +507,6 @@ void MessageModel::openChat() noexcept
         return;
 
     m_client->send(td::td_api::make_object<td::td_api::openChat>(m_selectedChat->id_), {});
-
-    loadMessages();
 }
 
 void MessageModel::closeChat() noexcept
@@ -607,6 +602,16 @@ void MessageModel::refresh() noexcept
     endResetModel();
 
     emit countChanged();
+}
+
+void MessageModel::classBegin()
+{
+}
+
+void MessageModel::componentComplete()
+{
+    openChat();
+    loadMessages();
 }
 
 void MessageModel::handleResult(td::td_api::Object *object)

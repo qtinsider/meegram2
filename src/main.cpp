@@ -23,6 +23,7 @@
 #include "NotificationManager.hpp"
 #include "QrCodeItem.hpp"
 #include "Settings.hpp"
+#include "SortFilterProxyModel.hpp"
 #include "StorageManager.hpp"
 #include "SvgIconItem.hpp"
 #include "TdApi.hpp"
@@ -57,6 +58,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
     qmlRegisterType<QrCodeItem>("MyComponent", 1, 0, "QrCode");
+    qmlRegisterType<SortFilterProxyModel>("MyComponent", 1, 0, "SortFilterProxyModel");
     qmlRegisterType<SvgIconItem>("MyComponent", 1, 0, "SvgIcon");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 

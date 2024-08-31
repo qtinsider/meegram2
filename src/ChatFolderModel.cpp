@@ -84,4 +84,3 @@ int ChatFolderModel::count() const noexcept
 {
     return m_chatFolders.size();
 }
-

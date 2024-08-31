@@ -3,6 +3,7 @@
 #include <rlottie.h>
 
 #include <QDeclarativeItem>
+#include <QTimer>
 
 class LottieAnimation : public QDeclarativeItem
 {
@@ -13,11 +14,11 @@ class LottieAnimation : public QDeclarativeItem
     Q_ENUMS(Status)
 public:
     explicit LottieAnimation(QDeclarativeItem *parent = nullptr);
-    ~LottieAnimation() override;
 
     enum Status { Null, Loading, Ready, Error };
 
     Status status() const;
+    void setStatus(Status status);
 
     QUrl source() const;
     void setSource(const QUrl &source);
@@ -39,15 +40,17 @@ private slots:
     void renderNextFrame();
 
 private:
-    void load();
-    void setStatus(Status status);
+    void loadContent();
+    void initializeAnimation();
+
+    static QString urlToLocalFileOrQrc(const QUrl &url);
 
     int m_currentFrame{};
     int m_frameCount{};
     int m_frameRate = 60;  // 60 FPS
 
     QUrl m_source;
-    QTimer *m_frameTimer;
+    QTimer m_frameTimer;
 
     Status m_status = Status::Null;
 
