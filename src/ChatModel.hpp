@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Chat.hpp"
 #include "TdApi.hpp"
 
 #include <QAbstractListModel>
 #include <QTimer>
 
+#include <memory>
 #include <vector>
 
 class Client;
@@ -94,5 +96,5 @@ private:
     QTimer m_sortTimer;
     QTimer m_loadingTimer;
 
-    std::vector<int64_t> m_chatIds;
+    std::vector<std::shared_ptr<Chat>> m_chats;
 };

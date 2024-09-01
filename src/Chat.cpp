@@ -1,573 +1,382 @@
 #include "Chat.hpp"
 
 #include "Message.hpp"
+#include "StorageManager.hpp"
+#include "Utils.hpp"
+
+#include <QDebug>
 
 Chat::Chat(QObject *parent)
     : QObject(parent)
+    , m_storageManager(&StorageManager::instance())
 {
+    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
-Chat::~Chat()
+Chat::Chat(qint64 chatId, ChatList chatList, QObject *parent)
+    : QObject(parent)
+    , m_chatId(chatId)
+    , m_chatList(std::move(chatList))
+    , m_storageManager(&StorageManager::instance())
 {
+    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+
+    m_chat = m_storageManager->getChat(m_chatId);
+    m_chatPosition = calculateChatPosition();
 }
 
 qint64 Chat::id() const
 {
-    return m_id;
+    return m_chat->id_;
 }
+
 QVariantMap Chat::type() const
 {
-    return m_type;
+    return {};
 }
+
 QString Chat::title() const
 {
-    return m_title;
+    return QString::fromStdString(m_chat->title_);
 }
+
 QVariantMap Chat::photo() const
 {
-    return m_photo;
+    return {};
 }
-qint32 Chat::accentColorId() const
+
+int Chat::accentColorId() const
 {
-    return m_accentColorId;
+    return m_chat->accent_color_id_;
 }
+
 qint64 Chat::backgroundCustomEmojiId() const
 {
-    return m_backgroundCustomEmojiId;
+    return m_chat->background_custom_emoji_id_;
 }
-qint32 Chat::profileAccentColorId() const
+
+int Chat::profileAccentColorId() const
 {
-    return m_profileAccentColorId;
+    return m_chat->profile_accent_color_id_;
 }
+
 qint64 Chat::profileBackgroundCustomEmojiId() const
 {
-    return m_profileBackgroundCustomEmojiId;
+    return m_chat->profile_background_custom_emoji_id_;
 }
+
 QVariantMap Chat::permissions() const
 {
-    return m_permissions;
+    return {};
 }
+
 Message *Chat::lastMessage() const
 {
-    return m_lastMessage;
+    return {} /*m_lastMessage*/;
 }
-QVariantList Chat::positions() const
-{
-    return m_positions;
-}
-QVariantList Chat::chatLists() const
-{
-    return m_chatLists;
-}
+
 QVariantMap Chat::messageSenderId() const
 {
-    return m_messageSenderId;
+    return {};
 }
+
 QVariantMap Chat::blockList() const
 {
-    return m_blockList;
+    return {};
 }
+
 bool Chat::hasProtectedContent() const
 {
-    return m_hasProtectedContent;
+    return m_chat->has_protected_content_;
 }
+
 bool Chat::isTranslatable() const
 {
-    return m_isTranslatable;
+    return m_chat->is_translatable_;
 }
+
 bool Chat::isMarkedAsUnread() const
 {
-    return m_isMarkedAsUnread;
+    return m_chat->is_marked_as_unread_;
 }
+
 bool Chat::viewAsTopics() const
 {
-    return m_viewAsTopics;
+    return m_chat->view_as_topics_;
 }
+
 bool Chat::hasScheduledMessages() const
 {
-    return m_hasScheduledMessages;
+    return m_chat->has_scheduled_messages_;
 }
+
 bool Chat::canBeDeletedOnlyForSelf() const
 {
-    return m_canBeDeletedOnlyForSelf;
+    return m_chat->can_be_deleted_only_for_self_;
 }
+
 bool Chat::canBeDeletedForAllUsers() const
 {
-    return m_canBeDeletedForAllUsers;
+    return m_chat->can_be_deleted_for_all_users_;
 }
+
 bool Chat::canBeReported() const
 {
-    return m_canBeReported;
+    return m_chat->can_be_reported_;
 }
+
 bool Chat::defaultDisableNotification() const
 {
-    return m_defaultDisableNotification;
+    return m_chat->default_disable_notification_;
 }
-qint32 Chat::unreadCount() const
+
+int Chat::unreadCount() const
 {
-    return m_unreadCount;
+    return m_chat->unread_count_;
 }
+
 qint64 Chat::lastReadInboxMessageId() const
 {
-    return m_lastReadInboxMessageId;
+    return m_chat->last_read_inbox_message_id_;
 }
+
 qint64 Chat::lastReadOutboxMessageId() const
 {
-    return m_lastReadOutboxMessageId;
+    return m_chat->last_read_outbox_message_id_;
 }
-qint32 Chat::unreadMentionCount() const
+
+int Chat::unreadMentionCount() const
 {
-    return m_unreadMentionCount;
+    return m_chat->unread_mention_count_;
 }
-qint32 Chat::unreadReactionCount() const
+
+int Chat::unreadReactionCount() const
 {
-    return m_unreadReactionCount;
+    return m_chat->unread_reaction_count_;
 }
+
 QVariantMap Chat::notificationSettings() const
 {
-    return m_notificationSettings;
+    return {};
 }
+
 QVariantMap Chat::availableReactions() const
 {
-    return m_availableReactions;
+    return {};
 }
-qint32 Chat::messageAutoDeleteTime() const
+
+int Chat::messageAutoDeleteTime() const
 {
-    return m_messageAutoDeleteTime;
+    return {};
 }
+
 QVariantMap Chat::emojiStatus() const
 {
-    return m_emojiStatus;
+    return {};
 }
+
 QVariantMap Chat::background() const
 {
-    return m_background;
+    return {};
 }
+
 QString Chat::themeName() const
 {
-    return m_themeName;
+    return {};
 }
+
 QVariantMap Chat::actionBar() const
 {
-    return m_actionBar;
+    return {};
 }
+
 QVariantMap Chat::businessBotManageBar() const
 {
-    return m_businessBotManageBar;
+    return {};
 }
+
 QVariantMap Chat::videoChat() const
 {
-    return m_videoChat;
+    return {};
 }
+
 QVariantMap Chat::pendingJoinRequests() const
 {
-    return m_pendingJoinRequests;
+    return {};
 }
+
 qint64 Chat::replyMarkupMessageId() const
 {
-    return m_replyMarkupMessageId;
+    return {};
 }
+
 Message *Chat::draftMessage() const
 {
-    return m_draftMessage;
+    return {};
 }
+
 QString Chat::clientData() const
 {
-    return m_clientData;
+    return {};
 }
 
-void Chat::setId(qint64 id)
+qint64 Chat::getOrder() const noexcept
 {
-    if (m_id != id)
-    {
-        m_id = id;
-        emit idChanged();
-    }
-}
-void Chat::setType(const QVariantMap &type)
-{
-    if (m_type != type)
-    {
-        m_type = type;
-        emit typeChanged();
-    }
-}
-void Chat::setTitle(const QString &title)
-{
-    if (m_title != title)
-    {
-        m_title = title;
-        emit titleChanged();
-    }
-}
-void Chat::setPhoto(const QVariantMap &photo)
-{
-    if (m_photo != photo)
-    {
-        m_photo = photo;
-        emit photoChanged();
-    }
-}
-void Chat::setAccentColorId(qint32 accentColorId)
-{
-    if (m_accentColorId != accentColorId)
-    {
-        m_accentColorId = accentColorId;
-        emit accentColorIdChanged();
-    }
-}
-void Chat::setBackgroundCustomEmojiId(qint64 backgroundCustomEmojiId)
-{
-    if (m_backgroundCustomEmojiId != backgroundCustomEmojiId)
-    {
-        m_backgroundCustomEmojiId = backgroundCustomEmojiId;
-        emit backgroundCustomEmojiIdChanged();
-    }
-}
-void Chat::setProfileAccentColorId(qint32 profileAccentColorId)
-{
-    if (m_profileAccentColorId != profileAccentColorId)
-    {
-        m_profileAccentColorId = profileAccentColorId;
-        emit profileAccentColorIdChanged();
-    }
-}
-void Chat::setProfileBackgroundCustomEmojiId(qint64 profileBackgroundCustomEmojiId)
-{
-    if (m_profileBackgroundCustomEmojiId != profileBackgroundCustomEmojiId)
-    {
-        m_profileBackgroundCustomEmojiId = profileBackgroundCustomEmojiId;
-        emit profileBackgroundCustomEmojiIdChanged();
-    }
-}
-void Chat::setPermissions(const QVariantMap &permissions)
-{
-    if (m_permissions != permissions)
-    {
-        m_permissions = permissions;
-        emit permissionsChanged();
-    }
-}
-void Chat::setLastMessage(Message *lastMessage)
-{
-    if (m_lastMessage != lastMessage)
-    {
-        m_lastMessage = lastMessage;
-        emit lastMessageChanged();
-    }
-}
-void Chat::setPositions(const QVariantList &positions)
-{
-    if (m_positions != positions)
-    {
-        m_positions = positions;
-        emit positionsChanged();
-    }
-}
-void Chat::setChatLists(const QVariantList &chatLists)
-{
-    if (m_chatLists != chatLists)
-    {
-        m_chatLists = chatLists;
-        emit chatListsChanged();
-    }
-}
-void Chat::setMessageSenderId(const QVariantMap &messageSenderId)
-{
-    if (m_messageSenderId != messageSenderId)
-    {
-        m_messageSenderId = messageSenderId;
-        emit messageSenderIdChanged();
-    }
-}
-void Chat::setBlockList(const QVariantMap &blockList)
-{
-    if (m_blockList != blockList)
-    {
-        m_blockList = blockList;
-        emit blockListChanged();
-    }
-}
-void Chat::setHasProtectedContent(bool hasProtectedContent)
-{
-    if (m_hasProtectedContent != hasProtectedContent)
-    {
-        m_hasProtectedContent = hasProtectedContent;
-        emit hasProtectedContentChanged();
-    }
-}
-void Chat::setIsTranslatable(bool isTranslatable)
-{
-    if (m_isTranslatable != isTranslatable)
-    {
-        m_isTranslatable = isTranslatable;
-        emit isTranslatableChanged();
-    }
-}
-void Chat::setIsMarkedAsUnread(bool isMarkedAsUnread)
-{
-    if (m_isMarkedAsUnread != isMarkedAsUnread)
-    {
-        m_isMarkedAsUnread = isMarkedAsUnread;
-        emit isMarkedAsUnreadChanged();
-    }
-}
-void Chat::setViewAsTopics(bool viewAsTopics)
-{
-    if (m_viewAsTopics != viewAsTopics)
-    {
-        m_viewAsTopics = viewAsTopics;
-        emit viewAsTopicsChanged();
-    }
-}
-void Chat::setHasScheduledMessages(bool hasScheduledMessages)
-{
-    if (m_hasScheduledMessages != hasScheduledMessages)
-    {
-        m_hasScheduledMessages = hasScheduledMessages;
-        emit hasScheduledMessagesChanged();
-    }
-}
-void Chat::setCanBeDeletedOnlyForSelf(bool canBeDeletedOnlyForSelf)
-{
-    if (m_canBeDeletedOnlyForSelf != canBeDeletedOnlyForSelf)
-    {
-        m_canBeDeletedOnlyForSelf = canBeDeletedOnlyForSelf;
-        emit canBeDeletedOnlyForSelfChanged();
-    }
-}
-void Chat::setCanBeDeletedForAllUsers(bool canBeDeletedForAllUsers)
-{
-    if (m_canBeDeletedForAllUsers != canBeDeletedForAllUsers)
-    {
-        m_canBeDeletedForAllUsers = canBeDeletedForAllUsers;
-        emit canBeDeletedForAllUsersChanged();
-    }
-}
-void Chat::setCanBeReported(bool canBeReported)
-{
-    if (m_canBeReported != canBeReported)
-    {
-        m_canBeReported = canBeReported;
-        emit canBeReportedChanged();
-    }
-}
-void Chat::setDefaultDisableNotification(bool defaultDisableNotification)
-{
-    if (m_defaultDisableNotification != defaultDisableNotification)
-    {
-        m_defaultDisableNotification = defaultDisableNotification;
-        emit defaultDisableNotificationChanged();
-    }
-}
-void Chat::setUnreadCount(qint32 unreadCount)
-{
-    if (m_unreadCount != unreadCount)
-    {
-        m_unreadCount = unreadCount;
-        emit unreadCountChanged();
-    }
-}
-void Chat::setLastReadInboxMessageId(qint64 lastReadInboxMessageId)
-{
-    if (m_lastReadInboxMessageId != lastReadInboxMessageId)
-    {
-        m_lastReadInboxMessageId = lastReadInboxMessageId;
-        emit lastReadInboxMessageIdChanged();
-    }
-}
-void Chat::setLastReadOutboxMessageId(qint64 lastReadOutboxMessageId)
-{
-    if (m_lastReadOutboxMessageId != lastReadOutboxMessageId)
-    {
-        m_lastReadOutboxMessageId = lastReadOutboxMessageId;
-        emit lastReadOutboxMessageIdChanged();
-    }
-}
-void Chat::setUnreadMentionCount(qint32 unreadMentionCount)
-{
-    if (m_unreadMentionCount != unreadMentionCount)
-    {
-        m_unreadMentionCount = unreadMentionCount;
-        emit unreadMentionCountChanged();
-    }
-}
-void Chat::setUnreadReactionCount(qint32 unreadReactionCount)
-{
-    if (m_unreadReactionCount != unreadReactionCount)
-    {
-        m_unreadReactionCount = unreadReactionCount;
-        emit unreadReactionCountChanged();
-    }
-}
-void Chat::setNotificationSettings(const QVariantMap &notificationSettings)
-{
-    if (m_notificationSettings != notificationSettings)
-    {
-        m_notificationSettings = notificationSettings;
-        emit notificationSettingsChanged();
-    }
-}
-void Chat::setAvailableReactions(const QVariantMap &availableReactions)
-{
-    if (m_availableReactions != availableReactions)
-    {
-        m_availableReactions = availableReactions;
-        emit availableReactionsChanged();
-    }
-}
-void Chat::setMessageAutoDeleteTime(qint32 messageAutoDeleteTime)
-{
-    if (m_messageAutoDeleteTime != messageAutoDeleteTime)
-    {
-        m_messageAutoDeleteTime = messageAutoDeleteTime;
-        emit messageAutoDeleteTimeChanged();
-    }
-}
-void Chat::setEmojiStatus(const QVariantMap &emojiStatus)
-{
-    if (m_emojiStatus != emojiStatus)
-    {
-        m_emojiStatus = emojiStatus;
-        emit emojiStatusChanged();
-    }
-}
-void Chat::setBackground(const QVariantMap &background)
-{
-    if (m_background != background)
-    {
-        m_background = background;
-        emit backgroundChanged();
-    }
-}
-void Chat::setThemeName(const QString &themeName)
-{
-    if (m_themeName != themeName)
-    {
-        m_themeName = themeName;
-        emit themeNameChanged();
-    }
-}
-void Chat::setActionBar(const QVariantMap &actionBar)
-{
-    if (m_actionBar != actionBar)
-    {
-        m_actionBar = actionBar;
-        emit actionBarChanged();
-    }
-}
-void Chat::setBusinessBotManageBar(const QVariantMap &businessBotManageBar)
-{
-    if (m_businessBotManageBar != businessBotManageBar)
-    {
-        m_businessBotManageBar = businessBotManageBar;
-        emit businessBotManageBarChanged();
-    }
-}
-void Chat::setVideoChat(const QVariantMap &videoChat)
-{
-    if (m_videoChat != videoChat)
-    {
-        m_videoChat = videoChat;
-        emit videoChatChanged();
-    }
-}
-void Chat::setPendingJoinRequests(const QVariantMap &pendingJoinRequests)
-{
-    if (m_pendingJoinRequests != pendingJoinRequests)
-    {
-        m_pendingJoinRequests = pendingJoinRequests;
-        emit pendingJoinRequestsChanged();
-    }
-}
-void Chat::setReplyMarkupMessageId(qint64 replyMarkupMessageId)
-{
-    if (m_replyMarkupMessageId != replyMarkupMessageId)
-    {
-        m_replyMarkupMessageId = replyMarkupMessageId;
-        emit replyMarkupMessageIdChanged();
-    }
-}
-void Chat::setDraftMessage(Message *draftMessage)
-{
-    if (m_draftMessage != draftMessage)
-    {
-        m_draftMessage = draftMessage;
-        emit draftMessageChanged();
-    }
-}
-void Chat::setClientData(const QString &clientData)
-{
-    if (m_clientData != clientData)
-    {
-        m_clientData = clientData;
-        emit clientDataChanged();
-    }
+    return m_chatPosition ? m_chatPosition->order_ : 0;
 }
 
-void Chat::setFromVariantMap(const QVariantMap &map)
+bool Chat::isPinned() const noexcept
 {
-    setId(map.value("id").toLongLong());
-    setType(map.value("type").toMap());
-    setTitle(map.value("title").toString());
-    setPhoto(map.value("photo").toMap());
-    setAccentColorId(map.value("accent_color_id").toInt());
-    setBackgroundCustomEmojiId(map.value("background_custom_emoji_id").toLongLong());
-    setProfileAccentColorId(map.value("profile_accent_color_id").toInt());
-    setProfileBackgroundCustomEmojiId(map.value("profile_background_custom_emoji_id").toLongLong());
-    setPermissions(map.value("permissions").toMap());
+    return m_chatPosition ? m_chatPosition->is_pinned_ : false;
+}
 
-    if (map.contains("last_message"))
+bool Chat::isCurrentUser() const noexcept
+{
+    if (!m_chat || !m_chat->type_)
     {
-        QVariantMap last_message = map.value("last_message").toMap();
-        if (!m_lastMessage)
-        {
-            m_lastMessage = new Message(this);
+        return false;
+    }
+
+    const auto myId = m_storageManager->myId();
+
+    switch (m_chat->type_->get_id())
+    {
+        case td::td_api::chatTypeSecret::ID: {
+            const auto userId = static_cast<const td::td_api::chatTypeSecret *>(m_chat->type_.get())->user_id_;
+            return myId == userId;
         }
-        m_lastMessage->setFromVariantMap(last_message);
-        emit lastMessageChanged();
-    }
-
-    setPositions(map.value("positions").toList());
-    setChatLists(map.value("chat_lists").toList());
-    setMessageSenderId(map.value("message_sender_id").toMap());
-    setBlockList(map.value("block_list").toMap());
-    setHasProtectedContent(map.value("has_protected_content").toBool());
-    setIsTranslatable(map.value("is_translatable").toBool());
-    setIsMarkedAsUnread(map.value("is_marked_as_unread").toBool());
-    setViewAsTopics(map.value("view_as_topics").toBool());
-    setHasScheduledMessages(map.value("has_scheduled_messages").toBool());
-    setCanBeDeletedOnlyForSelf(map.value("can_be_deleted_only_for_self").toBool());
-    setCanBeDeletedForAllUsers(map.value("can_be_deleted_for_all_users").toBool());
-    setCanBeReported(map.value("can_be_reported").toBool());
-    setDefaultDisableNotification(map.value("default_disable_notification").toBool());
-    setUnreadCount(map.value("unread_count").toInt());
-    setLastReadInboxMessageId(map.value("last_read_inbox_message_id").toLongLong());
-    setLastReadOutboxMessageId(map.value("last_read_outbox_message_id").toLongLong());
-    setUnreadMentionCount(map.value("unread_mention_count").toInt());
-    setUnreadReactionCount(map.value("unread_reaction_count").toInt());
-    setNotificationSettings(map.value("notification_settings").toMap());
-    setAvailableReactions(map.value("available_reactions").toMap());
-    setMessageAutoDeleteTime(map.value("message_auto_delete_time").toInt());
-    setEmojiStatus(map.value("emoji_status").toMap());
-    setBackground(map.value("background").toMap());
-    setThemeName(map.value("theme_name").toString());
-    setActionBar(map.value("action_bar").toMap());
-    setBusinessBotManageBar(map.value("business_bot_manage_bar").toMap());
-    setVideoChat(map.value("video_chat").toMap());
-    setPendingJoinRequests(map.value("pending_join_requests").toMap());
-    setReplyMarkupMessageId(map.value("reply_markup_message_id").toLongLong());
-
-    if (map.contains("draft_message"))
-    {
-        QVariantMap draftMessage = map.value("draft_message").toMap();
-        if (!m_draftMessage)
-        {
-            m_draftMessage = new Message(this);
+        case td::td_api::chatTypePrivate::ID: {
+            const auto userId = static_cast<const td::td_api::chatTypePrivate *>(m_chat->type_.get())->user_id_;
+            return myId == userId;
         }
-        m_draftMessage->setFromVariantMap(draftMessage);
-        emit draftMessageChanged();
+        default:
+            return false;
+    }
+}
+
+QString Chat::getTitle() const noexcept
+{
+    if (isCurrentUser() && m_showSavedMessages)
+    {
+        return Locale::instance().getString("SavedMessages");
     }
 
-    setClientData(map.value("client_data").toString());
+    const auto title = QString::fromStdString(m_chat->title_).trimmed();
+    return !title.isEmpty() ? title : Locale::instance().getString("HiddenName");
+}
+
+bool Chat::isMuted() const noexcept
+{
+    return getMuteDuration() > 0;
+}
+
+int Chat::getMuteDuration() const noexcept
+{
+    return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
+}
+
+bool Chat::isUnread() const noexcept
+{
+    return m_chat && (m_chat->is_marked_as_unread_ || m_chat->unread_count_ > 0);
+}
+
+void Chat::onDataChanged(td::td_api::Object *object)
+{
+    auto handleChatUpdate = [&](auto *value, bool emitSignal = false) {
+        if (value->chat_id_ != m_chat->id_)
+            return;
+
+        m_chat = m_storageManager->getChat(value->chat_id_);
+        if (emitSignal)
+        {
+            m_chatPosition = calculateChatPosition();
+
+            emit chatPositionUpdated(value->chat_id_);
+        }
+        emit chatItemUpdated(value->chat_id_);
+    };
+
+    switch (object->get_id())
+    {
+        case td::td_api::updateChatTitle::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatTitle *>(object));
+            break;
+        case td::td_api::updateChatPhoto::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatPhoto *>(object));
+            break;
+        case td::td_api::updateChatPermissions::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatPermissions *>(object));
+            break;
+        case td::td_api::updateChatLastMessage::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatLastMessage *>(object), true);
+            break;
+        case td::td_api::updateChatPosition::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatPosition *>(object), true);
+            break;
+        case td::td_api::updateChatReadInbox::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatReadInbox *>(object));
+            break;
+        case td::td_api::updateChatReadOutbox::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatReadOutbox *>(object));
+            break;
+        case td::td_api::updateChatActionBar::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatActionBar *>(object));
+            break;
+        case td::td_api::updateChatDraftMessage::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatDraftMessage *>(object), true);
+            break;
+        case td::td_api::updateChatNotificationSettings::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatNotificationSettings *>(object));
+            break;
+        case td::td_api::updateChatReplyMarkup::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatReplyMarkup *>(object));
+            break;
+        case td::td_api::updateChatUnreadMentionCount::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatUnreadMentionCount *>(object));
+            break;
+        case td::td_api::updateChatIsMarkedAsUnread::ID:
+            handleChatUpdate(static_cast<td::td_api::updateChatIsMarkedAsUnread *>(object));
+            break;
+        default:
+            break;
+    }
+}
+
+td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() noexcept
+{
+    if (!m_chat || m_chat->positions_.empty())
+    {
+        return nullptr;
+    }
+
+    const auto &positions = m_chat->positions_;
+
+    const auto findPosition = [&](int id,
+                                  std::function<bool(const td::td_api::ChatList &)> &&folder = nullptr) -> td::td_api::object_ptr<td::td_api::chatPosition> {
+        for (const auto &position : positions)
+        {
+            if (const auto &list = position->list_; list->get_id() == id && (!folder || folder(*list)))
+            {
+                return td::td_api::make_object<td::td_api::chatPosition>(Utils::toChatList(m_chatList), position->order_, position->is_pinned_, nullptr);
+                ;
+            }
+        }
+        return nullptr;
+    };
+
+    switch (m_chatList.type)
+    {
+        case TdApi::ChatListMain:
+            return findPosition(td::td_api::chatListMain::ID);
+        case TdApi::ChatListArchive:
+            return findPosition(td::td_api::chatListArchive::ID);
+        case TdApi::ChatListFolder: {
+            auto folder = [this](const td::td_api::ChatList &list) {
+                return static_cast<const td::td_api::chatListFolder &>(list).chat_folder_id_ == m_chatList.folderId;
+            };
+            return findPosition(td::td_api::chatListFolder::ID, folder);
+        }
+        default:
+            return nullptr;
+    }
 }

@@ -20,17 +20,17 @@ QString chatTypeString(const td::td_api::object_ptr<td::td_api::ChatType> &type)
     switch (type->get_id())
     {
         case td::td_api::chatTypePrivate::ID:
-            return "private";
+            return "Private";
 
         case td::td_api::chatTypeSecret::ID:
-            return "secret";
+            return "Secret";
 
         case td::td_api::chatTypeBasicGroup::ID:
-            return "group";
+            return "Group";
 
         case td::td_api::chatTypeSupergroup::ID: {
             const auto *value = static_cast<const td::td_api::chatTypeSupergroup *>(type.get());
-            return value->is_channel_ ? "channel" : "supergroup";
+            return value->is_channel_ ? "Channel" : "Supergroup";
         }
 
         default:
@@ -42,13 +42,10 @@ QString chatTypeString(const td::td_api::object_ptr<td::td_api::ChatType> &type)
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_storageManager(&StorageManager::instance())
     , m_client(StorageManager::instance().client())
     , m_locale(&Locale::instance())
+    , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(chatItemUpdated(qint64)), this, SLOT(handleChatItem(qint64)));
-    connect(m_storageManager, SIGNAL(chatPositionUpdated(qint64)), this, SLOT(handleChatPosition(qint64)));
-
     connect(&m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
     connect(&m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
 
@@ -75,7 +72,7 @@ bool ChatModel::canFetchMore(const QModelIndex &parent) const
     if (parent.isValid())
         return false;
 
-    return m_count < static_cast<int>(m_chatIds.size());
+    return m_count < static_cast<int>(m_chats.size());
 }
 
 void ChatModel::fetchMore(const QModelIndex &parent)
@@ -83,7 +80,7 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     if (parent.isValid())
         return;
 
-    const auto itemsToFetch = std::min(ChatSliceLimit, static_cast<int>(m_chatIds.size()) - m_count);
+    const auto itemsToFetch = std::min(ChatSliceLimit, static_cast<int>(m_chats.size()) - m_count);
 
     if (itemsToFetch <= 0)
         return;
@@ -102,17 +99,17 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return {};
 
-    const auto chatId = m_chatIds.at(index.row());
-    const auto chat = m_storageManager->getChat(chatId);
+    const auto chat_ = m_chats.at(index.row());
+    const auto chat = m_storageManager->getChat(chat_->id());
 
     switch (role)
     {
         case IdRole:
-            return QString::number(chatId);
+            return QVariant::fromValue(chat_->id());
         case TypeRole:
             return detail::chatTypeString(chat->type_);
         case TitleRole:
-            return Utils::getChatTitle(chatId, m_storageManager, m_locale, true);
+            return chat_->getTitle();
         case PhotoRole: {
             if (const auto &chatPhoto = chat->photo_; chatPhoto)
             {
@@ -136,13 +133,13 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return Utils::getMessageDate(*chat->last_message_, m_locale);
         }
         case IsPinnedRole:
-            return Utils::getChatPosition(chat, m_chatList)->is_pinned_;
+            return chat_->isPinned();
         case UnreadCountRole:
-            return chat->unread_count_;
+            return chat_->unreadCount();
         case UnreadMentionCountRole:
-            return chat->unread_mention_count_;
+            return chat_->unreadMentionCount();
         case IsMutedRole:
-            return chat->notification_settings_->mute_for_ > 0;
+            return chat_->isMuted();
         default:
             return {};
     }
@@ -258,12 +255,12 @@ void ChatModel::toggleChatNotificationSettings(int index)
 
 void ChatModel::populate()
 {
-    m_chatIds.clear();
+    m_chats.clear();
 
     ChatListComparator comparator;
     auto targetChatList = Utils::toChatList(m_chatList);
 
-    m_chatIds.reserve(m_storageManager->getChatIds().size());  // Reserve memory to avoid multiple reallocations
+    m_chats.reserve(m_storageManager->getChatIds().size());  // Reserve memory to avoid multiple reallocations
 
     for (const auto &id : m_storageManager->getChatIds())
     {
@@ -271,7 +268,12 @@ void ChatModel::populate()
 
         if (std::ranges::any_of(chat->positions_, [&](const auto &position) { return comparator(position->list_, targetChatList); }))
         {
-            m_chatIds.push_back(id);
+            auto newChat = std::make_shared<Chat>(id, m_chatList);
+
+            connect(newChat.get(), SIGNAL(chatItemUpdated(qint64)), this, SLOT(handleChatItem(qint64)));
+            connect(newChat.get(), SIGNAL(chatPositionUpdated(qint64)), this, SLOT(handleChatPosition(qint64)));
+
+            m_chats.emplace_back(newChat);
 
             if (const auto &chatPhoto = chat->photo_; chatPhoto)
             {
@@ -290,7 +292,7 @@ void ChatModel::populate()
 
     sortChats();
 
-    if (!m_chatIds.empty())
+    if (!m_chats.empty())
     {
         fetchMore();
     }
@@ -299,7 +301,7 @@ void ChatModel::populate()
 void ChatModel::clear()
 {
     beginResetModel();
-    m_chatIds.clear();
+    m_chats.clear();
     m_count = 0;
     endResetModel();
 
@@ -317,44 +319,20 @@ void ChatModel::refresh()
     emit loadingChanged();
 }
 
-struct Sorter
-{
-    StorageManager *const store;
-    const ChatList &chatList;
-
-    bool operator()(auto a, auto b) const
-    {
-        const auto chatA = store->getChat(a);
-        const auto chatB = store->getChat(b);
-
-        if (!chatA || !chatB)
-        {
-            return false;
-        }
-
-        auto orderA = Utils::getChatPosition(chatA, chatList)->order_;
-        auto orderB = Utils::getChatPosition(chatB, chatList)->order_;
-
-        return orderA > orderB;
-    }
-};
-
 void ChatModel::sortChats()
 {
     emit layoutAboutToBeChanged();
 
-    Sorter sorter{m_storageManager, m_chatList};
-
-    std::ranges::sort(m_chatIds, sorter);
+    std::ranges::sort(m_chats, std::ranges::greater{}, &Chat::getOrder);
 
     emit layoutChanged();
 }
 
 void ChatModel::handleChatItem(qint64 chatId)
 {
-    if (auto it = std::ranges::find(m_chatIds, chatId); it != m_chatIds.end())
+    if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
     {
-        auto index = std::distance(m_chatIds.begin(), it);
+        auto index = std::distance(m_chats.begin(), it);
         QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
         emit dataChanged(modelIndex, modelIndex);
     }
@@ -362,7 +340,7 @@ void ChatModel::handleChatItem(qint64 chatId)
 
 void ChatModel::handleChatPosition(qint64 chatId)
 {
-    if (auto it = std::ranges::find(m_chatIds, chatId); it != m_chatIds.end())
+    if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
     {
         // emit delayed event
         if (not m_sortTimer.isActive())

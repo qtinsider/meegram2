@@ -42,10 +42,8 @@ public:
     [[nodiscard]] qint64 myId() const noexcept;
 
 signals:
-    void chatItemUpdated(qint64 chatId);
-    void chatPositionUpdated(qint64 chatId);
-
     void chatFoldersChanged();
+    void dataChanged(td::td_api::Object *object);
 
 private slots:
     void handleResult(td::td_api::Object *object);
@@ -61,6 +59,15 @@ private:
             return it->second.get();
         }
         return nullptr;
+    }
+
+    void updateAndEmit(td::td_api::Object *object, auto &container, auto &value, auto &&updateFunc)
+    {
+        if (auto it = container.find(value.chat_id_); it != container.end())
+        {
+            updateFunc(it->second, value);
+            emit dataChanged(object);
+        }
     }
 
     void setChatPositions(qint64 chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;
