@@ -10,6 +10,7 @@ class LottieAnimation : public QDeclarativeItem
     Q_OBJECT
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(Status status READ status WRITE setStatus NOTIFY statusChanged)
+    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount NOTIFY loopCountChanged)
 
     Q_ENUMS(Status)
 public:
@@ -17,27 +18,32 @@ public:
 
     enum Status { Null, Loading, Ready, Error };
 
-    Status status() const;
+    Status status() const noexcept;
     void setStatus(Status status);
 
-    QUrl source() const;
+    QUrl source() const noexcept;
     void setSource(const QUrl &source);
 
-    Q_INVOKABLE void play();
-    Q_INVOKABLE void stop();
+    int loopCount() const noexcept;
+    void setLoopCount(int loopCount);
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+public slots:
+    void play();
+    void stop();
 
 signals:
     void sourceChanged();
     void statusChanged();
     void finished();
+    void loopCountChanged();
 
 protected:
-    void componentComplete() override;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
+
+    void componentComplete();
 
 private slots:
-    void renderNextFrame();
+    void updateFrame();
 
 private:
     void loadContent();
@@ -45,14 +51,17 @@ private:
 
     static QString urlToLocalFileOrQrc(const QUrl &url);
 
-    int m_currentFrame{};
-    int m_frameCount{};
-    int m_frameRate = 60;  // 60 FPS
+    int m_frameCount{0};
+    int m_currentFrame{0};
+    int m_loopCount{-1};
+    int m_loopIteration{0};
+    int m_frameRate{30};  // 30 FPS
+
+    Status m_status{Status::Null};
 
     QUrl m_source;
     QTimer m_frameTimer;
-
-    Status m_status = Status::Null;
+    QPixmap m_cachedPixmap;
 
     std::unique_ptr<rlottie::Animation> m_animation;
 };

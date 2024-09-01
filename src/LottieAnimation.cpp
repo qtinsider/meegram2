@@ -24,7 +24,6 @@ std::optional<std::string> loadFileContent(const QString &path)
 
     // Check if the file has a .tgs extension
     bool isTgsFile = path.endsWith(".tgs", Qt::CaseInsensitive);
-    qDebug() << "File" << path << "is TGS format:" << isTgsFile;
 
     constexpr size_t checkSize = 512;
     std::vector<char> checkBuffer(checkSize);
@@ -48,7 +47,6 @@ std::optional<std::string> loadFileContent(const QString &path)
 
     if (isTgsFile || (checkBuffer[0] == 0x1F && checkBuffer[1] == 0x8B))
     {
-        qDebug() << "Decompressing file:" << path;
 
         std::string result;
         result.reserve(byteArray.size());  // Reserve initial space
@@ -89,12 +87,11 @@ std::optional<std::string> loadFileContent(const QString &path)
         } while (ret != Z_STREAM_END);
 
         inflateEnd(&zs);
-        qDebug() << "Decompression completed successfully.";
+
         return result;
     }
     else
     {
-        qDebug() << "File is not compressed or not a TGS format, returning content as-is.";
         return std::string(byteArray.data(), byteArray.size());
     }
 }
@@ -105,17 +102,24 @@ LottieAnimation::LottieAnimation(QDeclarativeItem *parent)
     : QDeclarativeItem(parent)
 {
     setFlag(QGraphicsItem::ItemHasNoContents, false);
-
-    m_frameTimer.setSingleShot(false);
-    connect(&m_frameTimer, SIGNAL(timeout()), this, SLOT(renderNextFrame()));
+    connect(&m_frameTimer, SIGNAL(timeout()), this, SLOT(updateFrame()));
 }
 
-LottieAnimation::Status LottieAnimation::status() const
+LottieAnimation::Status LottieAnimation::status() const noexcept
 {
     return m_status;
 }
 
-QUrl LottieAnimation::source() const
+void LottieAnimation::setStatus(Status status)
+{
+    if (status == m_status)
+        return;
+
+    m_status = status;
+    emit statusChanged();
+}
+
+QUrl LottieAnimation::source() const noexcept
 {
     return m_source;
 }
@@ -132,9 +136,24 @@ void LottieAnimation::setSource(const QUrl &source)
         loadContent();
 }
 
+int LottieAnimation::loopCount() const noexcept
+{
+    return m_loopCount;
+}
+
+void LottieAnimation::setLoopCount(int loopCount)
+{
+    if (m_loopCount == loopCount)
+        return;
+
+    m_loopCount = loopCount;
+    emit loopCountChanged();
+}
+
 void LottieAnimation::play()
 {
     m_currentFrame = 0;
+    m_loopIteration = 0;
     m_frameTimer.start();
 }
 
@@ -145,61 +164,72 @@ void LottieAnimation::stop()
 
 void LottieAnimation::paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *)
 {
-    if (!m_animation)
-        return;
-
-    QImage image(QSize(width(), height()), QImage::Format_ARGB32_Premultiplied);
-
-    auto surface = rlottie::Surface(reinterpret_cast<uint32_t *>(image.bits()), image.width(), image.height(), image.bytesPerLine());
-    m_animation->renderSync(m_currentFrame, std::move(surface));
-
-    painter->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-    painter->drawImage(QPoint(0, 0), image);
-}
-
-void LottieAnimation::renderNextFrame()
-{
-    if (++m_currentFrame < m_frameCount)
+    if (!m_cachedPixmap.isNull())
     {
-        update();
-    }
-    else if (m_currentFrame == m_frameCount)
-    {
-        m_frameTimer.stop();
-        emit finished();
+        // If frame is cached, draw the cached pixmap
+        painter->drawPixmap(0, 0, m_cachedPixmap);
     }
 }
 
-void LottieAnimation::setStatus(Status status)
+void LottieAnimation::componentComplete()
 {
-    if (status == m_status)
-        return;
+    QDeclarativeItem::componentComplete();
 
-    m_status = status;
-    emit statusChanged();
+    if (m_source.isValid())
+        loadContent();
+}
+
+void LottieAnimation::updateFrame()
+{
+    if (m_currentFrame >= m_frameCount)
+    {
+        if (m_loopCount == -1 || m_loopIteration < m_loopCount)
+        {
+            m_currentFrame = 0;
+            ++m_loopIteration;
+            m_cachedPixmap = {};  // Clear cache for the next loop iteration
+        }
+        else
+        {
+            stop();
+            emit finished();
+            return;
+        }
+    }
+
+    // Render the current frame and update cache
+    if (m_currentFrame < m_frameCount)
+    {
+        QImage image(QSize(width(), height()), QImage::Format_ARGB32_Premultiplied);
+        auto surface = rlottie::Surface(reinterpret_cast<uint32_t *>(image.bits()), image.width(), image.height(), image.bytesPerLine());
+        m_animation->renderSync(m_currentFrame, std::move(surface));
+        m_cachedPixmap = QPixmap::fromImage(std::move(image));
+
+        update();  // Request a repaint
+    }
+
+    ++m_currentFrame;
 }
 
 void LottieAnimation::loadContent()
 {
-    setStatus(Loading);
+    setStatus(Status::Loading);
 
     const auto filePath = urlToLocalFileOrQrc(m_source);
-    qDebug() << "Loading content from:" << filePath;
-
     if (const auto result = loadFileContent(filePath); result)
     {
-        m_animation = rlottie::Animation::loadFromData(*result, std::string(), std::string(), false);
+        m_animation = rlottie::Animation::loadFromData(*result, {}, {}, false);
         if (m_animation)
         {
             initializeAnimation();
-            setStatus(Ready);
+            setStatus(Status::Ready);
             update();  // Ensure the item is updated after loading content
             return;
         }
     }
 
     qDebug() << "Failed to load animation from:" << filePath;
-    setStatus(Error);
+    setStatus(Status::Error);
 }
 
 void LottieAnimation::initializeAnimation()
@@ -214,7 +244,7 @@ void LottieAnimation::initializeAnimation()
     m_frameCount = m_animation->totalFrame();
     m_frameRate = m_animation->frameRate();
 
-    m_frameTimer.setInterval(1000 / m_frameRate);
+    m_frameTimer.setInterval(1000 / m_frameRate);  // Set timer interval based on frame rate
 }
 
 QString LottieAnimation::urlToLocalFileOrQrc(const QUrl &url)
@@ -225,12 +255,4 @@ QString LottieAnimation::urlToLocalFileOrQrc(const QUrl &url)
     }
 
     return url.toLocalFile();
-}
-
-void LottieAnimation::componentComplete()
-{
-    QDeclarativeItem::componentComplete();
-
-    if (m_source.isValid())
-        loadContent();
 }
