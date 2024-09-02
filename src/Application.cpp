@@ -12,10 +12,10 @@
 
 Application::Application(QObject *parent)
     : QObject(parent)
-    , m_storageManager(&StorageManager::instance())
     , m_client(StorageManager::instance().client())
     , m_locale(&Locale::instance())
     , m_settings(&Settings::instance())
+    , m_storageManager(&StorageManager::instance())
 {
 
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));

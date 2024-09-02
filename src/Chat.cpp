@@ -10,7 +10,7 @@ Chat::Chat(QObject *parent)
     : QObject(parent)
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
 Chat::Chat(qint64 chatId, ChatList chatList, QObject *parent)

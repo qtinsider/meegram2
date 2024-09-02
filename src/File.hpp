@@ -1,62 +1,68 @@
 #pragma once
 
+#include <td/telegram/td_api.h>
+
 #include <QObject>
-#include <QVariant>
+
+class Client;
+class StorageManager;
 
 class File : public QObject
 {
     Q_OBJECT
 
     Q_PROPERTY(int id READ id NOTIFY fileChanged)
+
+    Q_PROPERTY(int size READ size NOTIFY fileChanged)
+    Q_PROPERTY(int expectedSize READ expectedSize NOTIFY fileChanged)
+
+    Q_PROPERTY(QString localPath READ localPath NOTIFY fileChanged)
+
+    Q_PROPERTY(bool isDownloadingActive READ isDownloadingActive NOTIFY fileChanged)
+    Q_PROPERTY(bool isDownloadingCompleted READ isDownloadingCompleted NOTIFY fileChanged)
+
     Q_PROPERTY(QString remoteId READ remoteId NOTIFY fileChanged)
     Q_PROPERTY(QString remoteUniqueId READ remoteUniqueId NOTIFY fileChanged)
-    Q_PROPERTY(QString localPath READ localPath NOTIFY fileChanged)
-    Q_PROPERTY(int expectedSize READ expectedSize NOTIFY fileChanged)
-    Q_PROPERTY(int downloadedSize READ downloadedSize NOTIFY fileChanged)
-    Q_PROPERTY(int uploadedSize READ uploadedSize NOTIFY fileChanged)
 
-    Q_PROPERTY(bool hasDownloaded READ hasDownloaded NOTIFY fileChanged)
-    Q_PROPERTY(bool isDownloading READ isDownloading NOTIFY fileChanged)
-    Q_PROPERTY(bool hasUploaded READ hasUploaded NOTIFY fileChanged)
-    Q_PROPERTY(bool isUploading READ isUploading NOTIFY fileChanged)
+    Q_PROPERTY(qint64 uploadedSize READ uploadedSize NOTIFY fileChanged)
+    Q_PROPERTY(bool isUploadingActive READ isUploadingActive NOTIFY fileChanged)
+    Q_PROPERTY(bool isUploadingCompleted READ isUploadingCompleted NOTIFY fileChanged)
 
 public:
     explicit File(QObject *parent = nullptr);
 
     int id() const;
+
+    int size() const;
+    int expectedSize() const;
+
+    QString localPath() const;
+
+    bool isDownloadingActive() const;
+    bool isDownloadingCompleted() const;
+
     QString remoteId() const;
     QString remoteUniqueId() const;
-    QString localPath() const;
-    int expectedSize() const;
-    int downloadedSize() const;
-    int uploadedSize() const;
 
-    bool hasDownloaded() const;
-    bool isDownloading() const;
-    bool hasUploaded() const;
-    bool isUploading() const;
+    qint64 uploadedSize() const;
+    bool isUploadingActive() const;
+    bool isUploadingCompleted() const;
 
-    Q_INVOKABLE void startDownload();
-    Q_INVOKABLE void stopDownload();
-    Q_INVOKABLE void stopUpload();
+    Q_INVOKABLE void downloadFile();
+    Q_INVOKABLE void cancelDownloadFile();
+    Q_INVOKABLE void cancelUploadFile();
 
-    void setFromVariantMap(const QVariantMap &map);
+    void setFile(td::td_api::file *file);
 
 signals:
-    void fileChanged();
+    void fileChanged(int fileId);
+
+private slots:
+    void onDataChanged(td::td_api::Object *object);
 
 private:
-    QString m_remoteId;
-    QString m_remoteUniqueId;
-    QString m_localPath;
+    td::td_api::file *m_file;
 
-    int m_id;
-    int m_expectedSize;
-    int m_downloadedSize;
-    int m_uploadedSize;
-
-    bool m_hasDownloaded;
-    bool m_isDownloading;
-    bool m_hasUploaded;
-    bool m_isUploading;
+    Client *m_client{};
+    StorageManager *m_storageManager{};
 };

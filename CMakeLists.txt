@@ -34,7 +34,7 @@ set(src_files
     src/Client.cpp
     src/CountryModel.cpp
     src/DBusAdaptor.cpp
-    # src/File.cpp
+    src/File.cpp
     src/ImageProviders.cpp
     src/LanguagePackInfoModel.cpp
     src/Localization.cpp
@@ -69,7 +69,7 @@ set(header_files
     src/Common.hpp
     src/CountryModel.hpp
     src/DBusAdaptor.hpp
-    # src/File.hpp
+    src/File.hpp
     src/ImageProviders.hpp
     src/LanguagePackInfoModel.hpp
     src/Localization.hpp

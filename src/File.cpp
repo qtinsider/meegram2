@@ -1,92 +1,101 @@
 #include "File.hpp"
 
+#include "StorageManager.hpp"
+
 File::File(QObject *parent)
     : QObject(parent)
-    , m_remoteId("")
-    , m_remoteUniqueId("")
-    , m_localPath("")
-    , m_id(0)
-    , m_expectedSize(0)
-    , m_downloadedSize(0)
-    , m_uploadedSize(0)
-    , m_hasDownloaded(false)
-    , m_isDownloading(false)
-    , m_hasUploaded(false)
-    , m_isUploading(false)
+    , m_client(StorageManager::instance().client())
+    , m_storageManager(&StorageManager::instance())
 {
-}
-
-QString File::remoteId() const
-{
-    return m_remoteId;
-}
-
-QString File::remoteUniqueId() const
-{
-    return m_remoteUniqueId;
-}
-
-QString File::localPath() const
-{
-    return m_localPath;
+    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
 int File::id() const
 {
-    return m_id;
+    return m_file ? m_file->id_ : 0;
+}
+
+int File::size() const
+{
+    return m_file ? m_file->size_ : 0;
 }
 
 int File::expectedSize() const
 {
-    return m_expectedSize;
+    return m_file ? m_file->expected_size_ : 0;
 }
 
-int File::downloadedSize() const
+QString File::localPath() const
 {
-    return m_downloadedSize;
+    return m_file && m_file->local_ ? QString::fromStdString(m_file->local_->path_) : QString();
 }
 
-int File::uploadedSize() const
+bool File::isDownloadingActive() const
 {
-    return m_uploadedSize;
+    return m_file && m_file->local_ && m_file->local_->is_downloading_active_;
 }
 
-bool File::hasDownloaded() const
+bool File::isDownloadingCompleted() const
 {
-    return m_hasDownloaded;
+    return m_file && m_file->local_ && m_file->local_->is_downloading_completed_;
 }
 
-bool File::isDownloading() const
+QString File::remoteId() const
 {
-    return m_isDownloading;
+    return m_file && m_file->remote_ ? QString::fromStdString(m_file->remote_->id_) : QString();
 }
 
-bool File::hasUploaded() const
+QString File::remoteUniqueId() const
 {
-    return m_hasUploaded;
+    return m_file && m_file->remote_ ? QString::fromStdString(m_file->remote_->unique_id_) : QString();
 }
 
-bool File::isUploading() const
+qint64 File::uploadedSize() const
 {
-    return m_isUploading;
+    return m_file && m_file->remote_ ? m_file->remote_->uploaded_size_ : 0;
 }
 
-void File::startDownload()
+bool File::isUploadingActive() const
 {
-
+    return m_file && m_file->remote_ && m_file->remote_->is_uploading_active_;
 }
 
-void File::stopDownload()
+bool File::isUploadingCompleted() const
 {
-
+    return m_file && m_file->remote_ && m_file->remote_->is_uploading_completed_;
 }
 
-void File::stopUpload()
+void File::downloadFile()
 {
-
+    m_client->send(td::td_api::make_object<td::td_api::downloadFile>(), {});
 }
 
-void File::setFromVariantMap(const QVariantMap &map)
+void File::cancelDownloadFile()
 {
+    m_client->send(td::td_api::make_object<td::td_api::cancelDownloadFile>(), {});
+}
 
+void File::cancelUploadFile()
+{
+    m_client->send(td::td_api::make_object<td::td_api::cancelPreliminaryUploadFile>(), {});
+}
+
+void File::setFile(td::td_api::file *file)
+{
+    m_file = file;
+
+    emit fileChanged(file->id_);
+}
+
+void File::onDataChanged(td::td_api::Object *object)
+{
+    if (object->get_id() == td::td_api::updateFile::ID)
+    {
+        auto file = static_cast<td::td_api::updateFile *>(object);
+        if (file->file_->id_ == m_file->id_)
+        {
+            m_file = m_storageManager->getFile(m_file->id_);
+            emit fileChanged(m_file->id_);
+        }
+    }
 }
