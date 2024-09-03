@@ -1,750 +1,890 @@
 #include "Message.hpp"
 
+#include "Localization.hpp"
+#include "StorageManager.hpp"
+#include "Utils.hpp"
+
+#include <QDateTime>
+#include <QStringList>
+
+#include <algorithm>
+#include <unordered_set>
+
+namespace {
+
+bool isMeUser(qint64 userId, StorageManager *store) noexcept
+{
+    return store->myId() == userId;
+}
+
+bool isChannelChat(const td::td_api::chat *chat) noexcept
+{
+    if (chat->type_->get_id() == td::td_api::chatTypeSupergroup::ID)
+    {
+        return static_cast<const td::td_api::chatTypeSupergroup *>(chat->type_.get())->is_channel_;
+    }
+
+    return false;
+}
+
+bool isSupergroup(const td::td_api::chat *chat) noexcept
+{
+    return chat->type_->get_id() == td::td_api::chatTypeSupergroup::ID;
+}
+
+QString getMessageAuthor(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser) noexcept
+{
+    const auto sender = static_cast<const td::td_api::MessageSender *>(message.sender_id_.get());
+    const QString linkStyle = "<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"";
+    const QString linkClose = "</a>";
+
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
+    {
+        const auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+        const auto userName = Utils::getUserShortName(userId, store, locale);
+
+        if (openUser)
+        {
+            return linkStyle + "userId://" + QString::number(userId) + "\">" + userName + linkClose;
+        }
+        return userName;
+    }
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
+    {
+        const auto chatId = static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_;
+        const auto chatTitle = QString::fromStdString(store->getChat(chatId)->title_);
+
+        if (openUser)
+        {
+            return linkStyle + "chatId://" + QString::number(chatId) + "\">" + chatTitle + linkClose;
+        }
+        return chatTitle;
+    }
+
+    return {};
+}
+
+QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) noexcept
+{
+    const auto user = store->getUser(userId);
+
+    switch (user->type_->get_id())
+    {
+        case td::td_api::userTypeBot::ID:
+        case td::td_api::userTypeRegular::ID: {
+            return QString::fromStdString(user->first_name_ + " " + user->last_name_).trimmed();
+        }
+        case td::td_api::userTypeDeleted::ID:
+        case td::td_api::userTypeUnknown::ID: {
+            return locale->getString("HiddenName");
+        }
+
+        default:
+            return QString();
+    }
+}
+
+QString getUserName(auto userId, StorageManager *store, Locale *locale, bool openUser)
+{
+    const auto userName = Utils::getUserShortName(userId, store, locale);
+    if (userName.isEmpty())
+    {
+        return QString();
+    }
+
+    QString result;
+    if (openUser)
+    {
+        result = QString("<a style=\"text-decoration: none; font-weight: bold; color: grey\" href=\"userId://%1\">%2</a>").arg(userId).arg(userName);
+    }
+    else
+    {
+        result = QString("<span style=\"color: grey\">%1</span>").arg(userName);
+    }
+
+    return result;
+}
+
+QString getCallContent(qint64 userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
+{
+    const auto isVideo = content.is_video_;
+    const auto &discardReason = content.discard_reason_;
+    const auto isMissed = discardReason->get_id() == td::td_api::callDiscardReasonMissed::ID;
+    const auto isBusy = discardReason->get_id() == td::td_api::callDiscardReasonDeclined::ID;
+    const auto isOutgoing = isMeUser(userId, store);
+
+    if (isMissed)
+    {
+        if (isOutgoing)
+        {
+            return isVideo ? locale->getString("CallMessageVideoOutgoingMissed") : locale->getString("CallMessageOutgoingMissed");
+        }
+        return isVideo ? locale->getString("CallMessageVideoIncomingMissed") : locale->getString("CallMessageIncomingMissed");
+    }
+
+    if (isBusy)
+    {
+        return isVideo ? locale->getString("CallMessageVideoIncomingDeclined") : locale->getString("CallMessageIncomingDeclined");
+    }
+
+    return isVideo ? (isOutgoing ? locale->getString("CallMessageVideoOutgoing") : locale->getString("CallMessageVideoIncoming"))
+                   : (isOutgoing ? locale->getString("CallMessageOutgoing") : locale->getString("CallMessageIncoming"));
+}
+
+QString getAudioTitle(const td::td_api::audio &audio) noexcept
+{
+    const auto fileName = QString::fromStdString(audio.file_name_);
+    const auto title = QString::fromStdString(audio.title_).trimmed();
+    const auto performer = QString::fromStdString(audio.performer_).trimmed();
+
+    if (title.isEmpty() && performer.isEmpty())
+        return fileName;
+
+    const auto artist = performer.isEmpty() ? "Unknown Artist" : performer;
+    const auto track = title.isEmpty() ? "Unknown Track" : title;
+
+    return artist + " - " + track;
+}
+
+}  // namespace
+
 Message::Message(QObject *parent)
     : QObject(parent)
-    , m_id(0)
-    , m_chatId(0)
-    , m_isOutgoing(false)
-    , m_isPinned(false)
-    , m_isFromOffline(false)
-    , m_canBeEdited(false)
-    , m_canBeForwarded(false)
-    , m_canBeRepliedInAnotherChat(false)
-    , m_canBeSaved(false)
-    , m_canBeDeletedOnlyForSelf(false)
-    , m_canBeDeletedForAllUsers(false)
-    , m_canGetAddedReactions(false)
-    , m_canGetStatistics(false)
-    , m_canGetMessageThread(false)
-    , m_canGetReadDate(false)
-    , m_canGetViewers(false)
-    , m_canGetMediaTimestampLinks(false)
-    , m_canReportReactions(false)
-    , m_hasTimestampedMedia(false)
-    , m_isChannelPost(false)
-    , m_isTopicMessage(false)
-    , m_containsUnreadMention(false)
-    , m_date(0)
-    , m_editDate(0)
-    , m_messageThreadId(0)
-    , m_savedMessagesTopicId(0)
-    , m_selfDestructIn(0.0)
-    , m_autoDeleteIn(0.0)
-    , m_viaBotUserId(0)
-    , m_senderBusinessBotUserId(0)
-    , m_senderBoostCount(0)
-    , m_authorSignature("")
-    , m_mediaAlbumId(0)
-    , m_effectId(0)
-    , m_restrictionReason("")
+    , m_locale(&Locale::instance())
+    , m_storageManager(&StorageManager::instance())
 {
+    m_chat = m_storageManager->getChat(m_message->chat_id_);
+
+    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+}
+
+Message::Message(td::td_api::message *message, QObject *parent)
+    : QObject(parent)
+    , m_message(message)
+    , m_locale(&Locale::instance())
+    , m_storageManager(&StorageManager::instance())
+{
+    m_chat = m_storageManager->getChat(message->chat_id_);
+
+    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
 qint64 Message::id() const
 {
-    return m_id;
-}
-void Message::setId(qint64 id)
-{
-    if (m_id != id)
-    {
-        m_id = id;
-        emit idChanged();
-    }
+    return 0;
 }
 
 QVariantMap Message::senderId() const
 {
-    return m_senderId;
-}
-void Message::setSenderId(const QVariantMap &senderId)
-{
-    if (m_senderId != senderId)
-    {
-        m_senderId = senderId;
-        emit senderIdChanged();
-    }
+    return {};
 }
 
 qint64 Message::chatId() const
 {
-    return m_chatId;
-}
-void Message::setChatId(qint64 chatId)
-{
-    if (m_chatId != chatId)
-    {
-        m_chatId = chatId;
-        emit chatIdChanged();
-    }
+    return 0;
 }
 
 QVariantMap Message::sendingState() const
 {
-    return m_sendingState;
-}
-void Message::setSendingState(const QVariantMap &sendingState)
-{
-    if (m_sendingState != sendingState)
-    {
-        m_sendingState = sendingState;
-        emit sendingStateChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::schedulingState() const
 {
-    return m_schedulingState;
-}
-void Message::setSchedulingState(const QVariantMap &schedulingState)
-{
-    if (m_schedulingState != schedulingState)
-    {
-        m_schedulingState = schedulingState;
-        emit schedulingStateChanged();
-    }
+    return {};
 }
 
 bool Message::isOutgoing() const
 {
-    return m_isOutgoing;
-}
-void Message::setIsOutgoing(bool isOutgoing)
-{
-    if (m_isOutgoing != isOutgoing)
-    {
-        m_isOutgoing = isOutgoing;
-        emit isOutgoingChanged();
-    }
+    return false;
 }
 
 bool Message::isPinned() const
 {
-    return m_isPinned;
-}
-void Message::setIsPinned(bool isPinned)
-{
-    if (m_isPinned != isPinned)
-    {
-        m_isPinned = isPinned;
-        emit isPinnedChanged();
-    }
+    return false;
 }
 
 bool Message::isFromOffline() const
 {
-    return m_isFromOffline;
-}
-void Message::setIsFromOffline(bool isFromOffline)
-{
-    if (m_isFromOffline != isFromOffline)
-    {
-        m_isFromOffline = isFromOffline;
-        emit isFromOfflineChanged();
-    }
+    return false;
 }
 
 bool Message::canBeEdited() const
 {
-    return m_canBeEdited;
-}
-void Message::setCanBeEdited(bool canBeEdited)
-{
-    if (m_canBeEdited != canBeEdited)
-    {
-        m_canBeEdited = canBeEdited;
-        emit canBeEditedChanged();
-    }
+    return false;
 }
 
 bool Message::canBeForwarded() const
 {
-    return m_canBeForwarded;
-}
-void Message::setCanBeForwarded(bool canBeForwarded)
-{
-    if (m_canBeForwarded != canBeForwarded)
-    {
-        m_canBeForwarded = canBeForwarded;
-        emit canBeForwardedChanged();
-    }
+    return false;
 }
 
 bool Message::canBeRepliedInAnotherChat() const
 {
-    return m_canBeRepliedInAnotherChat;
-}
-void Message::setCanBeRepliedInAnotherChat(bool canBeRepliedInAnotherChat)
-{
-    if (m_canBeRepliedInAnotherChat != canBeRepliedInAnotherChat)
-    {
-        m_canBeRepliedInAnotherChat = canBeRepliedInAnotherChat;
-        emit canBeRepliedInAnotherChatChanged();
-    }
+    return false;
 }
 
 bool Message::canBeSaved() const
 {
-    return m_canBeSaved;
-}
-void Message::setCanBeSaved(bool canBeSaved)
-{
-    if (m_canBeSaved != canBeSaved)
-    {
-        m_canBeSaved = canBeSaved;
-        emit canBeSavedChanged();
-    }
+    return false;
 }
 
 bool Message::canBeDeletedOnlyForSelf() const
 {
-    return m_canBeDeletedOnlyForSelf;
-}
-void Message::setCanBeDeletedOnlyForSelf(bool canBeDeletedOnlyForSelf)
-{
-    if (m_canBeDeletedOnlyForSelf != canBeDeletedOnlyForSelf)
-    {
-        m_canBeDeletedOnlyForSelf = canBeDeletedOnlyForSelf;
-        emit canBeDeletedOnlyForSelfChanged();
-    }
+    return false;
 }
 
 bool Message::canBeDeletedForAllUsers() const
 {
-    return m_canBeDeletedForAllUsers;
-}
-void Message::setCanBeDeletedForAllUsers(bool canBeDeletedForAllUsers)
-{
-    if (m_canBeDeletedForAllUsers != canBeDeletedForAllUsers)
-    {
-        m_canBeDeletedForAllUsers = canBeDeletedForAllUsers;
-        emit canBeDeletedForAllUsersChanged();
-    }
+    return false;
 }
 
 bool Message::canGetAddedReactions() const
 {
-    return m_canGetAddedReactions;
-}
-void Message::setCanGetAddedReactions(bool canGetAddedReactions)
-{
-    if (m_canGetAddedReactions != canGetAddedReactions)
-    {
-        m_canGetAddedReactions = canGetAddedReactions;
-        emit canGetAddedReactionsChanged();
-    }
+    return false;
 }
 
 bool Message::canGetStatistics() const
 {
-    return m_canGetStatistics;
-}
-void Message::setCanGetStatistics(bool canGetStatistics)
-{
-    if (m_canGetStatistics != canGetStatistics)
-    {
-        m_canGetStatistics = canGetStatistics;
-        emit canGetStatisticsChanged();
-    }
+    return false;
 }
 
 bool Message::canGetMessageThread() const
 {
-    return m_canGetMessageThread;
-}
-void Message::setCanGetMessageThread(bool canGetMessageThread)
-{
-    if (m_canGetMessageThread != canGetMessageThread)
-    {
-        m_canGetMessageThread = canGetMessageThread;
-        emit canGetMessageThreadChanged();
-    }
+    return false;
 }
 
 bool Message::canGetReadDate() const
 {
-    return m_canGetReadDate;
-}
-void Message::setCanGetReadDate(bool canGetReadDate)
-{
-    if (m_canGetReadDate != canGetReadDate)
-    {
-        m_canGetReadDate = canGetReadDate;
-        emit canGetReadDateChanged();
-    }
+    return false;
 }
 
 bool Message::canGetViewers() const
 {
-    return m_canGetViewers;
-}
-void Message::setCanGetViewers(bool canGetViewers)
-{
-    if (m_canGetViewers != canGetViewers)
-    {
-        m_canGetViewers = canGetViewers;
-        emit canGetViewersChanged();
-    }
+    return false;
 }
 
 bool Message::canGetMediaTimestampLinks() const
 {
-    return m_canGetMediaTimestampLinks;
-}
-void Message::setCanGetMediaTimestampLinks(bool canGetMediaTimestampLinks)
-{
-    if (m_canGetMediaTimestampLinks != canGetMediaTimestampLinks)
-    {
-        m_canGetMediaTimestampLinks = canGetMediaTimestampLinks;
-        emit canGetMediaTimestampLinksChanged();
-    }
+    return false;
 }
 
 bool Message::canReportReactions() const
 {
-    return m_canReportReactions;
-}
-void Message::setCanReportReactions(bool canReportReactions)
-{
-    if (m_canReportReactions != canReportReactions)
-    {
-        m_canReportReactions = canReportReactions;
-        emit canReportReactionsChanged();
-    }
+    return false;
 }
 
 bool Message::hasTimestampedMedia() const
 {
-    return m_hasTimestampedMedia;
-}
-void Message::setHasTimestampedMedia(bool hasTimestampedMedia)
-{
-    if (m_hasTimestampedMedia != hasTimestampedMedia)
-    {
-        m_hasTimestampedMedia = hasTimestampedMedia;
-        emit hasTimestampedMediaChanged();
-    }
+    return false;
 }
 
 bool Message::isChannelPost() const
 {
-    return m_isChannelPost;
-}
-void Message::setIsChannelPost(bool isChannelPost)
-{
-    if (m_isChannelPost != isChannelPost)
-    {
-        m_isChannelPost = isChannelPost;
-        emit isChannelPostChanged();
-    }
+    return false;
 }
 
 bool Message::isTopicMessage() const
 {
-    return m_isTopicMessage;
-}
-void Message::setIsTopicMessage(bool isTopicMessage)
-{
-    if (m_isTopicMessage != isTopicMessage)
-    {
-        m_isTopicMessage = isTopicMessage;
-        emit isTopicMessageChanged();
-    }
+    return false;
 }
 
 bool Message::containsUnreadMention() const
 {
-    return m_containsUnreadMention;
-}
-void Message::setContainsUnreadMention(bool containsUnreadMention)
-{
-    if (m_containsUnreadMention != containsUnreadMention)
-    {
-        m_containsUnreadMention = containsUnreadMention;
-        emit containsUnreadMentionChanged();
-    }
+    return false;
 }
 
 qint64 Message::date() const
 {
-    return m_date;
-}
-void Message::setDate(qint64 date)
-{
-    if (m_date != date)
-    {
-        m_date = date;
-        emit dateChanged();
-    }
+    return 0;
 }
 
-int Message::editDate() const
+qint64 Message::editDate() const
 {
-    return m_editDate;
-}
-void Message::setEditDate(int editDate)
-{
-    if (m_editDate != editDate)
-    {
-        m_editDate = editDate;
-        emit editDateChanged();
-    }
+    return 0;
 }
 
 QVariantMap Message::forwardInfo() const
 {
-    return m_forwardInfo;
-}
-void Message::setForwardInfo(const QVariantMap &forwardInfo)
-{
-    if (m_forwardInfo != forwardInfo)
-    {
-        m_forwardInfo = forwardInfo;
-        emit forwardInfoChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::importInfo() const
 {
-    return m_importInfo;
-}
-void Message::setImportInfo(const QVariantMap &importInfo)
-{
-    if (m_importInfo != importInfo)
-    {
-        m_importInfo = importInfo;
-        emit importInfoChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::interactionInfo() const
 {
-    return m_interactionInfo;
-}
-void Message::setInteractionInfo(const QVariantMap &interactionInfo)
-{
-    if (m_interactionInfo != interactionInfo)
-    {
-        m_interactionInfo = interactionInfo;
-        emit interactionInfoChanged();
-    }
+    return {};
 }
 
 QVariantList Message::unreadReactions() const
 {
-    return m_unreadReactions;
-}
-void Message::setUnreadReactions(const QVariantList &unreadReactions)
-{
-    if (m_unreadReactions != unreadReactions)
-    {
-        m_unreadReactions = unreadReactions;
-        emit unreadReactionsChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::factCheck() const
 {
-    return m_factCheck;
-}
-void Message::setFactCheck(const QVariantMap &factCheck)
-{
-    if (m_factCheck != factCheck)
-    {
-        m_factCheck = factCheck;
-        emit factCheckChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::replyTo() const
 {
-    return m_replyTo;
-}
-void Message::setReplyTo(const QVariantMap &replyTo)
-{
-    if (m_replyTo != replyTo)
-    {
-        m_replyTo = replyTo;
-        emit replyToChanged();
-    }
+    return {};
 }
 
 qint64 Message::messageThreadId() const
 {
-    return m_messageThreadId;
-}
-void Message::setMessageThreadId(qint64 messageThreadId)
-{
-    if (m_messageThreadId != messageThreadId)
-    {
-        m_messageThreadId = messageThreadId;
-        emit messageThreadIdChanged();
-    }
+    return 0;
 }
 
 qint64 Message::savedMessagesTopicId() const
 {
-    return m_savedMessagesTopicId;
-}
-void Message::setSavedMessagesTopicId(qint64 savedMessagesTopicId)
-{
-    if (m_savedMessagesTopicId != savedMessagesTopicId)
-    {
-        m_savedMessagesTopicId = savedMessagesTopicId;
-        emit savedMessagesTopicIdChanged();
-    }
+    return 0;
 }
 
 QVariantMap Message::selfDestructType() const
 {
-    return m_selfDestructType;
-}
-void Message::setSelfDestructType(const QVariantMap &selfDestructType)
-{
-    if (m_selfDestructType != selfDestructType)
-    {
-        m_selfDestructType = selfDestructType;
-        emit selfDestructTypeChanged();
-    }
+    return {};
 }
 
 double Message::selfDestructIn() const
 {
-    return m_selfDestructIn;
-}
-void Message::setSelfDestructIn(double selfDestructIn)
-{
-    if (m_selfDestructIn != selfDestructIn)
-    {
-        m_selfDestructIn = selfDestructIn;
-        emit selfDestructInChanged();
-    }
+    return 0.0;
 }
 
 double Message::autoDeleteIn() const
 {
-    return m_autoDeleteIn;
-}
-void Message::setAutoDeleteIn(double autoDeleteIn)
-{
-    if (m_autoDeleteIn != autoDeleteIn)
-    {
-        m_autoDeleteIn = autoDeleteIn;
-        emit autoDeleteInChanged();
-    }
+    return 0.0;
 }
 
 qint64 Message::viaBotUserId() const
 {
-    return m_viaBotUserId;
-}
-void Message::setViaBotUserId(qint64 viaBotUserId)
-{
-    if (m_viaBotUserId != viaBotUserId)
-    {
-        m_viaBotUserId = viaBotUserId;
-        emit viaBotUserIdChanged();
-    }
+    return 0;
 }
 
 qint64 Message::senderBusinessBotUserId() const
 {
-    return m_senderBusinessBotUserId;
-}
-void Message::setSenderBusinessBotUserId(qint64 senderBusinessBotUserId)
-{
-    if (m_senderBusinessBotUserId != senderBusinessBotUserId)
-    {
-        m_senderBusinessBotUserId = senderBusinessBotUserId;
-        emit senderBusinessBotUserIdChanged();
-    }
+    return 0;
 }
 
 int Message::senderBoostCount() const
 {
-    return m_senderBoostCount;
-}
-void Message::setSenderBoostCount(int senderBoostCount)
-{
-    if (m_senderBoostCount != senderBoostCount)
-    {
-        m_senderBoostCount = senderBoostCount;
-        emit senderBoostCountChanged();
-    }
+    return 0;
 }
 
 QString Message::authorSignature() const
 {
-    return m_authorSignature;
-}
-void Message::setAuthorSignature(const QString &authorSignature)
-{
-    if (m_authorSignature != authorSignature)
-    {
-        m_authorSignature = authorSignature;
-        emit authorSignatureChanged();
-    }
+    return {};
 }
 
 qint64 Message::mediaAlbumId() const
 {
-    return m_mediaAlbumId;
-}
-void Message::setMediaAlbumId(qint64 mediaAlbumId)
-{
-    if (m_mediaAlbumId != mediaAlbumId)
-    {
-        m_mediaAlbumId = mediaAlbumId;
-        emit mediaAlbumIdChanged();
-    }
+    return 0;
 }
 
 qint64 Message::effectId() const
 {
-    return m_effectId;
-}
-void Message::setEffectId(qint64 effectId)
-{
-    if (m_effectId != effectId)
-    {
-        m_effectId = effectId;
-        emit effectIdChanged();
-    }
+    return 0;
 }
 
 QString Message::restrictionReason() const
 {
-    return m_restrictionReason;
-}
-void Message::setRestrictionReason(const QString &restrictionReason)
-{
-    if (m_restrictionReason != restrictionReason)
-    {
-        m_restrictionReason = restrictionReason;
-        emit restrictionReasonChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::content() const
 {
-    return m_content;
-}
-void Message::setContent(const QVariantMap &content)
-{
-    if (m_content != content)
-    {
-        m_content = content;
-        emit contentChanged();
-    }
+    return {};
 }
 
 QVariantMap Message::replyMarkup() const
 {
-    return m_replyMarkup;
+    return {};
 }
-void Message::setReplyMarkup(const QVariantMap &replyMarkup)
+
+QString Message::getServiceMessageContent()
 {
-    if (m_replyMarkup != replyMarkup)
+    auto &sender = m_message->sender_id_;
+    auto &content = m_message->content_;
+    auto isOutgoing = m_message->is_outgoing_;
+
+    auto isChannel = isChannelChat(m_chat);
+
+    auto author = getMessageAuthor(*m_message, m_storageManager, m_locale, m_openUser);
+
+    switch (content->get_id())
     {
-        m_replyMarkup = replyMarkup;
-        emit replyMarkupChanged();
+        case td::td_api::messageExpiredPhoto::ID: {
+            return m_locale->getString("AttachPhotoExpired");
+        }
+        case td::td_api::messageExpiredVideo::ID: {
+            return m_locale->getString("AttachVideoExpired");
+        }
+        case td::td_api::messageBasicGroupChatCreate::ID: {
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouCreateGroup");
+            }
+
+            return m_locale->getString("ActionCreateGroup").replace("un1", author);
+        }
+        case td::td_api::messageSupergroupChatCreate::ID: {
+            if (isChannel)
+            {
+                return m_locale->getString("ActionCreateChannel");
+            }
+
+            return m_locale->getString("ActionCreateMega");
+        }
+        case td::td_api::messageChatChangeTitle::ID: {
+            const auto title = QString::fromStdString(static_cast<const td::td_api::messageChatChangeTitle *>(content.get())->title_);
+
+            if (isChannel)
+            {
+                return m_locale->getString("ActionChannelChangedTitle").replace("un2", title);
+            }
+
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouChangedTitle").replace("un2", title);
+            }
+
+            return m_locale->getString("ActionChangedTitle").replace("un1", author).replace("un2", title);
+        }
+        case td::td_api::messageChatChangePhoto::ID: {
+            if (isChannel)
+            {
+                return m_locale->getString("ActionChannelChangedPhoto");
+            }
+
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouChangedPhoto");
+            }
+
+            return m_locale->getString("ActionChangedPhoto").replace("un1", author);
+        }
+        case td::td_api::messageChatDeletePhoto::ID: {
+            if (isChannel)
+            {
+                return m_locale->getString("ActionChannelRemovedPhoto");
+            }
+
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouRemovedPhoto");
+            }
+
+            return m_locale->getString("ActionRemovedPhoto").replace("un1", author);
+        }
+        case td::td_api::messageChatAddMembers::ID: {
+            const auto &memberUserIds = static_cast<const td::td_api::messageChatAddMembers *>(content.get())->member_user_ids_;
+
+            if (memberUserIds.size() == 1)
+            {
+                auto memberUserId = memberUserIds[0];
+                if (static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_ == memberUserId)
+                {
+                    if (isSupergroup(m_chat) && isChannel)
+                    {
+                        return m_locale->getString("ChannelJoined");
+                    }
+
+                    if (isSupergroup(m_chat) && !isChannel)
+                    {
+                        if (isMeUser(memberUserId, m_storageManager))
+                        {
+                            return m_locale->getString("ChannelMegaJoined");
+                        }
+
+                        return m_locale->getString("ActionAddUserSelfMega").replace("un1", author);
+                    }
+
+                    if (isOutgoing)
+                    {
+                        return m_locale->getString("ActionAddUserSelfYou");
+                    }
+
+                    return m_locale->getString("ActionAddUserSelf").replace("un1", author);
+                }
+
+                if (isOutgoing)
+                {
+                    return m_locale->getString("ActionYouAddUser").replace("un2", getUserName(memberUserId, m_storageManager, m_locale, m_openUser));
+                }
+
+                if (isMeUser(memberUserId, m_storageManager))
+                {
+                    if (isSupergroup(m_chat))
+                    {
+                        if (!isChannel)
+                        {
+                            return m_locale->getString("MegaAddedBy").replace("un1", author);
+                        }
+
+                        return m_locale->getString("ChannelAddedBy").replace("un1", author);
+                    }
+
+                    return m_locale->getString("ActionAddUserYou").replace("un1", author);
+                }
+
+                return m_locale->getString("ActionAddUser")
+                    .replace("un1", author)
+                    .replace("un2", getUserName(memberUserId, m_storageManager, m_locale, m_openUser));
+            }
+
+            QStringList result;
+            for (const auto &userId : memberUserIds)
+            {
+                result << getUserName(userId, m_storageManager, m_locale, m_openUser);
+            }
+
+            auto users = result.join(", ");
+
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouAddUser").arg(users);
+            }
+
+            return m_locale->getString("ActionAddUser").replace("un1", author).replace("un2", users);
+        }
+        case td::td_api::messageChatJoinByLink::ID: {
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionInviteYou");
+            }
+
+            return m_locale->getString("ActionInviteUser").replace("un1", author);
+        }
+        case td::td_api::messageChatDeleteMember::ID: {
+            auto userId = static_cast<const td::td_api::messageChatDeleteMember *>(content.get())->user_id_;
+
+            if (userId == static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_)
+            {
+                if (isOutgoing)
+                {
+                    return m_locale->getString("ActionYouLeftUser");
+                }
+
+                return m_locale->getString("ActionLeftUser").replace("un1", author);
+            }
+
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionYouKickUser").replace("un2", getUserName(userId, m_storageManager, m_locale, m_openUser));
+            }
+            else if (isMeUser(userId, m_storageManager))
+            {
+                return m_locale->getString("ActionKickUserYou").replace("un1", author);
+            }
+
+            return m_locale->getString("ActionKickUser").replace("un1", author).replace("un2", getUserName(userId, m_storageManager, m_locale, m_openUser));
+        }
+        case td::td_api::messageChatUpgradeTo::ID: {
+            return m_locale->getString("ActionMigrateFromGroup");
+        }
+        case td::td_api::messageChatUpgradeFrom::ID: {
+            return m_locale->getString("ActionMigrateFromGroup");
+        }
+        case td::td_api::messagePinMessage::ID: {
+            return m_locale->getString("ActionPinned").replace("un1", author);
+        }
+        case td::td_api::messageScreenshotTaken::ID: {
+            if (isOutgoing)
+            {
+                return m_locale->getString("ActionTakeScreenshootYou");
+            }
+
+            return m_locale->getString("ActionTakeScreenshoot").replace("un1", author);
+        }
+        case td::td_api::messageCustomServiceAction::ID: {
+            return QString::fromStdString(static_cast<const td::td_api::messageCustomServiceAction *>(content.get())->text_);
+        }
+        case td::td_api::messageContactRegistered::ID: {
+            return m_locale->getString("NotificationContactJoined")
+                .arg(getUserName(static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_, m_storageManager, m_locale, m_openUser));
+        }
+        case td::td_api::messageUnsupported::ID: {
+            return m_locale->getString("UnsupportedMedia");
+        }
+    }
+
+    return m_locale->getString("UnsupportedMedia");
+}
+
+bool Message::isServiceMessage()
+{
+    const std::unordered_set<int> serviceMessageTypes = {
+        td::td_api::messageBasicGroupChatCreate::ID, td::td_api::messageChatAddMembers::ID,      td::td_api::messageChatChangePhoto::ID,
+        td::td_api::messageChatChangeTitle::ID,      td::td_api::messageChatDeleteMember::ID,    td::td_api::messageChatDeletePhoto::ID,
+        td::td_api::messageChatJoinByLink::ID,       td::td_api::messageChatUpgradeFrom::ID,     td::td_api::messageChatUpgradeTo::ID,
+        td::td_api::messageContactRegistered::ID,    td::td_api::messageCustomServiceAction::ID, td::td_api::messageExpiredPhoto::ID,
+        td::td_api::messageExpiredVideo::ID,         td::td_api::messageGameScore::ID,           td::td_api::messagePassportDataReceived::ID,
+        td::td_api::messagePassportDataSent::ID,     td::td_api::messagePaymentSuccessful::ID,   td::td_api::messagePaymentSuccessfulBot::ID,
+        td::td_api::messagePinMessage::ID,           td::td_api::messageScreenshotTaken::ID,     td::td_api::messageSupergroupChatCreate::ID,
+        td::td_api::messageUnsupported::ID,
+    };
+
+    if (m_message->content_)
+    {
+        const int contentId = m_message->content_->get_id();
+        return serviceMessageTypes.contains(contentId);
+    }
+
+    return false;
+}
+
+QString Message::getTitle() noexcept
+{
+    const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
+
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
+    {
+        auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+        return getUserFullName(userId, m_storageManager, m_locale);
+    }
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
+    {
+        auto chatId = static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_;
+        return QString::fromStdString(m_storageManager->getChat(chatId)->title_);
+    }
+
+    return {};
+}
+
+QString Message::getDate() noexcept
+{
+    const auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(m_message->date_) * 1000);
+    const auto days = date.daysTo(QDateTime::currentDateTime());
+
+    if (days == 0)
+    {
+        return date.toString(m_locale->getString("formatterDay12H"));
+    }
+    else if (days < 7)
+    {
+        return date.toString(m_locale->getString("formatterWeek"));
+    }
+
+    return date.toString(m_locale->getString("formatterYear"));
+}
+
+QString Message::getContent() noexcept
+{
+    const auto *content = m_message->content_.get();
+    const auto *sender = m_message->sender_id_.get();
+
+    // Helper function to sanitize and convert std::string_view to QString
+    const auto sanitizeText = [](std::string_view text) -> QString {
+        QString result;
+        result.reserve(static_cast<int>(text.size()));  // Reserve memory to avoid reallocations
+
+        for (char ch : text)
+        {
+            result.append((ch == '\n' || ch == '\r') ? ' ' : QChar(ch));
+        }
+        return result;
+    };
+
+    // Helper function to create caption text from formattedText
+    const auto captionText = [&](const td::td_api::formattedText &caption) -> QString { return QString(": ").append(sanitizeText(caption.text_)); };
+
+    // Use structured bindings to handle each case efficiently
+    switch (content->get_id())
+    {
+        case td::td_api::messageAnimation::ID: {
+            const auto *animation = static_cast<const td::td_api::messageAnimation *>(content);
+            return m_locale->getString("AttachGif").append(captionText(*animation->caption_));
+        }
+        case td::td_api::messageAudio::ID: {
+            const auto *audioMessage = static_cast<const td::td_api::messageAudio *>(content);
+            QString title = getAudioTitle(*audioMessage->audio_);
+            if (title.isEmpty())
+            {
+                title = m_locale->getString("AttachMusic");
+            }
+            return title.append(captionText(*audioMessage->caption_));
+        }
+        case td::td_api::messageCall::ID: {
+            const auto *call = static_cast<const td::td_api::messageCall *>(content);
+            const auto callText = getCallContent(static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_, *call, m_storageManager, m_locale);
+            if (const auto duration = call->duration_; duration > 0)
+            {
+                return m_locale->getString("CallMessageWithDuration").arg(callText).arg(m_locale->formatCallDuration(duration));
+            }
+            return callText;
+        }
+        case td::td_api::messageDocument::ID: {
+            const auto *documentMessage = static_cast<const td::td_api::messageDocument *>(content);
+            const auto &document = documentMessage->document_;
+            const QString fileName = QString::fromStdString(document->file_name_);
+            return QString(fileName.isEmpty() ? m_locale->getString("AttachDocument") : fileName).append(captionText(*documentMessage->caption_));
+        }
+        case td::td_api::messageInvoice::ID: {
+            const auto *invoice = static_cast<const td::td_api::messageInvoice *>(content);
+            return sanitizeText(invoice->product_info_->title_);
+        }
+        case td::td_api::messageLocation::ID:
+            return m_locale->getString("AttachLocation");
+        case td::td_api::messagePhoto::ID: {
+            const auto *photoMessage = static_cast<const td::td_api::messagePhoto *>(content);
+            return m_locale->getString("AttachPhoto").append(captionText(*photoMessage->caption_));
+        }
+        case td::td_api::messagePoll::ID: {
+            const auto *pollMessage = static_cast<const td::td_api::messagePoll *>(content);
+            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20").append(captionText(*pollMessage->poll_->question_));
+        }
+        case td::td_api::messageSticker::ID: {
+            const auto *stickerMessage = static_cast<const td::td_api::messageSticker *>(content);
+            return m_locale->getString("AttachSticker").append(": ").append(QString::fromStdString(stickerMessage->sticker_->emoji_));
+        }
+        case td::td_api::messageText::ID: {
+            const auto *textMessage = static_cast<const td::td_api::messageText *>(content);
+            return sanitizeText(textMessage->text_->text_);
+        }
+        case td::td_api::messageVideo::ID: {
+            const auto *videoMessage = static_cast<const td::td_api::messageVideo *>(content);
+            return m_locale->getString("AttachVideo").append(captionText(*videoMessage->caption_));
+        }
+        case td::td_api::messageVideoNote::ID:
+            return m_locale->getString("AttachRound");
+        case td::td_api::messageVoiceNote::ID: {
+            const auto *voiceNoteMessage = static_cast<const td::td_api::messageVoiceNote *>(content);
+            return m_locale->getString("AttachAudio").append(captionText(*voiceNoteMessage->caption_));
+        }
+        default:
+            if (isServiceMessage())
+            {
+                return getServiceMessageContent();
+            }
+            return m_locale->getString("UnsupportedAttachment");
     }
 }
 
-void Message::setFromVariantMap(const QVariantMap &map)
+QString Message::getSenderName() noexcept
 {
-    if (map.contains("id"))
-        setId(map["id"].toLongLong());
-    if (map.contains("sender_id"))
-        setSenderId(map["sender_id"].toMap());
-    if (map.contains("chat_id"))
-        setChatId(map["chat_id"].toLongLong());
-    if (map.contains("sending_state"))
-        setSendingState(map["sending_state"].toMap());
-    if (map.contains("scheduling_state"))
-        setSchedulingState(map["scheduling_state"].toMap());
-    if (map.contains("is_outgoing"))
-        setIsOutgoing(map["is_outgoing"].toBool());
-    if (map.contains("is_pinned"))
-        setIsPinned(map["is_pinned"].toBool());
-    if (map.contains("is_from_offline"))
-        setIsFromOffline(map["is_from_offline"].toBool());
-    if (map.contains("can_be_edited"))
-        setCanBeEdited(map["can_be_edited"].toBool());
-    if (map.contains("can_be_forwarded"))
-        setCanBeForwarded(map["can_be_forwarded"].toBool());
-    if (map.contains("can_be_replied_in_another_chat"))
-        setCanBeRepliedInAnotherChat(map["can_be_replied_in_another_chat"].toBool());
-    if (map.contains("can_be_saved"))
-        setCanBeSaved(map["can_be_saved"].toBool());
-    if (map.contains("can_be_deleted_only_for_self"))
-        setCanBeDeletedOnlyForSelf(map["can_be_deleted_only_for_self"].toBool());
-    if (map.contains("can_be_deleted_for_all_users"))
-        setCanBeDeletedForAllUsers(map["can_be_deleted_for_all_users"].toBool());
-    if (map.contains("can_get_added_reactions"))
-        setCanGetAddedReactions(map["can_get_added_reactions"].toBool());
-    if (map.contains("can_get_statistics"))
-        setCanGetStatistics(map["can_get_statistics"].toBool());
-    if (map.contains("can_get_message_thread"))
-        setCanGetMessageThread(map["can_get_message_thread"].toBool());
-    if (map.contains("can_get_read_date"))
-        setCanGetReadDate(map["can_get_read_date"].toBool());
-    if (map.contains("can_get_viewers"))
-        setCanGetViewers(map["can_get_viewers"].toBool());
-    if (map.contains("can_get_media_timestamp_links"))
-        setCanGetMediaTimestampLinks(map["can_get_media_timestamp_links"].toBool());
-    if (map.contains("can_report_reactions"))
-        setCanReportReactions(map["can_report_reactions"].toBool());
-    if (map.contains("has_timestamped_media"))
-        setHasTimestampedMedia(map["has_timestamped_media"].toBool());
-    if (map.contains("is_channel_post"))
-        setIsChannelPost(map["is_channel_post"].toBool());
-    if (map.contains("is_topic_message"))
-        setIsTopicMessage(map["is_topic_message"].toBool());
-    if (map.contains("contains_unread_mention"))
-        setContainsUnreadMention(map["contains_unread_mention"].toBool());
-    if (map.contains("date"))
-        setDate(map["date"].toLongLong());
-    if (map.contains("edit_date"))
-        setEditDate(map["edit_date"].toLongLong());
-    if (map.contains("forward_info"))
-        setForwardInfo(map["forward_info"].toMap());
-    if (map.contains("import_info"))
-        setImportInfo(map["import_info"].toMap());
-    if (map.contains("interaction_info"))
-        setInteractionInfo(map["interaction_info"].toMap());
-    if (map.contains("unread_reactions"))
-        setUnreadReactions(map["unread_reactions"].toList());
-    if (map.contains("fact_check"))
-        setFactCheck(map["fact_check"].toMap());
-    if (map.contains("reply_to"))
-        setReplyTo(map["reply_to"].toMap());
-    if (map.contains("message_thread_id"))
-        setMessageThreadId(map["message_thread_id"].toLongLong());
-    if (map.contains("saved_messages_topic_id"))
-        setSavedMessagesTopicId(map["saved_messages_topic_id"].toLongLong());
-    if (map.contains("self_destruct_type"))
-        setSelfDestructType(map["self_destruct_type"].toMap());
-    if (map.contains("self_destruct_in"))
-        setSelfDestructIn(map["self_destruct_in"].toDouble());
-    if (map.contains("auto_delete_in"))
-        setAutoDeleteIn(map["auto_delete_in"].toDouble());
-    if (map.contains("via_bot_user_id"))
-        setViaBotUserId(map["via_bot_user_id"].toLongLong());
-    if (map.contains("sender_business_bot_user_id"))
-        setSenderBusinessBotUserId(map["sender_business_bot_user_id"].toLongLong());
-    if (map.contains("sender_boost_count"))
-        setSenderBoostCount(map["sender_boost_count"].toInt());
-    if (map.contains("author_signature"))
-        setAuthorSignature(map["author_signature"].toString());
-    if (map.contains("media_album_id"))
-        setMediaAlbumId(map["media_album_id"].toLongLong());
-    if (map.contains("effect_id"))
-        setEffectId(map["effect_id"].toLongLong());
-    if (map.contains("restriction_reason"))
-        setRestrictionReason(map["restriction_reason"].toString());
-    if (map.contains("content"))
-        setContent(map["content"].toMap());
-    if (map.contains("reply_markup"))
-        setReplyMarkup(map["reply_markup"].toMap());
+    if (isServiceMessage())
+        return QString();
+
+    const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
+
+    switch (m_chat->type_->get_id())
+    {
+        case td::td_api::chatTypePrivate::ID:
+        case td::td_api::chatTypeSecret::ID:
+            return QString();
+
+        case td::td_api::chatTypeBasicGroup::ID:
+        case td::td_api::chatTypeSupergroup::ID: {
+            if (isChannelChat(m_chat))
+            {
+                return QString();
+            }
+
+            switch (sender->get_id())
+            {
+                case td::td_api::messageSenderUser::ID: {
+                    auto userId = static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+                    if (isMeUser(userId, m_storageManager))
+                        return m_locale->getString("FromYou");
+
+                    return Utils::getUserShortName(userId, m_storageManager, m_locale);
+                }
+                case td::td_api::messageSenderChat::ID:
+                    return Utils::getChatTitle(static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_, m_storageManager, m_locale);
+
+                default:
+                    return QString();
+                    ;
+            }
+        }
+
+        default:
+            return QString();
+    }
+}
+
+void Message::setMessage(td::td_api::message *message)
+{
+    m_message = message;
+
+    m_chat = m_storageManager->getChat(m_message->chat_id_);
+
+    emit dataChanged();
+}
+
+void Message::handleResult(td::td_api::Object *object)
+{
+    td::td_api::downcast_call(
+        *object,
+        detail::Overloaded{
+            [this](td::td_api::updateMessageSendSucceeded &value) { handleMessageSendSucceeded(std::move(value.message_), value.old_message_id_); },
+            [this](td::td_api::updateMessageSendFailed &value) {
+                handleMessageSendFailed(std::move(value.message_), value.old_message_id_, std::move(value.error_));
+            },
+            [this](td::td_api::updateMessageContent &value) { handleMessageContent(value.chat_id_, value.message_id_, std::move(value.new_content_)); },
+            [this](td::td_api::updateMessageEdited &value) {
+                handleMessageEdited(value.chat_id_, value.message_id_, value.edit_date_, std::move(value.reply_markup_));
+            },
+            [this](td::td_api::updateMessageIsPinned &value) { handleMessageIsPinned(value.chat_id_, value.message_id_, value.is_pinned_); },
+            [this](td::td_api::updateMessageInteractionInfo &value) {
+                handleMessageInteractionInfo(value.chat_id_, value.message_id_, std::move(value.interaction_info_));
+            },
+            [](auto &) {}});
+}
+
+void Message::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId)
+{
+    if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
+    {
+        emit dataChanged();
+    }
+}
+
+void Message::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId,
+                                      td::td_api::object_ptr<td::td_api::error> &&error)
+{
+    if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
+    {
+        emit dataChanged();
+    }
+}
+
+void Message::handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
+{
+    if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
+    {
+        m_message->content_ = std::move(newContent);
+        emit dataChanged();
+    }
+}
+
+void Message::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
+{
+    if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
+    {
+        m_message->edit_date_ = editDate;
+        m_message->reply_markup_ = std::move(replyMarkup);
+        emit dataChanged();
+    }
+}
+
+void Message::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
+{
+    if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
+    {
+        m_message->is_pinned_ = isPinned;
+        emit dataChanged();
+    }
+}
+
+void Message::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
+{
+    if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
+    {
+        m_message->interaction_info_ = std::move(interactionInfo);
+        emit dataChanged();
+    }
 }

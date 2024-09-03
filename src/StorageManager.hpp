@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Client.hpp"
-#include "Localization.hpp"
-#include "Settings.hpp"
 
 #include <td/telegram/td_api.h>
 
@@ -10,7 +8,6 @@
 #include <QVariant>
 
 #include <memory>
-#include <optional>
 #include <unordered_map>
 #include <vector>
 

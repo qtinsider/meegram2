@@ -10,6 +10,15 @@ File::File(QObject *parent)
     connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
+File::File(td::td_api::file *file, QObject *parent)
+    : QObject(parent)
+    , m_file(file)
+    , m_client(StorageManager::instance().client())
+    , m_storageManager(&StorageManager::instance())
+{
+    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+}
+
 int File::id() const
 {
     return m_file ? m_file->id_ : 0;
@@ -28,6 +37,11 @@ int File::expectedSize() const
 QString File::localPath() const
 {
     return m_file && m_file->local_ ? QString::fromStdString(m_file->local_->path_) : QString();
+}
+
+bool File::canBeDownloaded() const
+{
+    return m_file && m_file->local_ && m_file->local_->can_be_downloaded_;
 }
 
 bool File::isDownloadingActive() const
@@ -67,35 +81,35 @@ bool File::isUploadingCompleted() const
 
 void File::downloadFile()
 {
-    m_client->send(td::td_api::make_object<td::td_api::downloadFile>(), {});
+    m_client->send(td::td_api::make_object<td::td_api::downloadFile>(m_file->id_, 1, 0, 0, false), {});
 }
 
 void File::cancelDownloadFile()
 {
-    m_client->send(td::td_api::make_object<td::td_api::cancelDownloadFile>(), {});
+    m_client->send(td::td_api::make_object<td::td_api::cancelDownloadFile>(m_file->id_, false), {});
 }
 
 void File::cancelUploadFile()
 {
-    m_client->send(td::td_api::make_object<td::td_api::cancelPreliminaryUploadFile>(), {});
+    m_client->send(td::td_api::make_object<td::td_api::cancelPreliminaryUploadFile>(m_file->id_), {});
 }
 
 void File::setFile(td::td_api::file *file)
 {
     m_file = file;
 
-    emit fileChanged(file->id_);
+    emit fileChanged();
 }
 
 void File::onDataChanged(td::td_api::Object *object)
 {
     if (object->get_id() == td::td_api::updateFile::ID)
     {
-        auto file = static_cast<td::td_api::updateFile *>(object);
-        if (file->file_->id_ == m_file->id_)
+        if (auto file = m_storageManager->getFile(m_file->id_); file)
         {
-            m_file = m_storageManager->getFile(m_file->id_);
-            emit fileChanged(m_file->id_);
+            m_file = file;
+
+            emit fileChanged();  // Emit signal after updating
         }
     }
 }

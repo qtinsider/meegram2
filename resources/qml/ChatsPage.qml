@@ -117,17 +117,17 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.isPinned(listView.currentIndex)
-                    ? app.getString("UnpinFromTop") + app.emptyString
-                    : app.getString("PinToTop") + app.emptyString
-                onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
+                // text: myChatModel.isPinned(listView.currentIndex)
+                //     ? app.getString("UnpinFromTop") + app.emptyString
+                //     : app.getString("PinToTop") + app.emptyString
+                // onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
             }
 
             MenuItem {
-                text: myChatModel.isMuted(listView.currentIndex)
-                    ? app.getString("ChatsUnmute") + app.emptyString
-                    : app.getString("ChatsMute") + app.emptyString
-                onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
+                // text: myChatModel.isMuted(listView.currentIndex)
+                //     ? app.getString("ChatsUnmute") + app.emptyString
+                //     : app.getString("ChatsMute") + app.emptyString
+                // onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
             }
         }
     }

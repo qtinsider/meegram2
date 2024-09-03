@@ -96,7 +96,7 @@ void StorageManager::handleResult(td::td_api::Object *object)
         *object,
         detail::Overloaded{
             [this, object](td::td_api::updateNewChat &value) {
-                m_chats.emplace(value.chat_->id_, std::move(value.chat_));
+                m_chats.insert_or_assign(value.chat_->id_, std::move(value.chat_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateChatTitle &value) {
@@ -155,27 +155,27 @@ void StorageManager::handleResult(td::td_api::Object *object)
                 updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->is_marked_as_unread_ = v.is_marked_as_unread_; });
             },
             [this, object](td::td_api::updateUser &value) {
-                m_users.emplace(value.user_->id_, std::move(value.user_));
+                m_users.insert_or_assign(value.user_->id_, std::move(value.user_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateBasicGroup &value) {
-                m_basicGroup.emplace(value.basic_group_->id_, std::move(value.basic_group_));
+                m_basicGroup.insert_or_assign(value.basic_group_->id_, std::move(value.basic_group_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateSupergroup &value) {
-                m_supergroup.emplace(value.supergroup_->id_, std::move(value.supergroup_));
+                m_supergroup.insert_or_assign(value.supergroup_->id_, std::move(value.supergroup_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateUserFullInfo &value) {
-                m_userFullInfo.emplace(value.user_id_, std::move(value.user_full_info_));
+                m_userFullInfo.insert_or_assign(value.user_id_, std::move(value.user_full_info_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateBasicGroupFullInfo &value) {
-                m_basicGroupFullInfo.emplace(value.basic_group_id_, std::move(value.basic_group_full_info_));
+                m_basicGroupFullInfo.insert_or_assign(value.basic_group_id_, std::move(value.basic_group_full_info_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateSupergroupFullInfo &value) {
-                m_supergroupFullInfo.emplace(value.supergroup_id_, std::move(value.supergroup_full_info_));
+                m_supergroupFullInfo.insert_or_assign(value.supergroup_id_, std::move(value.supergroup_full_info_));
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateChatFolders &value) {
@@ -185,7 +185,7 @@ void StorageManager::handleResult(td::td_api::Object *object)
                 emit dataChanged(object);
             },
             [this, object](td::td_api::updateFile &value) {
-                m_files.emplace(value.file_->id_, std::move(value.file_));
+                m_files.insert_or_assign(value.file_->id_, std::move(value.file_));
                 emit dataChanged(object);
             },
             [this](td::td_api::updateOption &) {},

@@ -18,6 +18,7 @@ class File : public QObject
 
     Q_PROPERTY(QString localPath READ localPath NOTIFY fileChanged)
 
+    Q_PROPERTY(bool canBeDownloaded READ canBeDownloaded NOTIFY fileChanged)
     Q_PROPERTY(bool isDownloadingActive READ isDownloadingActive NOTIFY fileChanged)
     Q_PROPERTY(bool isDownloadingCompleted READ isDownloadingCompleted NOTIFY fileChanged)
 
@@ -30,6 +31,7 @@ class File : public QObject
 
 public:
     explicit File(QObject *parent = nullptr);
+    explicit File(td::td_api::file *file, QObject *parent = nullptr);
 
     int id() const;
 
@@ -38,6 +40,7 @@ public:
 
     QString localPath() const;
 
+    bool canBeDownloaded() const;
     bool isDownloadingActive() const;
     bool isDownloadingCompleted() const;
 
@@ -55,7 +58,7 @@ public:
     void setFile(td::td_api::file *file);
 
 signals:
-    void fileChanged(int fileId);
+    void fileChanged();
 
 private slots:
     void onDataChanged(td::td_api::Object *object);

@@ -65,12 +65,12 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: myChatModel.isPinned(listView.currentIndex)
-                      ? app.getString("UnpinFromTop") + app.emptyString
-                      : app.getString("PinToTop") + app.emptyString
-                onClicked: {
-                    myChatModel.toggleChatIsPinned(listView.currentIndex)
-                }
+                // text: myChatModel.isPinned(listView.currentIndex)
+                //       ? app.getString("UnpinFromTop") + app.emptyString
+                //       : app.getString("PinToTop") + app.emptyString
+                // onClicked: {
+                //     myChatModel.toggleChatIsPinned(listView.currentIndex)
+                // }
             }
         }
     }

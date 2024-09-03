@@ -2,6 +2,8 @@
 
 #include "Common.hpp"
 #include "StorageManager.hpp"
+#include "Settings.hpp"
+#include "Localization.hpp"
 
 #include <QApplication>
 #include <QDir>

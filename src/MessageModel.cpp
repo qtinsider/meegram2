@@ -3,6 +3,7 @@
 #include "Client.hpp"
 #include "Common.hpp"
 #include "StorageManager.hpp"
+#include "Localization.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>

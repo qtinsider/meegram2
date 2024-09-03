@@ -57,12 +57,6 @@ public:
     int chatFolderId() const;
     void setChatFolderId(int value);
 
-    Q_INVOKABLE bool isPinned(int index) const noexcept;
-    Q_INVOKABLE bool isMuted(int index) const noexcept;
-
-    Q_INVOKABLE void toggleChatIsPinned(int index);
-    Q_INVOKABLE void toggleChatNotificationSettings(int index);
-
 signals:
     void countChanged();
     void loadingChanged();
@@ -83,10 +77,6 @@ private slots:
 private:
     void clear();
 
-    Client *m_client{};
-    Locale *m_locale{};
-    StorageManager *m_storageManager{};
-
     bool m_loading = true;
 
     int m_count{};
@@ -95,6 +85,10 @@ private:
 
     QTimer m_sortTimer;
     QTimer m_loadingTimer;
+
+    Client *m_client{};
+    Locale *m_locale{};
+    StorageManager *m_storageManager{};
 
     std::vector<std::shared_ptr<Chat>> m_chats;
 };

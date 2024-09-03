@@ -1,10 +1,9 @@
 #include "Chat.hpp"
 
+#include "Localization.hpp"
 #include "Message.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
-
-#include <QDebug>
 
 Chat::Chat(QObject *parent)
     : QObject(parent)
@@ -22,6 +21,24 @@ Chat::Chat(qint64 chatId, ChatList chatList, QObject *parent)
     connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 
     m_chat = m_storageManager->getChat(m_chatId);
+
+    if (auto &photo = m_chat->photo_; photo && photo->small_)
+    {
+        m_file = std::make_shared<File>(photo->small_.get());
+
+        connect(m_file.get(), SIGNAL(fileChanged()), this, SLOT(onFileChanged()));
+
+        if (m_file->canBeDownloaded() && !m_file->isDownloadingCompleted())
+        {
+            m_file->downloadFile();
+        }
+    }
+
+    if (m_chat->last_message_)
+    {
+        m_lastMessage = std::make_shared<Message>(m_chat->last_message_.get());
+    }
+
     m_chatPosition = calculateChatPosition();
 }
 
@@ -30,9 +47,27 @@ qint64 Chat::id() const
     return m_chat->id_;
 }
 
-QVariantMap Chat::type() const
+QString Chat::type() const
 {
-    return {};
+    switch (m_chat->type_->get_id())
+    {
+        case td::td_api::chatTypePrivate::ID:
+            return "Private";
+
+        case td::td_api::chatTypeSecret::ID:
+            return "Secret";
+
+        case td::td_api::chatTypeBasicGroup::ID:
+            return "Group";
+
+        case td::td_api::chatTypeSupergroup::ID: {
+            auto chatType = static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get());
+            return chatType->is_channel_ ? "Channel" : "Supergroup";
+        }
+
+        default:
+            return {};
+    }
 }
 
 QString Chat::title() const
@@ -40,69 +75,19 @@ QString Chat::title() const
     return QString::fromStdString(m_chat->title_);
 }
 
-QVariantMap Chat::photo() const
+QString Chat::photo() const
 {
-    return {};
-}
-
-int Chat::accentColorId() const
-{
-    return m_chat->accent_color_id_;
-}
-
-qint64 Chat::backgroundCustomEmojiId() const
-{
-    return m_chat->background_custom_emoji_id_;
-}
-
-int Chat::profileAccentColorId() const
-{
-    return m_chat->profile_accent_color_id_;
-}
-
-qint64 Chat::profileBackgroundCustomEmojiId() const
-{
-    return m_chat->profile_background_custom_emoji_id_;
-}
-
-QVariantMap Chat::permissions() const
-{
-    return {};
+    return m_file ? m_file->localPath() : QString();
 }
 
 Message *Chat::lastMessage() const
 {
-    return {} /*m_lastMessage*/;
-}
-
-QVariantMap Chat::messageSenderId() const
-{
-    return {};
-}
-
-QVariantMap Chat::blockList() const
-{
-    return {};
-}
-
-bool Chat::hasProtectedContent() const
-{
-    return m_chat->has_protected_content_;
-}
-
-bool Chat::isTranslatable() const
-{
-    return m_chat->is_translatable_;
+    return m_lastMessage.get();
 }
 
 bool Chat::isMarkedAsUnread() const
 {
     return m_chat->is_marked_as_unread_;
-}
-
-bool Chat::viewAsTopics() const
-{
-    return m_chat->view_as_topics_;
 }
 
 bool Chat::hasScheduledMessages() const
@@ -118,16 +103,6 @@ bool Chat::canBeDeletedOnlyForSelf() const
 bool Chat::canBeDeletedForAllUsers() const
 {
     return m_chat->can_be_deleted_for_all_users_;
-}
-
-bool Chat::canBeReported() const
-{
-    return m_chat->can_be_reported_;
-}
-
-bool Chat::defaultDisableNotification() const
-{
-    return m_chat->default_disable_notification_;
 }
 
 int Chat::unreadCount() const
@@ -155,67 +130,17 @@ int Chat::unreadReactionCount() const
     return m_chat->unread_reaction_count_;
 }
 
-QVariantMap Chat::notificationSettings() const
-{
-    return {};
-}
-
-QVariantMap Chat::availableReactions() const
-{
-    return {};
-}
-
 int Chat::messageAutoDeleteTime() const
 {
-    return {};
-}
-
-QVariantMap Chat::emojiStatus() const
-{
-    return {};
-}
-
-QVariantMap Chat::background() const
-{
-    return {};
-}
-
-QString Chat::themeName() const
-{
-    return {};
-}
-
-QVariantMap Chat::actionBar() const
-{
-    return {};
-}
-
-QVariantMap Chat::businessBotManageBar() const
-{
-    return {};
-}
-
-QVariantMap Chat::videoChat() const
-{
-    return {};
-}
-
-QVariantMap Chat::pendingJoinRequests() const
-{
-    return {};
+    return m_chat->message_auto_delete_time_;
 }
 
 qint64 Chat::replyMarkupMessageId() const
 {
-    return {};
+    return m_chat->reply_markup_message_id_;
 }
 
 Message *Chat::draftMessage() const
-{
-    return {};
-}
-
-QString Chat::clientData() const
 {
     return {};
 }
@@ -230,7 +155,7 @@ bool Chat::isPinned() const noexcept
     return m_chatPosition ? m_chatPosition->is_pinned_ : false;
 }
 
-bool Chat::isCurrentUser() const noexcept
+bool Chat::isMe() const noexcept
 {
     if (!m_chat || !m_chat->type_)
     {
@@ -256,7 +181,7 @@ bool Chat::isCurrentUser() const noexcept
 
 QString Chat::getTitle() const noexcept
 {
-    if (isCurrentUser() && m_showSavedMessages)
+    if (isMe() && m_showSavedMessages)
     {
         return Locale::instance().getString("SavedMessages");
     }
@@ -267,17 +192,49 @@ QString Chat::getTitle() const noexcept
 
 bool Chat::isMuted() const noexcept
 {
-    return getMuteDuration() > 0;
+    return muteFor() > 0;
 }
 
-int Chat::getMuteDuration() const noexcept
+int Chat::muteFor() const noexcept
 {
     return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
 }
 
-bool Chat::isUnread() const noexcept
+void Chat::toggleIsPinned()
 {
-    return m_chat && (m_chat->is_marked_as_unread_ || m_chat->unread_count_ > 0);
+    // auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
+    // request->chat_list_ = Utils::toChatList(m_chatList);
+    // request->chat_id_ = data(modelIndex, IdRole).toLongLong();
+    // request->is_pinned_ = !data(modelIndex, IsPinnedRole).toBool();
+
+    // m_client->send(std::move(request), [this](auto &&response) {
+    //     if (response->get_id() == td::td_api::ok::ID)
+    //         QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    // });
+}
+
+void Chat::toggleNotificationSettings()
+{
+    // const auto chatId = data(modelIndex, IdRole).toLongLong();
+    // const auto isMuted = !data(modelIndex, IsMutedRole).toBool();
+
+    // if (const auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
+    //     return;
+
+    // const auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
+
+    // auto newNotificationSettings = td::td_api::make_object<td::td_api::chatNotificationSettings>();
+    // newNotificationSettings->use_default_mute_for_ = false;
+    // newNotificationSettings->mute_for_ = muteFor;
+
+    // auto request = td::td_api::make_object<td::td_api::setChatNotificationSettings>();
+    // request->chat_id_ = chatId;
+    // request->notification_settings_ = std::move(newNotificationSettings);
+
+    // m_client->send(std::move(request), [this](auto &&value) {
+    //     if (value->get_id() == td::td_api::ok::ID)
+    //         QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    // });
 }
 
 void Chat::onDataChanged(td::td_api::Object *object)
@@ -287,12 +244,19 @@ void Chat::onDataChanged(td::td_api::Object *object)
             return;
 
         m_chat = m_storageManager->getChat(value->chat_id_);
+
         if (emitSignal)
         {
+            if (m_chat->last_message_)
+            {
+                m_lastMessage->setMessage(m_chat->last_message_.get());
+            }
+
             m_chatPosition = calculateChatPosition();
 
             emit chatPositionUpdated(value->chat_id_);
         }
+
         emit chatItemUpdated(value->chat_id_);
     };
 
@@ -342,6 +306,14 @@ void Chat::onDataChanged(td::td_api::Object *object)
     }
 }
 
+void Chat::onFileChanged()
+{
+    if (m_file && m_file->isDownloadingCompleted())
+    {
+        emit chatItemUpdated(m_chat->id_);
+    }
+}
+
 td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() noexcept
 {
     if (!m_chat || m_chat->positions_.empty())
@@ -358,7 +330,6 @@ td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() n
             if (const auto &list = position->list_; list->get_id() == id && (!folder || folder(*list)))
             {
                 return td::td_api::make_object<td::td_api::chatPosition>(Utils::toChatList(m_chatList), position->order_, position->is_pinned_, nullptr);
-                ;
             }
         }
         return nullptr;
