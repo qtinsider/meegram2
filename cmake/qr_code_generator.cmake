@@ -13,3 +13,5 @@ set_target_properties(QRCodeGenerator PROPERTIES
 )
 
 target_compile_options(QRCodeGenerator PRIVATE -Wall -Wextra -pedantic)
+
+add_library(Lib::QRCode ALIAS QRCodeGenerator)

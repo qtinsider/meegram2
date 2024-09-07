@@ -23,7 +23,7 @@ set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING 
 
 include(cmake/qr_code_generator.cmake)
 
-set(src_files
+set(SRC_FILES
     src/Application.cpp
     src/Authorization.cpp
     # src/BasicGroup.cpp
@@ -57,7 +57,7 @@ set(src_files
     src/Utils.cpp
 )
 
-set(header_files
+set(HEADER_FILES
     src/Application.hpp
     src/Authorization.hpp
     # src/BasicGroup.hpp
@@ -93,16 +93,16 @@ set(header_files
     src/Utils.hpp
 )
 
-set(qrc_files resources/resources.qrc)
+set(QRC_FILES resources/resources.qrc)
 
-add_executable(meegram ${src_files} ${header_files} ${qrc_files})
+add_executable(meegram ${SRC_FILES} ${HEADER_FILES} ${QRC_FILES})
 
 set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
 
 target_compile_options(meegram PRIVATE -Wall -Wextra -pedantic $<IF:$<CONFIG:Debug>, -Werror, -Wno-psabi>)
 
 target_link_libraries(meegram PRIVATE
-    QRCodeGenerator
+    Lib::QRCode
     Td::TdStatic
     rlottie::rlottie
     Qt4::QtCore
@@ -131,16 +131,6 @@ if (BUILD_HARMATTAN)
     install(FILES resources/meegram80.png DESTINATION /usr/share/icons/hicolor/80x80/apps)
     install(FILES resources/meegram-splash.png DESTINATION /opt/meegram/share)
 
-    install(FILES
-        lib/libcrypto.so.1.1
-        lib/libssl.so.1.1
-        lib/libtdjson.so.1.8.35
-        lib/librlottie.so.0
-        lib/libz.so.1
-        lib/libstdc++.so.6
-        DESTINATION /opt/meegram/lib
-    )
-
     install(TARGETS meegram DESTINATION /opt/meegram/bin)
 
     add_custom_target(package
@@ -148,6 +138,4 @@ if (BUILD_HARMATTAN)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Building Debian package with mad..."
     )
-
 endif()
-
