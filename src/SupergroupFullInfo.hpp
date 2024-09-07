@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QObject>
 #include <QVariant>
 
 class SupergroupFullInfo : public QObject
@@ -12,7 +11,7 @@ class SupergroupFullInfo : public QObject
     Q_PROPERTY(int administratorCount READ administratorCount WRITE setAdministratorCount NOTIFY administratorCountChanged)
     Q_PROPERTY(int restrictedCount READ restrictedCount WRITE setRestrictedCount NOTIFY restrictedCountChanged)
     Q_PROPERTY(int bannedCount READ bannedCount WRITE setBannedCount NOTIFY bannedCountChanged)
-    Q_PROPERTY(qint64 linkedChatId READ linkedChatId WRITE setLinkedChatId NOTIFY linkedChatIdChanged)
+    Q_PROPERTY(qlonglong linkedChatId READ linkedChatId WRITE setLinkedChatId NOTIFY linkedChatIdChanged)
     Q_PROPERTY(int slowModeDelay READ slowModeDelay WRITE setSlowModeDelay NOTIFY slowModeDelayChanged)
     Q_PROPERTY(
         double slowModeDelayExpiresIn READ slowModeDelayExpiresIn WRITE setSlowModeDelayExpiresIn NOTIFY slowModeDelayExpiresInChanged)
@@ -34,15 +33,15 @@ class SupergroupFullInfo : public QObject
     Q_PROPERTY(bool hasPinnedStories READ hasPinnedStories WRITE setHasPinnedStories NOTIFY hasPinnedStoriesChanged)
     Q_PROPERTY(int myBoostCount READ myBoostCount WRITE setMyBoostCount NOTIFY myBoostCountChanged)
     Q_PROPERTY(int unrestrictBoostCount READ unrestrictBoostCount WRITE setUnrestrictBoostCount NOTIFY unrestrictBoostCountChanged)
-    Q_PROPERTY(qint64 stickerSetId READ stickerSetId WRITE setStickerSetId NOTIFY stickerSetIdChanged)
+    Q_PROPERTY(qlonglong stickerSetId READ stickerSetId WRITE setStickerSetId NOTIFY stickerSetIdChanged)
     Q_PROPERTY(
-        qint64 customEmojiStickerSetId READ customEmojiStickerSetId WRITE setCustomEmojiStickerSetId NOTIFY customEmojiStickerSetIdChanged)
+        qlonglong customEmojiStickerSetId READ customEmojiStickerSetId WRITE setCustomEmojiStickerSetId NOTIFY customEmojiStickerSetIdChanged)
     Q_PROPERTY(QVariantMap location READ location WRITE setLocation NOTIFY locationChanged)
     Q_PROPERTY(QVariantMap inviteLink READ inviteLink WRITE setInviteLink NOTIFY inviteLinkChanged)
     Q_PROPERTY(QVariantList botCommands READ botCommands WRITE setBotCommands NOTIFY botCommandsChanged)
-    Q_PROPERTY(qint64 upgradedFromBasicGroupId READ upgradedFromBasicGroupId WRITE setUpgradedFromBasicGroupId NOTIFY
+    Q_PROPERTY(qlonglong upgradedFromBasicGroupId READ upgradedFromBasicGroupId WRITE setUpgradedFromBasicGroupId NOTIFY
                    upgradedFromBasicGroupIdChanged)
-    Q_PROPERTY(qint64 upgradedFromMaxMessageId READ upgradedFromMaxMessageId WRITE setUpgradedFromMaxMessageId NOTIFY
+    Q_PROPERTY(qlonglong upgradedFromMaxMessageId READ upgradedFromMaxMessageId WRITE setUpgradedFromMaxMessageId NOTIFY
                    upgradedFromMaxMessageIdChanged)
 
 public:
@@ -66,8 +65,8 @@ public:
     int bannedCount() const;
     void setBannedCount(int bannedCount);
 
-    qint64 linkedChatId() const;
-    void setLinkedChatId(qint64 linkedChatId);
+    qlonglong linkedChatId() const;
+    void setLinkedChatId(qlonglong linkedChatId);
 
     int slowModeDelay() const;
     void setSlowModeDelay(int slowModeDelay);
@@ -117,11 +116,11 @@ public:
     int unrestrictBoostCount() const;
     void setUnrestrictBoostCount(int unrestrictBoostCount);
 
-    qint64 stickerSetId() const;
-    void setStickerSetId(qint64 stickerSetId);
+    qlonglong stickerSetId() const;
+    void setStickerSetId(qlonglong stickerSetId);
 
-    qint64 customEmojiStickerSetId() const;
-    void setCustomEmojiStickerSetId(qint64 customEmojiStickerSetId);
+    qlonglong customEmojiStickerSetId() const;
+    void setCustomEmojiStickerSetId(qlonglong customEmojiStickerSetId);
 
     QVariantMap location() const;
     void setLocation(const QVariantMap &location);
@@ -132,11 +131,11 @@ public:
     QVariantList botCommands() const;
     void setBotCommands(const QVariantList &botCommands);
 
-    qint64 upgradedFromBasicGroupId() const;
-    void setUpgradedFromBasicGroupId(qint64 upgradedFromBasicGroupId);
+    qlonglong upgradedFromBasicGroupId() const;
+    void setUpgradedFromBasicGroupId(qlonglong upgradedFromBasicGroupId);
 
-    qint64 upgradedFromMaxMessageId() const;
-    void setUpgradedFromMaxMessageId(qint64 upgradedFromMaxMessageId);
+    qlonglong upgradedFromMaxMessageId() const;
+    void setUpgradedFromMaxMessageId(qlonglong upgradedFromMaxMessageId);
 
     void setFromVariantMap(const QVariantMap &map);
 
@@ -179,7 +178,7 @@ private:
     int m_administratorCount;
     int m_restrictedCount;
     int m_bannedCount;
-    qint64 m_linkedChatId;
+    qlonglong m_linkedChatId;
     int m_slowModeDelay;
     double m_slowModeDelayExpiresIn;
     bool m_canGetMembers;
@@ -196,11 +195,11 @@ private:
     bool m_hasPinnedStories;
     int m_myBoostCount;
     int m_unrestrictBoostCount;
-    qint64 m_stickerSetId;
-    qint64 m_customEmojiStickerSetId;
+    qlonglong m_stickerSetId;
+    qlonglong m_customEmojiStickerSetId;
     QVariantMap m_location;
     QVariantMap m_inviteLink;
     QVariantList m_botCommands;
-    qint64 m_upgradedFromBasicGroupId;
-    qint64 m_upgradedFromMaxMessageId;
+    qlonglong m_upgradedFromBasicGroupId;
+    qlonglong m_upgradedFromMaxMessageId;
 };

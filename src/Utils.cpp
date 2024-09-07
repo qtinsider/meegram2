@@ -28,7 +28,7 @@ bool isBotUser(const td::td_api::user *user) noexcept
     return user->type_->get_id() == td::td_api::userTypeBot::ID;
 }
 
-bool isMeUser(qint64 userId, StorageManager *store) noexcept
+bool isMeUser(qlonglong userId, StorageManager *store) noexcept
 {
     return store->myId() == userId;
 }
@@ -90,7 +90,7 @@ QString getMessageAuthor(const td::td_api::message &message, StorageManager *sto
     return {};
 }
 
-QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) noexcept
+QString getUserFullName(qlonglong userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
 
@@ -131,7 +131,7 @@ QString getUserName(auto userId, StorageManager *store, Locale *locale, bool ope
     return result;
 }
 
-QString getCallContent(qint64 userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
+QString getCallContent(qlonglong userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
 {
     const auto isVideo = content.is_video_;
     const auto &discardReason = content.discard_reason_;
@@ -172,14 +172,14 @@ QString getAudioTitle(const td::td_api::audio &audio) noexcept
     return artist + " - " + track;
 }
 
-bool isUserBlocked(qint64 userId, StorageManager *store) noexcept
+bool isUserBlocked(qlonglong userId, StorageManager *store) noexcept
 {
     const auto fullInfo = store->getUserFullInfo(userId);
 
     return !fullInfo /* && fullInfo.value("is_blocked").toBool()*/;
 }
 
-bool isDeletedUser(qint64 userId, StorageManager *store)
+bool isDeletedUser(qlonglong userId, StorageManager *store)
 {
     return store->getUser(userId)->type_->get_id() == td::td_api::userTypeDeleted::ID;
 }
@@ -243,7 +243,7 @@ bool Utils::isChatPinned(const td::td_api::chat *chat, const ChatList &chatList)
     return getChatPosition(chat, chatList)->is_pinned_;
 }
 
-qint64 Utils::getChatOrder(const td::td_api::chat *chat, const ChatList &chatList)
+qlonglong Utils::getChatOrder(const td::td_api::chat *chat, const ChatList &chatList)
 {
     return getChatPosition(chat, chatList)->order_;
 }
@@ -270,7 +270,7 @@ bool Utils::isMeChat(const td::td_api::chat *chat, StorageManager *store) noexce
     return false;
 }
 
-QString Utils::getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages)
+QString Utils::getChatTitle(qlonglong chatId, StorageManager *store, Locale *locale, bool showSavedMessages)
 {
     const auto chat = store->getChat(chatId);
 
@@ -284,12 +284,12 @@ QString Utils::getChatTitle(qint64 chatId, StorageManager *store, Locale *locale
     return !title.isEmpty() ? title : locale->getString("HiddenName");
 }
 
-bool Utils::isChatMuted(qint64 chatId, StorageManager *store)
+bool Utils::isChatMuted(qlonglong chatId, StorageManager *store)
 {
     return getChatMuteFor(chatId, store) > 0;
 }
 
-int Utils::getChatMuteFor(qint64 chatId, StorageManager *store)
+int Utils::getChatMuteFor(qlonglong chatId, StorageManager *store)
 {
     if (auto chat = store->getChat(chatId))
     {
@@ -534,7 +534,7 @@ bool Utils::isServiceMessage(const td::td_api::message &message)
     return false;
 }
 
-QString Utils::getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept
+QString Utils::getUserShortName(qlonglong userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
 
@@ -692,7 +692,7 @@ QString Utils::getContent(const td::td_api::message &message, StorageManager *st
     }
 }
 
-bool Utils::isChatUnread(qint64 chatId, StorageManager *store) noexcept
+bool Utils::isChatUnread(qlonglong chatId, StorageManager *store) noexcept
 {
     const auto chat = store->getChat(chatId);
 

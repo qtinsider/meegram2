@@ -71,8 +71,8 @@ private slots:
     void loadChats();
     void sortChats();
 
-    void handleChatItem(qint64 chatId);
-    void handleChatPosition(qint64 chatId);
+    void handleChatItem(qlonglong chatId);
+    void handleChatPosition(qlonglong chatId);
 
 private:
     void clear();

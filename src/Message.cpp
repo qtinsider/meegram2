@@ -12,7 +12,7 @@
 
 namespace {
 
-bool isMeUser(qint64 userId, StorageManager *store) noexcept
+bool isMeUser(qlonglong userId, StorageManager *store) noexcept
 {
     return store->myId() == userId;
 }
@@ -64,7 +64,7 @@ QString getMessageAuthor(const td::td_api::message &message, StorageManager *sto
     return {};
 }
 
-QString getUserFullName(qint64 userId, StorageManager *store, Locale *locale) noexcept
+QString getUserFullName(qlonglong userId, StorageManager *store, Locale *locale) noexcept
 {
     const auto user = store->getUser(userId);
 
@@ -105,7 +105,7 @@ QString getUserName(auto userId, StorageManager *store, Locale *locale, bool ope
     return result;
 }
 
-QString getCallContent(qint64 userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
+QString getCallContent(qlonglong userId, const td::td_api::messageCall &content, StorageManager *store, Locale *locale) noexcept
 {
     const auto isVideo = content.is_video_;
     const auto &discardReason = content.discard_reason_;
@@ -169,7 +169,7 @@ Message::Message(td::td_api::message *message, QObject *parent)
     connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
-qint64 Message::id() const
+qlonglong Message::id() const
 {
     return 0;
 }
@@ -179,7 +179,7 @@ QVariantMap Message::senderId() const
     return {};
 }
 
-qint64 Message::chatId() const
+qlonglong Message::chatId() const
 {
     return 0;
 }
@@ -294,12 +294,12 @@ bool Message::containsUnreadMention() const
     return false;
 }
 
-qint64 Message::date() const
+qlonglong Message::date() const
 {
     return 0;
 }
 
-qint64 Message::editDate() const
+qlonglong Message::editDate() const
 {
     return 0;
 }
@@ -334,12 +334,12 @@ QVariantMap Message::replyTo() const
     return {};
 }
 
-qint64 Message::messageThreadId() const
+qlonglong Message::messageThreadId() const
 {
     return 0;
 }
 
-qint64 Message::savedMessagesTopicId() const
+qlonglong Message::savedMessagesTopicId() const
 {
     return 0;
 }
@@ -359,12 +359,12 @@ double Message::autoDeleteIn() const
     return 0.0;
 }
 
-qint64 Message::viaBotUserId() const
+qlonglong Message::viaBotUserId() const
 {
     return 0;
 }
 
-qint64 Message::senderBusinessBotUserId() const
+qlonglong Message::senderBusinessBotUserId() const
 {
     return 0;
 }
@@ -379,12 +379,12 @@ QString Message::authorSignature() const
     return {};
 }
 
-qint64 Message::mediaAlbumId() const
+qlonglong Message::mediaAlbumId() const
 {
     return 0;
 }
 
-qint64 Message::effectId() const
+qlonglong Message::effectId() const
 {
     return 0;
 }
@@ -835,7 +835,7 @@ void Message::handleResult(td::td_api::Object *object)
             [](auto &) {}});
 }
 
-void Message::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId)
+void Message::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId)
 {
     if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
     {
@@ -843,7 +843,7 @@ void Message::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::mess
     }
 }
 
-void Message::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId,
+void Message::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
                                       td::td_api::object_ptr<td::td_api::error> &&error)
 {
     if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
@@ -852,7 +852,7 @@ void Message::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message
     }
 }
 
-void Message::handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
+void Message::handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
 {
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
@@ -861,7 +861,7 @@ void Message::handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::
     }
 }
 
-void Message::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
+void Message::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
 {
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
@@ -871,7 +871,7 @@ void Message::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate,
     }
 }
 
-void Message::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
+void Message::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned)
 {
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
@@ -880,7 +880,7 @@ void Message::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinn
     }
 }
 
-void Message::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
+void Message::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
 {
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {

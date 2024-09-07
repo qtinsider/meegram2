@@ -5,7 +5,6 @@
 #include <td/telegram/td_api.h>
 
 #include <QImage>
-#include <QObject>
 #include <QVariant>
 
 class Locale;
@@ -47,25 +46,25 @@ public:
     static td::td_api::object_ptr<td::td_api::chatPosition> getChatPosition(const td::td_api::chat *chat, const ChatList &chatList);
 
     static bool isChatPinned(const td::td_api::chat *chat, const ChatList &chatList);
-    static qint64 getChatOrder(const td::td_api::chat *chat, const ChatList &chatList);
+    static qlonglong getChatOrder(const td::td_api::chat *chat, const ChatList &chatList);
 
-    static QString getChatTitle(qint64 chatId, StorageManager *store, Locale *locale, bool showSavedMessages = false);
-    static bool isChatMuted(qint64 chatId, StorageManager *store);
-    static int getChatMuteFor(qint64 chatId, StorageManager *store);
+    static QString getChatTitle(qlonglong chatId, StorageManager *store, Locale *locale, bool showSavedMessages = false);
+    static bool isChatMuted(qlonglong chatId, StorageManager *store);
+    static int getChatMuteFor(qlonglong chatId, StorageManager *store);
 
     static bool isMeChat(const td::td_api::chat *chat, StorageManager *store) noexcept;
 
     static QString getServiceMessageContent(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser = false);
     static bool isServiceMessage(const td::td_api::message &message);
 
-    static QString getUserShortName(qint64 userId, StorageManager *store, Locale *locale) noexcept;
+    static QString getUserShortName(qlonglong userId, StorageManager *store, Locale *locale) noexcept;
 
     static QString getContent(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
     static QString getTitle(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
     static QString getMessageDate(const td::td_api::message &message, Locale *locale) noexcept;
     static QString getMessageSenderName(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
 
-    static bool isChatUnread(qint64 chatId, StorageManager *store) noexcept;
+    static bool isChatUnread(qlonglong chatId, StorageManager *store) noexcept;
     static bool isMessageUnread(const td::td_api::message &message, StorageManager *store) noexcept;
 
     static QString getFileSize(const QVariantMap &file) noexcept;

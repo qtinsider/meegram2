@@ -24,7 +24,7 @@ User::User(QObject *parent)
 {
 }
 
-qint64 User::id() const
+qlonglong User::id() const
 {
     return m_id;
 }
@@ -59,22 +59,22 @@ QVariantMap User::profilePhoto() const
     return m_profilePhoto;
 }
 
-qint32 User::accentColorId() const
+int User::accentColorId() const
 {
     return m_accentColorId;
 }
 
-qint64 User::backgroundCustomEmojiId() const
+qlonglong User::backgroundCustomEmojiId() const
 {
     return m_backgroundCustomEmojiId;
 }
 
-qint32 User::profileAccentColorId() const
+int User::profileAccentColorId() const
 {
     return m_profileAccentColorId;
 }
 
-qint64 User::profileBackgroundCustomEmojiId() const
+qlonglong User::profileBackgroundCustomEmojiId() const
 {
     return m_profileBackgroundCustomEmojiId;
 }
@@ -164,7 +164,7 @@ bool User::addedToAttachmentMenu() const
     return m_addedToAttachmentMenu;
 }
 
-void User::setId(qint64 id)
+void User::setId(qlonglong id)
 {
     if (m_id != id)
     {
@@ -227,7 +227,7 @@ void User::setProfilePhoto(const QVariantMap &profilePhoto)
     }
 }
 
-void User::setAccentColorId(qint32 accentColorId)
+void User::setAccentColorId(int accentColorId)
 {
     if (m_accentColorId != accentColorId)
     {
@@ -236,7 +236,7 @@ void User::setAccentColorId(qint32 accentColorId)
     }
 }
 
-void User::setBackgroundCustomEmojiId(qint64 backgroundCustomEmojiId)
+void User::setBackgroundCustomEmojiId(qlonglong backgroundCustomEmojiId)
 {
     if (m_backgroundCustomEmojiId != backgroundCustomEmojiId)
     {
@@ -245,7 +245,7 @@ void User::setBackgroundCustomEmojiId(qint64 backgroundCustomEmojiId)
     }
 }
 
-void User::setProfileAccentColorId(qint32 profileAccentColorId)
+void User::setProfileAccentColorId(int profileAccentColorId)
 {
     if (m_profileAccentColorId != profileAccentColorId)
     {
@@ -254,7 +254,7 @@ void User::setProfileAccentColorId(qint32 profileAccentColorId)
     }
 }
 
-void User::setProfileBackgroundCustomEmojiId(qint64 profileBackgroundCustomEmojiId)
+void User::setProfileBackgroundCustomEmojiId(qlonglong profileBackgroundCustomEmojiId)
 {
     if (m_profileBackgroundCustomEmojiId != profileBackgroundCustomEmojiId)
     {

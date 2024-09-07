@@ -114,12 +114,12 @@ void SupergroupFullInfo::setBannedCount(int bannedCount)
     }
 }
 
-qint64 SupergroupFullInfo::linkedChatId() const
+qlonglong SupergroupFullInfo::linkedChatId() const
 {
     return m_linkedChatId;
 }
 
-void SupergroupFullInfo::setLinkedChatId(qint64 linkedChatId)
+void SupergroupFullInfo::setLinkedChatId(qlonglong linkedChatId)
 {
     if (m_linkedChatId != linkedChatId)
     {
@@ -352,12 +352,12 @@ void SupergroupFullInfo::setUnrestrictBoostCount(int unrestrictBoostCount)
     }
 }
 
-qint64 SupergroupFullInfo::stickerSetId() const
+qlonglong SupergroupFullInfo::stickerSetId() const
 {
     return m_stickerSetId;
 }
 
-void SupergroupFullInfo::setStickerSetId(qint64 stickerSetId)
+void SupergroupFullInfo::setStickerSetId(qlonglong stickerSetId)
 {
     if (m_stickerSetId != stickerSetId)
     {
@@ -366,12 +366,12 @@ void SupergroupFullInfo::setStickerSetId(qint64 stickerSetId)
     }
 }
 
-qint64 SupergroupFullInfo::customEmojiStickerSetId() const
+qlonglong SupergroupFullInfo::customEmojiStickerSetId() const
 {
     return m_customEmojiStickerSetId;
 }
 
-void SupergroupFullInfo::setCustomEmojiStickerSetId(qint64 customEmojiStickerSetId)
+void SupergroupFullInfo::setCustomEmojiStickerSetId(qlonglong customEmojiStickerSetId)
 {
     if (m_customEmojiStickerSetId != customEmojiStickerSetId)
     {
@@ -422,12 +422,12 @@ void SupergroupFullInfo::setBotCommands(const QVariantList &botCommands)
     }
 }
 
-qint64 SupergroupFullInfo::upgradedFromBasicGroupId() const
+qlonglong SupergroupFullInfo::upgradedFromBasicGroupId() const
 {
     return m_upgradedFromBasicGroupId;
 }
 
-void SupergroupFullInfo::setUpgradedFromBasicGroupId(qint64 upgradedFromBasicGroupId)
+void SupergroupFullInfo::setUpgradedFromBasicGroupId(qlonglong upgradedFromBasicGroupId)
 {
     if (m_upgradedFromBasicGroupId != upgradedFromBasicGroupId)
     {
@@ -436,12 +436,12 @@ void SupergroupFullInfo::setUpgradedFromBasicGroupId(qint64 upgradedFromBasicGro
     }
 }
 
-qint64 SupergroupFullInfo::upgradedFromMaxMessageId() const
+qlonglong SupergroupFullInfo::upgradedFromMaxMessageId() const
 {
     return m_upgradedFromMaxMessageId;
 }
 
-void SupergroupFullInfo::setUpgradedFromMaxMessageId(qint64 upgradedFromMaxMessageId)
+void SupergroupFullInfo::setUpgradedFromMaxMessageId(qlonglong upgradedFromMaxMessageId)
 {
     if (m_upgradedFromMaxMessageId != upgradedFromMaxMessageId)
     {

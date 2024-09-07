@@ -36,12 +36,12 @@ void BasicGroupFullInfo::setDescription(const QString &description)
     }
 }
 
-qint64 BasicGroupFullInfo::creatorUserId() const
+qlonglong BasicGroupFullInfo::creatorUserId() const
 {
     return m_creatorUserId;
 }
 
-void BasicGroupFullInfo::setCreatorUserId(qint64 creatorUserId)
+void BasicGroupFullInfo::setCreatorUserId(qlonglong creatorUserId)
 {
     if (m_creatorUserId != creatorUserId)
     {

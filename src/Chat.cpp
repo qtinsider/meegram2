@@ -12,7 +12,7 @@ Chat::Chat(QObject *parent)
     connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
-Chat::Chat(qint64 chatId, ChatList chatList, QObject *parent)
+Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
     : QObject(parent)
     , m_chatId(chatId)
     , m_chatList(std::move(chatList))
@@ -42,7 +42,7 @@ Chat::Chat(qint64 chatId, ChatList chatList, QObject *parent)
     m_chatPosition = calculateChatPosition();
 }
 
-qint64 Chat::id() const
+qlonglong Chat::id() const
 {
     return m_chat->id_;
 }
@@ -110,12 +110,12 @@ int Chat::unreadCount() const
     return m_chat->unread_count_;
 }
 
-qint64 Chat::lastReadInboxMessageId() const
+qlonglong Chat::lastReadInboxMessageId() const
 {
     return m_chat->last_read_inbox_message_id_;
 }
 
-qint64 Chat::lastReadOutboxMessageId() const
+qlonglong Chat::lastReadOutboxMessageId() const
 {
     return m_chat->last_read_outbox_message_id_;
 }
@@ -135,7 +135,7 @@ int Chat::messageAutoDeleteTime() const
     return m_chat->message_auto_delete_time_;
 }
 
-qint64 Chat::replyMarkupMessageId() const
+qlonglong Chat::replyMarkupMessageId() const
 {
     return m_chat->reply_markup_message_id_;
 }
@@ -145,7 +145,7 @@ Message *Chat::draftMessage() const
     return {};
 }
 
-qint64 Chat::getOrder() const noexcept
+qlonglong Chat::getOrder() const noexcept
 {
     return m_chatPosition ? m_chatPosition->order_ : 0;
 }

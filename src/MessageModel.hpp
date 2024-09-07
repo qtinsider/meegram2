@@ -91,11 +91,11 @@ public:
 
     Q_INVOKABLE void openChat() noexcept;
     Q_INVOKABLE void closeChat() noexcept;
-    Q_INVOKABLE void getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit);
+    Q_INVOKABLE void getChatHistory(qlonglong fromMessageId, int offset, int limit);
     void viewMessages(std::vector<int64_t> &&messageIds);
-    Q_INVOKABLE void deleteMessage(qint64 messageId, bool revoke = false) noexcept;
+    Q_INVOKABLE void deleteMessage(qlonglong messageId, bool revoke = false) noexcept;
 
-    Q_INVOKABLE void sendMessage(const QString &message, qint64 replyToMessageId = 0);
+    Q_INVOKABLE void sendMessage(const QString &message, qlonglong replyToMessageId = 0);
 
 signals:
     void countChanged();
@@ -115,18 +115,18 @@ private slots:
 
 private:
     void handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message);
-    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId);
-    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
-    void handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
-    void handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
-    void handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned);
-    void handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
-    void handleDeleteMessages(qint64 chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache);
+    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId);
+    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
+    void handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
+    void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
+    void handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned);
+    void handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
+    void handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache);
 
-    void handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount);
+    void handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount);
 
-    void handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount);
-    void handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId);
+    void handleChatReadInbox(qlonglong chatId, qlonglong lastReadInboxMessageId, int unreadCount);
+    void handleChatReadOutbox(qlonglong chatId, qlonglong lastReadOutboxMessageId);
 
     void handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messages);
     void insertMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept;
@@ -150,6 +150,6 @@ private:
 
     const td::td_api::chat *m_selectedChat{};
 
-    std::unordered_set<std::optional<qint64>> m_messageIds;
+    std::unordered_set<std::optional<qlonglong>> m_messageIds;
     std::vector<td::td_api::object_ptr<td::td_api::message>> m_messages;
 };

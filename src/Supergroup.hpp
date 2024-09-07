@@ -1,14 +1,12 @@
 #pragma once
 
-#include <QObject>
-#include <QString>
 #include <QVariant>
 
 class Supergroup : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qint64 id READ id WRITE setId NOTIFY idChanged)
+    Q_PROPERTY(qlonglong id READ id WRITE setId NOTIFY idChanged)
     Q_PROPERTY(QVariantMap usernames READ usernames WRITE setUsernames NOTIFY usernamesChanged)
     Q_PROPERTY(int date READ date WRITE setDate NOTIFY dateChanged)
     Q_PROPERTY(QVariantMap status READ status WRITE setStatus NOTIFY statusChanged)
@@ -33,8 +31,8 @@ class Supergroup : public QObject
 public:
     explicit Supergroup(QObject *parent = nullptr);
 
-    qint64 id() const;
-    void setId(qint64 id);
+    qlonglong id() const;
+    void setId(qlonglong id);
 
     QVariantMap usernames() const;
     void setUsernames(const QVariantMap &usernames);
@@ -122,7 +120,7 @@ signals:
     void hasUnreadActiveStoriesChanged();
 
 private:
-    qint64 m_id;
+    qlonglong m_id;
     QVariantMap m_usernames;
     int m_date;
     QVariantMap m_status;

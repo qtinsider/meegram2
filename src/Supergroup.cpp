@@ -24,12 +24,12 @@ Supergroup::Supergroup(QObject *parent)
 {
 }
 
-qint64 Supergroup::id() const
+qlonglong Supergroup::id() const
 {
     return m_id;
 }
 
-void Supergroup::setId(qint64 id)
+void Supergroup::setId(qlonglong id)
 {
     if (m_id != id)
     {

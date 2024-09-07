@@ -1,24 +1,21 @@
 #pragma once
 
-#include <QObject>
-#include <QString>
 #include <QVariant>
-#include <QVector>
 
 class User : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(qint64 id READ id NOTIFY idChanged)
+    Q_PROPERTY(qlonglong id READ id NOTIFY idChanged)
     Q_PROPERTY(QString firstName READ firstName NOTIFY firstNameChanged)
     Q_PROPERTY(QString lastName READ lastName NOTIFY lastNameChanged)
     Q_PROPERTY(QVariantMap usernames READ usernames NOTIFY usernamesChanged)
     Q_PROPERTY(QString phoneNumber READ phoneNumber NOTIFY phoneNumberChanged)
     Q_PROPERTY(QVariantMap status READ status NOTIFY statusChanged)
     Q_PROPERTY(QVariantMap profilePhoto READ profilePhoto NOTIFY profilePhotoChanged)
-    Q_PROPERTY(qint32 accentColorId READ accentColorId NOTIFY accentColorIdChanged)
-    Q_PROPERTY(qint64 backgroundCustomEmojiId READ backgroundCustomEmojiId NOTIFY backgroundCustomEmojiIdChanged)
-    Q_PROPERTY(qint32 profileAccentColorId READ profileAccentColorId NOTIFY profileAccentColorIdChanged)
-    Q_PROPERTY(qint64 profileBackgroundCustomEmojiId READ profileBackgroundCustomEmojiId NOTIFY profileBackgroundCustomEmojiIdChanged)
+    Q_PROPERTY(int accentColorId READ accentColorId NOTIFY accentColorIdChanged)
+    Q_PROPERTY(qlonglong backgroundCustomEmojiId READ backgroundCustomEmojiId NOTIFY backgroundCustomEmojiIdChanged)
+    Q_PROPERTY(int profileAccentColorId READ profileAccentColorId NOTIFY profileAccentColorIdChanged)
+    Q_PROPERTY(qlonglong profileBackgroundCustomEmojiId READ profileBackgroundCustomEmojiId NOTIFY profileBackgroundCustomEmojiIdChanged)
     Q_PROPERTY(QVariantMap emojiStatus READ emojiStatus NOTIFY emojiStatusChanged)
     Q_PROPERTY(bool isContact READ isContact NOTIFY isContactChanged)
     Q_PROPERTY(bool isMutualContact READ isMutualContact NOTIFY isMutualContactChanged)
@@ -40,17 +37,17 @@ class User : public QObject
 public:
     User(QObject *parent = nullptr);
 
-    qint64 id() const;
+    qlonglong id() const;
     QString firstName() const;
     QString lastName() const;
     QVariantMap usernames() const;
     QString phoneNumber() const;
     QVariantMap status() const;
     QVariantMap profilePhoto() const;
-    qint32 accentColorId() const;
-    qint64 backgroundCustomEmojiId() const;
-    qint32 profileAccentColorId() const;
-    qint64 profileBackgroundCustomEmojiId() const;
+    int accentColorId() const;
+    qlonglong backgroundCustomEmojiId() const;
+    int profileAccentColorId() const;
+    qlonglong profileBackgroundCustomEmojiId() const;
     QVariantMap emojiStatus() const;
     bool isContact() const;
     bool isMutualContact() const;
@@ -69,17 +66,17 @@ public:
     QString languageCode() const;
     bool addedToAttachmentMenu() const;
 
-    void setId(qint64 id);
+    void setId(qlonglong id);
     void setFirstName(const QString &firstName);
     void setLastName(const QString &lastName);
     void setUsernames(const QVariantMap &usernames);
     void setPhoneNumber(const QString &phoneNumber);
     void setStatus(const QVariantMap &status);
     void setProfilePhoto(const QVariantMap &profilePhoto);
-    void setAccentColorId(qint32 accentColorId);
-    void setBackgroundCustomEmojiId(qint64 backgroundCustomEmojiId);
-    void setProfileAccentColorId(qint32 profileAccentColorId);
-    void setProfileBackgroundCustomEmojiId(qint64 profileBackgroundCustomEmojiId);
+    void setAccentColorId(int accentColorId);
+    void setBackgroundCustomEmojiId(qlonglong backgroundCustomEmojiId);
+    void setProfileAccentColorId(int profileAccentColorId);
+    void setProfileBackgroundCustomEmojiId(qlonglong profileBackgroundCustomEmojiId);
     void setEmojiStatus(const QVariantMap &emojiStatus);
     void setIsContact(bool isContact);
     void setIsMutualContact(bool isMutualContact);
@@ -131,17 +128,17 @@ signals:
     void addedToAttachmentMenuChanged();
 
 private:
-    qint64 m_id;
+    qlonglong m_id;
     QString m_firstName;
     QString m_lastName;
     QVariantMap m_usernames;
     QString m_phoneNumber;
     QVariantMap m_status;
     QVariantMap m_profilePhoto;
-    qint32 m_accentColorId;
-    qint64 m_backgroundCustomEmojiId;
-    qint32 m_profileAccentColorId;
-    qint64 m_profileBackgroundCustomEmojiId;
+    int m_accentColorId;
+    qlonglong m_backgroundCustomEmojiId;
+    int m_profileAccentColorId;
+    qlonglong m_profileBackgroundCustomEmojiId;
     QVariantMap m_emojiStatus;
     bool m_isContact;
     bool m_isMutualContact;

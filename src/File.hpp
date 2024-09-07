@@ -25,7 +25,7 @@ class File : public QObject
     Q_PROPERTY(QString remoteId READ remoteId NOTIFY fileChanged)
     Q_PROPERTY(QString remoteUniqueId READ remoteUniqueId NOTIFY fileChanged)
 
-    Q_PROPERTY(qint64 uploadedSize READ uploadedSize NOTIFY fileChanged)
+    Q_PROPERTY(qlonglong uploadedSize READ uploadedSize NOTIFY fileChanged)
     Q_PROPERTY(bool isUploadingActive READ isUploadingActive NOTIFY fileChanged)
     Q_PROPERTY(bool isUploadingCompleted READ isUploadingCompleted NOTIFY fileChanged)
 
@@ -47,7 +47,7 @@ public:
     QString remoteId() const;
     QString remoteUniqueId() const;
 
-    qint64 uploadedSize() const;
+    qlonglong uploadedSize() const;
     bool isUploadingActive() const;
     bool isUploadingCompleted() const;
 

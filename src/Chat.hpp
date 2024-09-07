@@ -7,8 +7,6 @@
 #include <td/telegram/td_api.h>
 
 #include <QObject>
-#include <QString>
-#include <QVariant>
 
 #include <memory>
 
@@ -18,7 +16,7 @@ class Chat : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qint64 id READ id NOTIFY chatItemUpdated)
+    Q_PROPERTY(qlonglong id READ id NOTIFY chatItemUpdated)
     Q_PROPERTY(QString type READ type NOTIFY chatItemUpdated)
     Q_PROPERTY(QString title READ title NOTIFY chatItemUpdated)
     Q_PROPERTY(QString photo READ photo NOTIFY chatItemUpdated)
@@ -28,19 +26,19 @@ class Chat : public QObject
     Q_PROPERTY(bool canBeDeletedOnlyForSelf READ canBeDeletedOnlyForSelf NOTIFY chatItemUpdated)
     Q_PROPERTY(bool canBeDeletedForAllUsers READ canBeDeletedForAllUsers NOTIFY chatItemUpdated)
     Q_PROPERTY(int unreadCount READ unreadCount NOTIFY chatItemUpdated)
-    Q_PROPERTY(qint64 lastReadInboxMessageId READ lastReadInboxMessageId NOTIFY chatItemUpdated)
-    Q_PROPERTY(qint64 lastReadOutboxMessageId READ lastReadOutboxMessageId NOTIFY chatItemUpdated)
+    Q_PROPERTY(qlonglong lastReadInboxMessageId READ lastReadInboxMessageId NOTIFY chatItemUpdated)
+    Q_PROPERTY(qlonglong lastReadOutboxMessageId READ lastReadOutboxMessageId NOTIFY chatItemUpdated)
     Q_PROPERTY(int unreadMentionCount READ unreadMentionCount NOTIFY chatItemUpdated)
     Q_PROPERTY(int unreadReactionCount READ unreadReactionCount NOTIFY chatItemUpdated)
     Q_PROPERTY(int messageAutoDeleteTime READ messageAutoDeleteTime NOTIFY chatItemUpdated)
-    Q_PROPERTY(qint64 replyMarkupMessageId READ replyMarkupMessageId NOTIFY chatItemUpdated)
+    Q_PROPERTY(qlonglong replyMarkupMessageId READ replyMarkupMessageId NOTIFY chatItemUpdated)
     Q_PROPERTY(Message *draftMessage READ draftMessage NOTIFY chatItemUpdated)
 
 public:
     explicit Chat(QObject *parent = nullptr);
-    explicit Chat(qint64 chatId, ChatList chatList, QObject *parent = nullptr);
+    explicit Chat(qlonglong chatId, ChatList chatList, QObject *parent = nullptr);
 
-    qint64 id() const;
+    qlonglong id() const;
     QString type() const;
     QString title() const;
     QString photo() const;
@@ -50,17 +48,17 @@ public:
     bool canBeDeletedOnlyForSelf() const;
     bool canBeDeletedForAllUsers() const;
     int unreadCount() const;
-    qint64 lastReadInboxMessageId() const;
-    qint64 lastReadOutboxMessageId() const;
+    qlonglong lastReadInboxMessageId() const;
+    qlonglong lastReadOutboxMessageId() const;
     int unreadMentionCount() const;
     int unreadReactionCount() const;
     int messageAutoDeleteTime() const;
-    qint64 replyMarkupMessageId() const;
+    qlonglong replyMarkupMessageId() const;
     Message *draftMessage() const;
 
     QString getTitle() const noexcept;
 
-    qint64 getOrder() const noexcept;
+    qlonglong getOrder() const noexcept;
 
     bool isPinned() const noexcept;
 
@@ -73,8 +71,8 @@ public:
     Q_INVOKABLE void toggleNotificationSettings();
 
 signals:
-    void chatItemUpdated(qint64 chatId);
-    void chatPositionUpdated(qint64 chatId);
+    void chatItemUpdated(qlonglong chatId);
+    void chatPositionUpdated(qlonglong chatId);
 
 private slots:
     void onDataChanged(td::td_api::Object *object);
@@ -83,7 +81,7 @@ private slots:
 private:
     td::td_api::object_ptr<td::td_api::chatPosition> calculateChatPosition() noexcept;
 
-    qint64 m_chatId;
+    qlonglong m_chatId;
 
     ChatList m_chatList;
 

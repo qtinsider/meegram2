@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QObject>
 #include <QVariant>
 
 class UserFullInfo : public QObject
@@ -26,7 +25,7 @@ class UserFullInfo : public QObject
     Q_PROPERTY(bool setChatBackground READ setChatBackground WRITE setSetChatBackground NOTIFY setChatBackgroundChanged)
     Q_PROPERTY(QVariantMap bio READ bio WRITE setBio NOTIFY bioChanged)
     Q_PROPERTY(QVariantMap birthdate READ birthdate WRITE setBirthdate NOTIFY birthdateChanged)
-    Q_PROPERTY(qint64 personalChatId READ personalChatId WRITE setPersonalChatId NOTIFY personalChatIdChanged)
+    Q_PROPERTY(qlonglong personalChatId READ personalChatId WRITE setPersonalChatId NOTIFY personalChatIdChanged)
     Q_PROPERTY(QVariantList premiumGiftOptions READ premiumGiftOptions WRITE setPremiumGiftOptions NOTIFY premiumGiftOptionsChanged)
     Q_PROPERTY(int groupInCommonCount READ groupInCommonCount WRITE setGroupInCommonCount NOTIFY groupInCommonCountChanged)
     Q_PROPERTY(QVariantMap businessInfo READ businessInfo WRITE setBusinessInfo NOTIFY businessInfoChanged)
@@ -80,8 +79,8 @@ public:
     QVariantMap birthdate() const;
     void setBirthdate(const QVariantMap &birthdate);
 
-    qint64 personalChatId() const;
-    void setPersonalChatId(qint64 personalChatId);
+    qlonglong personalChatId() const;
+    void setPersonalChatId(qlonglong personalChatId);
 
     QVariantList premiumGiftOptions() const;
     void setPremiumGiftOptions(const QVariantList &premiumGiftOptions);
@@ -135,7 +134,7 @@ private:
     bool m_setChatBackground;
     QVariantMap m_bio;
     QVariantMap m_birthdate;
-    qint64 m_personalChatId;
+    qlonglong m_personalChatId;
     QVariantList m_premiumGiftOptions;
     int m_groupInCommonCount;
     QVariantMap m_businessInfo;

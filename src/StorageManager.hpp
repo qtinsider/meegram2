@@ -4,7 +4,6 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QObject>
 #include <QVariant>
 
 #include <memory>
@@ -24,19 +23,19 @@ public:
 
     [[nodiscard]] std::vector<int64_t> getChatIds() const noexcept;
 
-    [[nodiscard]] td::td_api::basicGroup *getBasicGroup(qint64 groupId) noexcept;
-    [[nodiscard]] td::td_api::basicGroupFullInfo *getBasicGroupFullInfo(qint64 groupId) noexcept;
-    [[nodiscard]] td::td_api::chat *getChat(qint64 chatId) noexcept;
-    [[nodiscard]] td::td_api::file *getFile(qint32 fileId) noexcept;
+    [[nodiscard]] td::td_api::basicGroup *getBasicGroup(qlonglong groupId) noexcept;
+    [[nodiscard]] td::td_api::basicGroupFullInfo *getBasicGroupFullInfo(qlonglong groupId) noexcept;
+    [[nodiscard]] td::td_api::chat *getChat(qlonglong chatId) noexcept;
+    [[nodiscard]] td::td_api::file *getFile(int fileId) noexcept;
     [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
-    [[nodiscard]] td::td_api::supergroup *getSupergroup(qint64 groupId) noexcept;
-    [[nodiscard]] td::td_api::supergroupFullInfo *getSupergroupFullInfo(qint64 groupId) noexcept;
-    [[nodiscard]] td::td_api::user *getUser(qint64 userId) noexcept;
-    [[nodiscard]] td::td_api::userFullInfo *getUserFullInfo(qint64 userId) noexcept;
+    [[nodiscard]] td::td_api::supergroup *getSupergroup(qlonglong groupId) noexcept;
+    [[nodiscard]] td::td_api::supergroupFullInfo *getSupergroupFullInfo(qlonglong groupId) noexcept;
+    [[nodiscard]] td::td_api::user *getUser(qlonglong userId) noexcept;
+    [[nodiscard]] td::td_api::userFullInfo *getUserFullInfo(qlonglong userId) noexcept;
 
     [[nodiscard]] const std::vector<const td::td_api::chatFolderInfo *> &chatFolders() const noexcept;
 
-    [[nodiscard]] qint64 myId() const noexcept;
+    [[nodiscard]] qlonglong myId() const noexcept;
 
 signals:
     void chatFoldersChanged();
@@ -67,7 +66,7 @@ private:
         }
     }
 
-    void setChatPositions(qint64 chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;
+    void setChatPositions(qlonglong chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;
 
     QVariantMap m_options;
 

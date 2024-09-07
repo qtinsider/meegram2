@@ -226,12 +226,12 @@ void UserFullInfo::setBirthdate(const QVariantMap &birthdate)
     }
 }
 
-qint64 UserFullInfo::personalChatId() const
+qlonglong UserFullInfo::personalChatId() const
 {
     return m_personalChatId;
 }
 
-void UserFullInfo::setPersonalChatId(qint64 personalChatId)
+void UserFullInfo::setPersonalChatId(qlonglong personalChatId)
 {
     if (m_personalChatId != personalChatId)
     {

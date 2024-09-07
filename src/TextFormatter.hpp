@@ -2,7 +2,6 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QObject>
 #include <QTextCursor>
 #include <QTextDocument>
 #include <QVariant>

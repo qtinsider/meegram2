@@ -179,8 +179,8 @@ void ChatModel::populate()
         {
             auto newChat = std::make_shared<Chat>(id, m_chatList);
 
-            connect(newChat.get(), SIGNAL(chatItemUpdated(qint64)), this, SLOT(handleChatItem(qint64)));
-            connect(newChat.get(), SIGNAL(chatPositionUpdated(qint64)), this, SLOT(handleChatPosition(qint64)));
+            connect(newChat.get(), SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+            connect(newChat.get(), SIGNAL(chatPositionUpdated(qlonglong)), this, SLOT(handleChatPosition(qlonglong)));
 
             m_chats.emplace_back(std::move(newChat));
         }
@@ -223,7 +223,7 @@ void ChatModel::sortChats()
     emit layoutChanged();
 }
 
-void ChatModel::handleChatItem(qint64 chatId)
+void ChatModel::handleChatItem(qlonglong chatId)
 {
     if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
     {
@@ -233,7 +233,7 @@ void ChatModel::handleChatItem(qint64 chatId)
     }
 }
 
-void ChatModel::handleChatPosition(qint64 chatId)
+void ChatModel::handleChatPosition(qlonglong chatId)
 {
     if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
     {

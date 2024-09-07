@@ -150,7 +150,7 @@ struct adl_serializer<QVariant>
         }
         else if (j.is_number_integer())
         {
-            value = QString::number(j.get<qint64>());
+            value = QString::number(j.get<qlonglong>());
         }
     }
 };

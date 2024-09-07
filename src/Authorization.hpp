@@ -4,7 +4,6 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QObject>
 #include <QVariant>
 
 #include <functional>

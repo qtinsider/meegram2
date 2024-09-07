@@ -27,7 +27,7 @@ std::optional<std::string> loadFileContent(const QString &path)
 
     constexpr size_t checkSize = 512;
     std::vector<char> checkBuffer(checkSize);
-    qint64 bytesRead = file.read(checkBuffer.data(), checkSize);
+    qlonglong bytesRead = file.read(checkBuffer.data(), checkSize);
 
     if (bytesRead <= 0)
     {

@@ -518,7 +518,7 @@ void MessageModel::closeChat() noexcept
     m_client->send(td::td_api::make_object<td::td_api::closeChat>(m_selectedChat->id_), {});
 }
 
-void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 limit)
+void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit)
 {
     if (!m_selectedChat)
         return;
@@ -537,7 +537,7 @@ void MessageModel::getChatHistory(qint64 fromMessageId, qint32 offset, qint32 li
     });
 }
 
-void MessageModel::sendMessage(const QString &message, qint64 replyToMessageId)
+void MessageModel::sendMessage(const QString &message, qlonglong replyToMessageId)
 {
     if (!m_selectedChat)
         return;
@@ -575,7 +575,7 @@ void MessageModel::viewMessages(std::vector<int64_t> &&messageIds)
     m_client->send(std::move(request), {});
 }
 
-void MessageModel::deleteMessage(qint64 messageId, bool revoke) noexcept
+void MessageModel::deleteMessage(qlonglong messageId, bool revoke) noexcept
 {
     if (!m_selectedChat)
         return;
@@ -660,16 +660,16 @@ void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> 
     }
 }
 
-void MessageModel::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId)
+void MessageModel::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId)
 {
 }
 
-void MessageModel::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId,
+void MessageModel::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
                                            td::td_api::object_ptr<td::td_api::error> &&error)
 {
 }
 
-void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
+void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -682,7 +682,7 @@ void MessageModel::handleMessageContent(qint64 chatId, qint64 messageId, td::td_
     }
 }
 
-void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
+void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -696,7 +696,7 @@ void MessageModel::handleMessageEdited(qint64 chatId, qint64 messageId, int edit
     }
 }
 
-void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned)
+void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -709,7 +709,7 @@ void MessageModel::handleMessageIsPinned(qint64 chatId, qint64 messageId, bool i
     }
 }
 
-void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
+void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -722,7 +722,7 @@ void MessageModel::handleMessageInteractionInfo(qint64 chatId, qint64 messageId,
     }
 }
 
-void MessageModel::handleDeleteMessages(qint64 chatId, std::vector<int64_t> &&messageIds, bool /*isPermanent*/, bool /*fromCache*/)
+void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool /*isPermanent*/, bool /*fromCache*/)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -740,7 +740,7 @@ void MessageModel::handleDeleteMessages(qint64 chatId, std::vector<int64_t> &&me
     }
 }
 
-void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCount)
+void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -750,7 +750,7 @@ void MessageModel::handleChatOnlineMemberCount(qint64 chatId, int onlineMemberCo
     emit selectedChatChanged();
 }
 
-void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessageId, int unreadCount)
+void MessageModel::handleChatReadInbox(qlonglong chatId, qlonglong lastReadInboxMessageId, int unreadCount)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;
@@ -761,7 +761,7 @@ void MessageModel::handleChatReadInbox(qint64 chatId, qint64 lastReadInboxMessag
     emit selectedChatChanged();
 }
 
-void MessageModel::handleChatReadOutbox(qint64 chatId, qint64 lastReadOutboxMessageId)
+void MessageModel::handleChatReadOutbox(qlonglong chatId, qlonglong lastReadOutboxMessageId)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;

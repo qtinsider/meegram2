@@ -22,7 +22,7 @@ void NotificationManager::handleActiveNotifications(const QVariantList &groups)
 {
 }
 
-void NotificationManager::handleNotificationGroup(int notificationGroupId, const QVariantMap &type, qint64 chatId, qint64 notificationSettingsChatId,
+void NotificationManager::handleNotificationGroup(int notificationGroupId, const QVariantMap &type, qlonglong chatId, qlonglong notificationSettingsChatId,
                                                   bool isSilent, int totalCount, const QVariantList &addedNotifications,
                                                   const QVariantList &removedNotificationIds)
 {

@@ -2,7 +2,6 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QObject>
 #include <QVariant>
 
 class Locale;
@@ -12,9 +11,9 @@ class Message : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qint64 id READ id NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong id READ id NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap senderId READ senderId NOTIFY dataChanged)
-    Q_PROPERTY(qint64 chatId READ chatId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong chatId READ chatId NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap sendingState READ sendingState NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap schedulingState READ schedulingState NOTIFY dataChanged)
     Q_PROPERTY(bool isOutgoing READ isOutgoing NOTIFY dataChanged)
@@ -37,25 +36,25 @@ class Message : public QObject
     Q_PROPERTY(bool isChannelPost READ isChannelPost NOTIFY dataChanged)
     Q_PROPERTY(bool isTopicMessage READ isTopicMessage NOTIFY dataChanged)
     Q_PROPERTY(bool containsUnreadMention READ containsUnreadMention NOTIFY dataChanged)
-    Q_PROPERTY(qint64 date READ date NOTIFY dataChanged)
-    Q_PROPERTY(qint64 editDate READ editDate NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong date READ date NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong editDate READ editDate NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap forwardInfo READ forwardInfo NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap importInfo READ importInfo NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap interactionInfo READ interactionInfo NOTIFY dataChanged)
     Q_PROPERTY(QVariantList unreadReactions READ unreadReactions NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap factCheck READ factCheck NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap replyTo READ replyTo NOTIFY dataChanged)
-    Q_PROPERTY(qint64 messageThreadId READ messageThreadId NOTIFY dataChanged)
-    Q_PROPERTY(qint64 savedMessagesTopicId READ savedMessagesTopicId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong messageThreadId READ messageThreadId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong savedMessagesTopicId READ savedMessagesTopicId NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap selfDestructType READ selfDestructType NOTIFY dataChanged)
     Q_PROPERTY(double selfDestructIn READ selfDestructIn NOTIFY dataChanged)
     Q_PROPERTY(double autoDeleteIn READ autoDeleteIn NOTIFY dataChanged)
-    Q_PROPERTY(qint64 viaBotUserId READ viaBotUserId NOTIFY dataChanged)
-    Q_PROPERTY(qint64 senderBusinessBotUserId READ senderBusinessBotUserId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong viaBotUserId READ viaBotUserId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong senderBusinessBotUserId READ senderBusinessBotUserId NOTIFY dataChanged)
     Q_PROPERTY(int senderBoostCount READ senderBoostCount NOTIFY dataChanged)
     Q_PROPERTY(QString authorSignature READ authorSignature NOTIFY dataChanged)
-    Q_PROPERTY(qint64 mediaAlbumId READ mediaAlbumId NOTIFY dataChanged)
-    Q_PROPERTY(qint64 effectId READ effectId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong mediaAlbumId READ mediaAlbumId NOTIFY dataChanged)
+    Q_PROPERTY(qlonglong effectId READ effectId NOTIFY dataChanged)
     Q_PROPERTY(QString restrictionReason READ restrictionReason NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap content READ content NOTIFY dataChanged)
     Q_PROPERTY(QVariantMap replyMarkup READ replyMarkup NOTIFY dataChanged)
@@ -64,9 +63,9 @@ public:
     explicit Message(QObject *parent = nullptr);
     explicit Message(td::td_api::message *message, QObject *parent = nullptr);
 
-    qint64 id() const;
+    qlonglong id() const;
     QVariantMap senderId() const;
-    qint64 chatId() const;
+    qlonglong chatId() const;
     QVariantMap sendingState() const;
     QVariantMap schedulingState() const;
     bool isOutgoing() const;
@@ -89,25 +88,25 @@ public:
     bool isChannelPost() const;
     bool isTopicMessage() const;
     bool containsUnreadMention() const;
-    qint64 date() const;
-    qint64 editDate() const;
+    qlonglong date() const;
+    qlonglong editDate() const;
     QVariantMap forwardInfo() const;
     QVariantMap importInfo() const;
     QVariantMap interactionInfo() const;
     QVariantList unreadReactions() const;
     QVariantMap factCheck() const;
     QVariantMap replyTo() const;
-    qint64 messageThreadId() const;
-    qint64 savedMessagesTopicId() const;
+    qlonglong messageThreadId() const;
+    qlonglong savedMessagesTopicId() const;
     QVariantMap selfDestructType() const;
     double selfDestructIn() const;
     double autoDeleteIn() const;
-    qint64 viaBotUserId() const;
-    qint64 senderBusinessBotUserId() const;
+    qlonglong viaBotUserId() const;
+    qlonglong senderBusinessBotUserId() const;
     int senderBoostCount() const;
     QString authorSignature() const;
-    qint64 mediaAlbumId() const;
-    qint64 effectId() const;
+    qlonglong mediaAlbumId() const;
+    qlonglong effectId() const;
     QString restrictionReason() const;
     QVariantMap content() const;
     QVariantMap replyMarkup() const;
@@ -129,12 +128,12 @@ private slots:
     void handleResult(td::td_api::Object *object);
 
 private:
-    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId);
-    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qint64 oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
-    void handleMessageContent(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
-    void handleMessageEdited(qint64 chatId, qint64 messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
-    void handleMessageIsPinned(qint64 chatId, qint64 messageId, bool isPinned);
-    void handleMessageInteractionInfo(qint64 chatId, qint64 messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
+    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId);
+    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
+    void handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
+    void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
+    void handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned);
+    void handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
 
     td::td_api::chat *m_chat;
     td::td_api::message *m_message;

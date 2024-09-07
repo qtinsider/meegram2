@@ -29,22 +29,22 @@ std::vector<int64_t> StorageManager::getChatIds() const noexcept
     return std::vector(view.begin(), view.end());
 }
 
-td::td_api::basicGroup *StorageManager::getBasicGroup(qint64 groupId) noexcept
+td::td_api::basicGroup *StorageManager::getBasicGroup(qlonglong groupId) noexcept
 {
     return getPointer(m_basicGroup, groupId);
 }
 
-td::td_api::basicGroupFullInfo *StorageManager::getBasicGroupFullInfo(qint64 groupId) noexcept
+td::td_api::basicGroupFullInfo *StorageManager::getBasicGroupFullInfo(qlonglong groupId) noexcept
 {
     return getPointer(m_basicGroupFullInfo, groupId);
 }
 
-td::td_api::chat *StorageManager::getChat(qint64 chatId) noexcept
+td::td_api::chat *StorageManager::getChat(qlonglong chatId) noexcept
 {
     return getPointer(m_chats, chatId);
 }
 
-td::td_api::file *StorageManager::getFile(qint32 fileId) noexcept
+td::td_api::file *StorageManager::getFile(int fileId) noexcept
 {
     return getPointer(m_files, fileId);
 }
@@ -57,22 +57,22 @@ QVariant StorageManager::getOption(const QString &name) const noexcept
     return QVariant();
 }
 
-td::td_api::supergroup *StorageManager::getSupergroup(qint64 groupId) noexcept
+td::td_api::supergroup *StorageManager::getSupergroup(qlonglong groupId) noexcept
 {
     return getPointer(m_supergroup, groupId);
 }
 
-td::td_api::supergroupFullInfo *StorageManager::getSupergroupFullInfo(qint64 groupId) noexcept
+td::td_api::supergroupFullInfo *StorageManager::getSupergroupFullInfo(qlonglong groupId) noexcept
 {
     return getPointer(m_supergroupFullInfo, groupId);
 }
 
-td::td_api::user *StorageManager::getUser(qint64 userId) noexcept
+td::td_api::user *StorageManager::getUser(qlonglong userId) noexcept
 {
     return getPointer(m_users, userId);
 }
 
-td::td_api::userFullInfo *StorageManager::getUserFullInfo(qint64 userId) noexcept
+td::td_api::userFullInfo *StorageManager::getUserFullInfo(qlonglong userId) noexcept
 {
     return getPointer(m_userFullInfo, userId);
 }
@@ -82,7 +82,7 @@ const std::vector<const td::td_api::chatFolderInfo *> &StorageManager::chatFolde
     return m_chatFolders;
 }
 
-qint64 StorageManager::myId() const noexcept
+qlonglong StorageManager::myId() const noexcept
 {
     if (const auto value = getOption("my_id"); not value.isNull())
         return value.toLongLong();
@@ -192,7 +192,7 @@ void StorageManager::handleResult(td::td_api::Object *object)
             [](auto &) {}});
 }
 
-void StorageManager::setChatPositions(qint64 chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept
+void StorageManager::setChatPositions(qlonglong chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept
 {
     auto it = m_chats.find(chatId);
     if (it == m_chats.end())

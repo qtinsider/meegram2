@@ -64,7 +64,7 @@ QString File::remoteUniqueId() const
     return m_file && m_file->remote_ ? QString::fromStdString(m_file->remote_->unique_id_) : QString();
 }
 
-qint64 File::uploadedSize() const
+qlonglong File::uploadedSize() const
 {
     return m_file && m_file->remote_ ? m_file->remote_->uploaded_size_ : 0;
 }

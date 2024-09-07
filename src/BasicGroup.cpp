@@ -9,12 +9,12 @@ BasicGroup::BasicGroup(QObject *parent)
 {
 }
 
-qint64 BasicGroup::id() const
+qlonglong BasicGroup::id() const
 {
     return m_id;
 }
 
-void BasicGroup::setId(qint64 id)
+void BasicGroup::setId(qlonglong id)
 {
     if (m_id != id)
     {
@@ -23,12 +23,12 @@ void BasicGroup::setId(qint64 id)
     }
 }
 
-qint32 BasicGroup::memberCount() const
+int BasicGroup::memberCount() const
 {
     return m_memberCount;
 }
 
-void BasicGroup::setMemberCount(qint32 memberCount)
+void BasicGroup::setMemberCount(int memberCount)
 {
     if (m_memberCount != memberCount)
     {
@@ -65,12 +65,12 @@ void BasicGroup::setIsActive(bool isActive)
     }
 }
 
-qint64 BasicGroup::upgradedToSupergroupId() const
+qlonglong BasicGroup::upgradedToSupergroupId() const
 {
     return m_upgradedToSupergroupId;
 }
 
-void BasicGroup::setUpgradedToSupergroupId(qint64 upgradedToSupergroupId)
+void BasicGroup::setUpgradedToSupergroupId(qlonglong upgradedToSupergroupId)
 {
     if (m_upgradedToSupergroupId != upgradedToSupergroupId)
     {

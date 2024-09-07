@@ -1,6 +1,5 @@
 #pragma once
 
-#include <QObject>
 #include <QVariant>
 
 class BasicGroupFullInfo : public QObject
@@ -8,7 +7,7 @@ class BasicGroupFullInfo : public QObject
     Q_OBJECT
     Q_PROPERTY(QVariantMap photo READ photo WRITE setPhoto NOTIFY photoChanged)
     Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
-    Q_PROPERTY(qint64 creatorUserId READ creatorUserId WRITE setCreatorUserId NOTIFY creatorUserIdChanged)
+    Q_PROPERTY(qlonglong creatorUserId READ creatorUserId WRITE setCreatorUserId NOTIFY creatorUserIdChanged)
     Q_PROPERTY(QVariantList members READ members WRITE setMembers NOTIFY membersChanged)
     Q_PROPERTY(bool canHideMembers READ canHideMembers WRITE setCanHideMembers NOTIFY canHideMembersChanged)
     Q_PROPERTY(bool canToggleAggressiveAntiSpam READ canToggleAggressiveAntiSpam WRITE setCanToggleAggressiveAntiSpam NOTIFY
@@ -25,8 +24,8 @@ public:
     QString description() const;
     void setDescription(const QString &description);
 
-    qint64 creatorUserId() const;
-    void setCreatorUserId(qint64 creatorUserId);
+    qlonglong creatorUserId() const;
+    void setCreatorUserId(qlonglong creatorUserId);
 
     QVariantList members() const;
     void setMembers(const QVariantList &members);
@@ -58,7 +57,7 @@ signals:
 private:
     QVariantMap m_photo;
     QString m_description;
-    qint64 m_creatorUserId;
+    qlonglong m_creatorUserId;
     QVariantList m_members;
     bool m_canHideMembers;
     bool m_canToggleAggressiveAntiSpam;
