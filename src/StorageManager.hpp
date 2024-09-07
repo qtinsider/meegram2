@@ -38,8 +38,15 @@ public:
     [[nodiscard]] qlonglong myId() const noexcept;
 
 signals:
-    void chatFoldersChanged();
-    void dataChanged(td::td_api::Object *object);
+    void basicGroupUpdated(td::td_api::Object *object);
+    void basicGroupFullInfoUpdated(td::td_api::Object *object);
+    void chatsUpdated(td::td_api::Object *object);
+    void filesUpdated(td::td_api::Object *object);
+    void supergroupUpdated(td::td_api::Object *object);
+    void supergroupFullInfoUpdated(td::td_api::Object *object);
+    void usersUpdated(td::td_api::Object *object);
+    void userFullInfoUpdated(td::td_api::Object *object);
+    void chatFoldersUpdated(td::td_api::Object *object);
 
 private slots:
     void handleResult(td::td_api::Object *object);
@@ -55,15 +62,6 @@ private:
             return it->second.get();
         }
         return nullptr;
-    }
-
-    void updateAndEmit(td::td_api::Object *object, auto &container, auto &value, auto &&updateFunc)
-    {
-        if (auto it = container.find(value.chat_id_); it != container.end())
-        {
-            updateFunc(it->second, value);
-            emit dataChanged(object);
-        }
     }
 
     void setChatPositions(qlonglong chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;

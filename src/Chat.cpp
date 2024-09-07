@@ -9,7 +9,7 @@ Chat::Chat(QObject *parent)
     : QObject(parent)
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
 Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
@@ -18,7 +18,7 @@ Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
     , m_chatList(std::move(chatList))
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 
     m_chat = m_storageManager->getChat(m_chatId);
 

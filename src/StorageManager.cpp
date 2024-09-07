@@ -97,96 +97,149 @@ void StorageManager::handleResult(td::td_api::Object *object)
         detail::Overloaded{
             [this, object](td::td_api::updateNewChat &value) {
                 m_chats.insert_or_assign(value.chat_->id_, std::move(value.chat_));
-                emit dataChanged(object);
+                emit chatsUpdated(object);
             },
             [this, object](td::td_api::updateChatTitle &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->title_ = v.title_; });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->title_ = value.title_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatPhoto &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, auto &&v) { chat->photo_ = std::move(v.photo_); });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->photo_ = std::move(value.photo_);
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatPermissions &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, auto &&v) { chat->permissions_ = std::move(v.permissions_); });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->permissions_ = std::move(value.permissions_);
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatLastMessage &value) {
                 if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
                 {
                     it->second->last_message_ = std::move(value.last_message_);
+
                     setChatPositions(value.chat_id_, std::move(value.positions_));
-                    emit dataChanged(object);
+
+                    emit chatsUpdated(object);
                 }
             },
             [this, object](td::td_api::updateChatPosition &value) {
                 std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> result;
                 result.emplace_back(std::move(value.position_));
+
                 setChatPositions(value.chat_id_, std::move(result));
-                emit dataChanged(object);
+
+                emit chatsUpdated(object);
             },
             [this, object](td::td_api::updateChatReadInbox &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) {
-                    chat->last_read_inbox_message_id_ = v.last_read_inbox_message_id_;
-                    chat->unread_count_ = v.unread_count_;
-                });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->last_read_inbox_message_id_ = value.last_read_inbox_message_id_;
+                    it->second->unread_count_ = value.unread_count_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatReadOutbox &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->last_read_outbox_message_id_ = v.last_read_outbox_message_id_; });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->last_read_outbox_message_id_ = value.last_read_outbox_message_id_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatActionBar &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, auto &&v) { chat->action_bar_ = std::move(v.action_bar_); });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->action_bar_ = std::move(value.action_bar_);
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatDraftMessage &value) {
                 if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
                 {
                     it->second->draft_message_ = std::move(value.draft_message_);
+
                     setChatPositions(value.chat_id_, std::move(value.positions_));
-                    emit dataChanged(object);
+
+                    emit chatsUpdated(object);
                 }
             },
             [this, object](td::td_api::updateChatNotificationSettings &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, auto &&v) { chat->notification_settings_ = std::move(v.notification_settings_); });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->notification_settings_ = std::move(value.notification_settings_);
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatReplyMarkup &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->reply_markup_message_id_ = v.reply_markup_message_id_; });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->reply_markup_message_id_ = value.reply_markup_message_id_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatUnreadMentionCount &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->unread_mention_count_ = v.unread_mention_count_; });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->unread_mention_count_ = value.unread_mention_count_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateChatIsMarkedAsUnread &value) {
-                updateAndEmit(object, m_chats, value, [](auto &chat, const auto &v) { chat->is_marked_as_unread_ = v.is_marked_as_unread_; });
+                if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
+                {
+                    it->second->is_marked_as_unread_ = value.is_marked_as_unread_;
+
+                    emit chatsUpdated(object);
+                }
             },
             [this, object](td::td_api::updateUser &value) {
                 m_users.insert_or_assign(value.user_->id_, std::move(value.user_));
-                emit dataChanged(object);
+                emit usersUpdated(object);
             },
             [this, object](td::td_api::updateBasicGroup &value) {
                 m_basicGroup.insert_or_assign(value.basic_group_->id_, std::move(value.basic_group_));
-                emit dataChanged(object);
+                emit basicGroupUpdated(object);
             },
             [this, object](td::td_api::updateSupergroup &value) {
                 m_supergroup.insert_or_assign(value.supergroup_->id_, std::move(value.supergroup_));
-                emit dataChanged(object);
+                emit supergroupUpdated(object);
             },
             [this, object](td::td_api::updateUserFullInfo &value) {
                 m_userFullInfo.insert_or_assign(value.user_id_, std::move(value.user_full_info_));
-                emit dataChanged(object);
+                emit userFullInfoUpdated(object);
             },
             [this, object](td::td_api::updateBasicGroupFullInfo &value) {
                 m_basicGroupFullInfo.insert_or_assign(value.basic_group_id_, std::move(value.basic_group_full_info_));
-                emit dataChanged(object);
+                emit basicGroupFullInfoUpdated(object);
             },
             [this, object](td::td_api::updateSupergroupFullInfo &value) {
                 m_supergroupFullInfo.insert_or_assign(value.supergroup_id_, std::move(value.supergroup_full_info_));
-                emit dataChanged(object);
+                emit supergroupFullInfoUpdated(object);
             },
             [this, object](td::td_api::updateChatFolders &value) {
                 m_chatFolders.reserve(value.chat_folders_.size());
                 std::ranges::transform(value.chat_folders_, std::back_inserter(m_chatFolders), [](const auto &chatFolder) { return chatFolder.get(); });
-                emit chatFoldersChanged();
-                emit dataChanged(object);
+
+                emit chatFoldersUpdated(object);
             },
             [this, object](td::td_api::updateFile &value) {
                 m_files.insert_or_assign(value.file_->id_, std::move(value.file_));
-                emit dataChanged(object);
+
+                emit filesUpdated(object);
             },
             [this](td::td_api::updateOption &) {},
             [](auto &) {}});

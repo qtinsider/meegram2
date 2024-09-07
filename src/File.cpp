@@ -7,7 +7,7 @@ File::File(QObject *parent)
     , m_client(StorageManager::instance().client())
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(filesUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
 File::File(td::td_api::file *file, QObject *parent)
@@ -16,7 +16,7 @@ File::File(td::td_api::file *file, QObject *parent)
     , m_client(StorageManager::instance().client())
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(dataChanged(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(filesUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
 }
 
 int File::id() const
