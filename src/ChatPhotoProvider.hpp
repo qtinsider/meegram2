@@ -2,7 +2,6 @@
 
 #include <QDeclarativeImageProvider>
 
-
 class ChatPhotoProvider : public QDeclarativeImageProvider
 {
 public:

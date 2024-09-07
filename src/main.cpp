@@ -11,11 +11,12 @@
 #include "Chat.hpp"
 #include "ChatFolderModel.hpp"
 #include "ChatModel.hpp"
+#include "ChatPhotoProvider.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
 #include "CountryModel.hpp"
 #include "DBusAdaptor.hpp"
-#include "ImageProviders.hpp"
+#include "IconProvider.hpp"
 #include "LanguagePackInfoModel.hpp"
 #include "Localization.hpp"
 #include "LottieAnimation.hpp"
@@ -25,7 +26,6 @@
 #include "Settings.hpp"
 #include "SortFilterProxyModel.hpp"
 #include "StorageManager.hpp"
-#include "SvgIconItem.hpp"
 #include "TdApi.hpp"
 #include "TextFormatter.hpp"
 
@@ -59,7 +59,6 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
     qmlRegisterType<QrCodeItem>("MyComponent", 1, 0, "QrCode");
     qmlRegisterType<SortFilterProxyModel>("MyComponent", 1, 0, "SortFilterProxyModel");
-    qmlRegisterType<SvgIconItem>("MyComponent", 1, 0, "SvgIcon");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 
     qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");
@@ -74,6 +73,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     viewer.rootContext()->setContextProperty("settings", &Settings::instance());
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
+    viewer.engine()->addImageProvider("icon", new IconProvider);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 
     QObject::connect(viewer.engine(), SIGNAL(quit()), &viewer, SLOT(close()));

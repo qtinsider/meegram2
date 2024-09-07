@@ -1,4 +1,4 @@
-#include "ImageProviders.hpp"
+#include "ChatPhotoProvider.hpp"
 
 QImage ChatPhotoProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize)
 {
