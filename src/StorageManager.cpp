@@ -241,7 +241,22 @@ void StorageManager::handleResult(td::td_api::Object *object)
 
                 emit filesUpdated(object);
             },
-            [this](td::td_api::updateOption &) {},
+            [this](td::td_api::updateOption &value) {
+                auto optionValue = [](td::td_api::object_ptr<td::td_api::OptionValue> &&option) -> QVariant {
+                    switch (option->get_id()) {
+                        case td::td_api::optionValueBoolean::ID:
+                            return QVariant::fromValue(static_cast<td::td_api::optionValueBoolean *>(option.get())->value_);
+                        case td::td_api::optionValueInteger::ID:
+                            return QVariant::fromValue(static_cast<td::td_api::optionValueInteger *>(option.get())->value_);
+                        case td::td_api::optionValueString::ID:
+                            return QVariant::fromValue(QString::fromStdString(static_cast<td::td_api::optionValueString *>(option.get())->value_));
+                        default:
+                            return QVariant();
+                    }
+                };
+
+                m_options.insert(QString::fromStdString(value.name_), optionValue(std::move(value.value_)));
+            },
             [](auto &) {}});
 }
 
