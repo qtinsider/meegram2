@@ -58,15 +58,15 @@ Item {
     function getTitle() {
         switch (app.connectionStateString) {
         case "Updating":
-            return app.getString("Updating") + app.emptyString;
+            return qsTr("Updating");
         case "Connecting":
-            return app.getString("Connecting") + app.emptyString;
+            return qsTr("Connecting");
         case "ConnectingToProxy":
-            return app.getString("ConnectingToProxy") + app.emptyString;
+            return qsTr("ConnectingToProxy");
         case "WaitingForNetwork":
-            return app.getString("WaitingForNetwork") + app.emptyString;
+            return qsTr("WaitingForNetwork");
         default:
-            return app.getString(title) + app.emptyString;
+            return qsTr(title);
         }
     }
 }

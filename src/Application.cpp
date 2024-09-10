@@ -24,8 +24,8 @@ Application::Application(QObject *parent)
 
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
-    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
-    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
+    // connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
+    // connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
 }
 
 bool Application::isAuthorized() const noexcept
@@ -33,19 +33,9 @@ bool Application::isAuthorized() const noexcept
     return m_isAuthorized;
 }
 
-QString Application::emptyString() const noexcept
-{
-    return {};
-}
-
 const QString &Application::connectionStateString() const noexcept
 {
     return m_connectionStateString;
-}
-
-QString Application::getString(const QString &key) const noexcept
-{
-    return m_locale->getString(key);
 }
 
 void Application::close() noexcept

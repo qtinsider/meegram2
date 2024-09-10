@@ -7,7 +7,6 @@
 #include <QImage>
 #include <QVariant>
 
-class Locale;
 class StorageManager;
 
 struct ChatListComparator
@@ -48,21 +47,21 @@ public:
     static bool isChatPinned(const td::td_api::chat *chat, const ChatList &chatList);
     static qlonglong getChatOrder(const td::td_api::chat *chat, const ChatList &chatList);
 
-    static QString getChatTitle(qlonglong chatId, StorageManager *store, Locale *locale, bool showSavedMessages = false);
+    static QString getChatTitle(qlonglong chatId, StorageManager *store, bool showSavedMessages = false);
     static bool isChatMuted(qlonglong chatId, StorageManager *store);
     static int getChatMuteFor(qlonglong chatId, StorageManager *store);
 
     static bool isMeChat(const td::td_api::chat *chat, StorageManager *store) noexcept;
 
-    static QString getServiceMessageContent(const td::td_api::message &message, StorageManager *store, Locale *locale, bool openUser = false);
+    static QString getServiceMessageContent(const td::td_api::message &message, StorageManager *store, bool openUser = false);
     static bool isServiceMessage(const td::td_api::message &message);
 
-    static QString getUserShortName(qlonglong userId, StorageManager *store, Locale *locale) noexcept;
+    static QString getUserShortName(qlonglong userId, StorageManager *store) noexcept;
 
-    static QString getContent(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
-    static QString getTitle(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
-    static QString getMessageDate(const td::td_api::message &message, Locale *locale) noexcept;
-    static QString getMessageSenderName(const td::td_api::message &message, StorageManager *store, Locale *locale) noexcept;
+    static QString getContent(const td::td_api::message &message, StorageManager *store) noexcept;
+    static QString getTitle(const td::td_api::message &message, StorageManager *store) noexcept;
+    static QString getMessageDate(const td::td_api::message &message) noexcept;
+    static QString getMessageSenderName(const td::td_api::message &message, StorageManager *store) noexcept;
 
     static bool isChatUnread(qlonglong chatId, StorageManager *store) noexcept;
     static bool isMessageUnread(const td::td_api::message &message, StorageManager *store) noexcept;

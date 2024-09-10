@@ -11,7 +11,6 @@
 #include <vector>
 
 class Client;
-class Locale;
 class StorageManager;
 
 class MessageModel : public QAbstractListModel, public QDeclarativeParserStatus
@@ -140,7 +139,6 @@ private:
     void itemChanged(int64_t index);
 
     Client *m_client{};
-    Locale *m_locale{};
     StorageManager *m_storageManager{};
 
     int m_onlineCount = 0;

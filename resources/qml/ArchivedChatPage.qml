@@ -39,7 +39,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: app.getString("NoChats") + app.emptyString
+        text: qsTr("NoChats")
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -66,8 +66,8 @@ Page {
         MenuLayout {
             MenuItem {
                 // text: myChatModel.isPinned(listView.currentIndex)
-                //       ? app.getString("UnpinFromTop") + app.emptyString
-                //       : app.getString("PinToTop") + app.emptyString
+                //       ? qsTr("UnpinFromTop")
+                //       : qsTr("PinToTop")
                 // onClicked: {
                 //     myChatModel.toggleChatIsPinned(listView.currentIndex)
                 // }

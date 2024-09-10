@@ -183,11 +183,11 @@ QString Chat::getTitle() const noexcept
 {
     if (isMe() && m_showSavedMessages)
     {
-        return Locale::instance().getString("SavedMessages");
+        return tr("SavedMessages");
     }
 
     const auto title = QString::fromStdString(m_chat->title_).trimmed();
-    return !title.isEmpty() ? title : Locale::instance().getString("HiddenName");
+    return !title.isEmpty() ? title : tr("HiddenName");
 }
 
 bool Chat::isMuted() const noexcept
@@ -198,43 +198,6 @@ bool Chat::isMuted() const noexcept
 int Chat::muteFor() const noexcept
 {
     return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
-}
-
-void Chat::toggleIsPinned()
-{
-    // auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
-    // request->chat_list_ = Utils::toChatList(m_chatList);
-    // request->chat_id_ = data(modelIndex, IdRole).toLongLong();
-    // request->is_pinned_ = !data(modelIndex, IsPinnedRole).toBool();
-
-    // m_client->send(std::move(request), [this](auto &&response) {
-    //     if (response->get_id() == td::td_api::ok::ID)
-    //         QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
-    // });
-}
-
-void Chat::toggleNotificationSettings()
-{
-    // const auto chatId = data(modelIndex, IdRole).toLongLong();
-    // const auto isMuted = !data(modelIndex, IsMutedRole).toBool();
-
-    // if (const auto isMutedPrev = Utils::isChatMuted(chatId, m_storageManager); isMutedPrev == isMuted)
-    //     return;
-
-    // const auto muteFor = isMuted ? MutedValueMax : MutedValueMin;
-
-    // auto newNotificationSettings = td::td_api::make_object<td::td_api::chatNotificationSettings>();
-    // newNotificationSettings->use_default_mute_for_ = false;
-    // newNotificationSettings->mute_for_ = muteFor;
-
-    // auto request = td::td_api::make_object<td::td_api::setChatNotificationSettings>();
-    // request->chat_id_ = chatId;
-    // request->notification_settings_ = std::move(newNotificationSettings);
-
-    // m_client->send(std::move(request), [this](auto &&value) {
-    //     if (value->get_id() == td::td_api::ok::ID)
-    //         QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
-    // });
 }
 
 void Chat::onDataChanged(td::td_api::Object *object)

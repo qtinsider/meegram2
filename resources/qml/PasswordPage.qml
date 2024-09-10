@@ -26,7 +26,7 @@ Page {
 
             Label {
                 id: title
-                text: app.getString("TwoStepVerification") + app.emptyString
+                text: qsTr("TwoStepVerification")
                 font.pixelSize: 40
             }
 
@@ -44,7 +44,7 @@ Page {
 
                 Label {
                     width: parent.width
-                    text: app.getString("LoginPasswordText") + app.emptyString
+                    text: qsTr("LoginPasswordText")
                 }
 
                 Item {
@@ -52,21 +52,21 @@ Page {
                 }
 
                 Label {
-                    text: app.getString("YourPassword") + app.emptyString
+                    text: qsTr("YourPassword")
                 }
 
                 TextField {
                     id: password
                     width: parent.width
                     echoMode: TextInput.Password
-                    placeholderText: app.getString("Password") + app.emptyString
+                    placeholderText: qsTr("Password")
                 }
 
                 Label {
                     id: hint
                     width: parent.width
                     font.pixelSize: 24
-                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(app.getString("PasswordHint")).arg(passwordHint)
+                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(qsTr("PasswordHint")).arg(passwordHint)
                     visible: passwordHint !== ""
                 }
             }
@@ -76,14 +76,14 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.getString("Next") + app.emptyString
+                text: qsTr("Next")
                 onClicked: {
                     authorization.loading = true;
                     authorization.checkPassword(password.text)
                 }
             }
             ToolButton {
-                text: app.getString("Cancel") + app.emptyString
+                text: qsTr("Cancel")
                 onClicked: {
                     authorization.loading = false;
                     root.cancelClicked()

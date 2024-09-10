@@ -16,10 +16,12 @@
 #include "Common.hpp"
 #include "CountryModel.hpp"
 #include "DBusAdaptor.hpp"
+#include "File.hpp"
 #include "IconProvider.hpp"
 #include "LanguagePackInfoModel.hpp"
 #include "Localization.hpp"
 #include "LottieAnimation.hpp"
+#include "Message.hpp"
 #include "MessageModel.hpp"
 #include "NotificationManager.hpp"
 #include "QrCodeItem.hpp"
@@ -43,12 +45,17 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
 
+    qRegisterMetaType<qlonglong>("qlonglong");
+
     qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
     qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
+
     qRegisterMetaType<QModelIndex>("QModelIndex");
 
     qmlRegisterType<Authorization>("MyComponent", 1, 0, "Authorization");
     qmlRegisterType<Chat>("MyComponent", 1, 0, "Chat");
+    qmlRegisterType<File>("MyComponent", 1, 0, "File");
+    qmlRegisterType<Message>("MyComponent", 1, 0, "Message");
 
     qmlRegisterType<ChatModel>("MyComponent", 1, 0, "ChatModel");
     qmlRegisterType<ChatFolderModel>("MyComponent", 1, 0, "ChatFolderModel");
@@ -68,11 +75,15 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     Application application;
 
+    Translator translator;
+    app.installTranslator(&translator);
+
     viewer.rootContext()->setContextProperty("app", &application);
     viewer.rootContext()->setContextProperty("client", StorageManager::instance().client());
     viewer.rootContext()->setContextProperty("settings", &Settings::instance());
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
+
     viewer.engine()->addImageProvider("icon", new IconProvider);
     viewer.engine()->addImageProvider("chatPhoto", new ChatPhotoProvider);
 

@@ -24,7 +24,7 @@ Page {
 
             Label {
                 id: title
-                text: app.getString("YourPhone") + app.emptyString
+                text: qsTr("YourPhone")
                 font.pixelSize: 40
             }
 
@@ -65,13 +65,13 @@ Page {
                     TextField {
                         id: phoneNumber
                         inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
-                        placeholderText: app.getString("PhoneNumberSearch") + app.emptyString
+                        placeholderText: qsTr("PhoneNumberSearch")
                     }
                 }
 
                 Label {
                     font.pixelSize: 24
-                    text: app.getString("StartText") + app.emptyString
+                    text: qsTr("StartText")
                 }
 
                 Row {
@@ -84,7 +84,7 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.getString("Next") + app.emptyString
+                text: qsTr("Next")
                 onClicked: {
                     if (phoneNumber.text.length > 0) {
                         authorization.loading = true
@@ -94,7 +94,7 @@ Page {
             }
 
             ToolButton {
-                text: app.getString("Cancel") + app.emptyString
+                text: qsTr("Cancel")
                 onClicked: {
                     authorization.loading = false
                     root.cancelClicked()
@@ -109,7 +109,7 @@ Page {
 
     SelectionDialog {
         id: selectionDialog
-        titleText: app.getString("ChooseCountry") + app.emptyString
+        titleText: qsTr("ChooseCountry")
         selectedIndex: countryModel.defaultIndex
         model: countryModel
     }

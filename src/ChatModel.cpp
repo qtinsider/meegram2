@@ -160,6 +160,37 @@ void ChatModel::setChatFolderId(int value)
     }
 }
 
+void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
+{
+    auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
+    request->chat_list_ = Utils::toChatList(m_chatList);
+    request->chat_id_ = chatId;
+    request->is_pinned_ = !isPinned;
+
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::ok::ID)
+            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    });
+}
+
+void ChatModel::toggleChatNotificationSettings(qlonglong chatId, bool isMuted)
+{
+    const int muteFor = isMuted ? MutedValueMin : MutedValueMax;
+
+    auto notificationSettings = td::td_api::make_object<td::td_api::chatNotificationSettings>();
+    notificationSettings->use_default_mute_for_ = false;
+    notificationSettings->mute_for_ = muteFor;
+
+    auto request = td::td_api::make_object<td::td_api::setChatNotificationSettings>();
+    request->chat_id_ = chatId;
+    request->notification_settings_ = std::move(notificationSettings);
+
+    m_client->send(std::move(request), [this](auto &&response) {
+        if (response->get_id() == td::td_api::ok::ID)
+            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
+    });
+}
+
 void ChatModel::populate()
 {
     m_chats.clear();

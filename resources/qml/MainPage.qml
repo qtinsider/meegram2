@@ -54,7 +54,7 @@ Page {
                 }
 
                 Button {
-                    text: app.getString("StartMessaging") + app.emptyString
+                    text: qsTr("StartMessaging")
                     platformStyle: ButtonStyle { inverted: true }
                     anchors.horizontalCenter: parent.horizontalCenter
                     onClicked: {

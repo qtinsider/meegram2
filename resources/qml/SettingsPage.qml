@@ -23,7 +23,7 @@ Page {
             top: header.bottom
         }
 
-        model: [app.getString("Language") + app.emptyString]
+        model: [qsTr("Language")]
         delegate: DrillDownDelegate {
             text: modelData
             onClicked: {

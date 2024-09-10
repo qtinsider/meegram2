@@ -29,11 +29,11 @@ Page {
         id: myMenu
         MenuLayout {
             MenuItem {
-                text: app.getString("ArchivedChats") + app.emptyString
+                text: qsTr("ArchivedChats")
                 onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
             }
             MenuItem {
-                text: app.getString("SETTINGS") + app.emptyString
+                text: qsTr("SETTINGS")
                 onClicked: pageStack.push(Qt.createComponent("SettingsPage.qml"))
             }
             MenuItem {
@@ -70,7 +70,7 @@ Page {
         anchors.centerIn: listView
         font.pixelSize: 60
         color: "gray"
-        text: app.getString("NoChats") + app.emptyString
+        text: qsTr("NoChats")
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
     }
 
@@ -83,7 +83,7 @@ Page {
 
     SelectionDialog {
         id: chatFolderDialog
-        titleText: app.getString("Filters") + app.emptyString
+        titleText: qsTr("Filters")
         selectedIndex: 0
         model: mychatFolderModel
 
@@ -99,7 +99,7 @@ Page {
 
     ChatFolderModel {
         id: mychatFolderModel
-        localeString: app.getString("FilterAllChats")
+        localeString: qsTr("FilterAllChats")
     }
 
     ChatModel {
@@ -118,15 +118,15 @@ Page {
         MenuLayout {
             MenuItem {
                 // text: myChatModel.isPinned(listView.currentIndex)
-                //     ? app.getString("UnpinFromTop") + app.emptyString
-                //     : app.getString("PinToTop") + app.emptyString
+                //     ? qsTr("UnpinFromTop")
+                //     : qsTr("PinToTop")
                 // onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
             }
 
             MenuItem {
                 // text: myChatModel.isMuted(listView.currentIndex)
-                //     ? app.getString("ChatsUnmute") + app.emptyString
-                //     : app.getString("ChatsMute") + app.emptyString
+                //     ? qsTr("ChatsUnmute")
+                //     : qsTr("ChatsMute")
                 // onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
             }
         }

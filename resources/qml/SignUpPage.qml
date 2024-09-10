@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: app.getString("YourName") + app.emptyString
+                text: qsTr("YourName")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -46,7 +46,7 @@ Page {
                 spacing: 10
 
                 Label {
-                    text: app.getString("RegisterText2") + app.emptyString
+                    text: qsTr("RegisterText2")
                 }
 
                 Column {
@@ -57,13 +57,13 @@ Page {
                         id: firstName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: app.getString("FirstName") + app.emptyString
+                        placeholderText: qsTr("FirstName")
                     }
                     TextField {
                         id: lastName
                         width: parent.width
                         inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: app.getString("LastName") + app.emptyString
+                        placeholderText: qsTr("LastName")
                     }
                 }
 
@@ -82,14 +82,14 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.getString("Next") + app.emptyString
+                text: qsTr("Next")
                 onClicked: {
                     authorization.loading = true;
                     authorization.registerUser(firstName.text, lastName.text);
                 }
             }
             ToolButton {
-                text: app.getString("Cancel") + app.emptyString
+                text: qsTr("Cancel")
                 onClicked: {
                     authorization.loading = false;
                     root.cancelClicked()
@@ -100,9 +100,9 @@ Page {
 
     QueryDialog {
         id: dialog
-        titleText: app.getString("TermsOfService") + app.emptyString
-        message: app.getString("TermsOfServiceLogin") + app.emptyString
-        rejectButtonText: app.getString("Close") + app.emptyString
+        titleText: qsTr("TermsOfService")
+        message: qsTr("TermsOfServiceLogin")
+        rejectButtonText: qsTr("Close")
     }
 
     BusyIndicator {

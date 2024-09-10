@@ -67,9 +67,6 @@ public:
 
     bool isMe() const noexcept;
 
-    Q_INVOKABLE void toggleIsPinned();
-    Q_INVOKABLE void toggleNotificationSettings();
-
 signals:
     void chatItemUpdated(qlonglong chatId);
     void chatPositionUpdated(qlonglong chatId);

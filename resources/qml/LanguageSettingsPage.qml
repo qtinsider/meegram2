@@ -10,7 +10,7 @@ Page {
 
     TopBar {
         id: header
-        title: app.getString("Language") + app.emptyString
+        title: qsTr("Language")
     }
 
     ListView {

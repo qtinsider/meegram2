@@ -29,7 +29,7 @@ Page {
 
             Label {
                 id: title
-                text: app.getString("YourCode") + app.emptyString
+                text: qsTr("YourCode")
                 font.pixelSize: 40
             }
             Rectangle {
@@ -58,7 +58,7 @@ Page {
                         id: code
                         width: parent.width
                         inputMethodHints: Qt.ImhDigitsOnly | Qt.ImhNoPredictiveText
-                        placeholderText: app.getString("Code") + app.emptyString
+                        placeholderText: qsTr("Code")
 
                         onTextChanged: {
                             if(text.length >= getCodeLength()) {
@@ -84,7 +84,7 @@ Page {
                         font.underline: true
 
                         color: "#0088cc"
-                        text: app.getString("DidNotGetTheCodeSms") + app.emptyString
+                        text: qsTr("DidNotGetTheCodeSms")
 
                         visible: nextType.type === "authenticationCodeTypeSms"
 
@@ -135,14 +135,14 @@ Page {
     tools: ToolBarLayout {
         ToolButtonRow {
             ToolButton {
-                text: app.getString("Next") + app.emptyString
+                text: qsTr("Next")
                 onClicked: {
                     authorization.loading = true;
                     authorization.checkCode(code.text);
                 }
             }
             ToolButton {
-                text: app.getString("Cancel") + app.emptyString
+                text: qsTr("Cancel")
                 onClicked: {
                     authorization.loading = false;
                     root.cancelClicked();
@@ -154,25 +154,25 @@ Page {
     function getCodeTitle() {
         switch (type.type) {
         case "TelegramMessage":
-            return app.getString("SentAppCodeTitle");
+            return qsTr("SentAppCodeTitle");
         case "Call":
         case "Sms":
-            return app.getString("SentSmsCodeTitle");
+            return qsTr("SentSmsCodeTitle");
         default:
-            return app.getString("Title");
+            return qsTr("Title");
         }
     }
 
     function getCodeSubtitle() {
         switch (type.type) {
         case "Call":
-            return app.getString("SentCallCode").arg(phoneNumber);
+            return qsTr("SentCallCode").arg(phoneNumber);
         case "FlashCall":
-            return app.getString("SentCallOnly").arg(phoneNumber);
+            return qsTr("SentCallOnly").arg(phoneNumber);
         case "Sms":
-            return app.getString("SentSmsCode").arg(phoneNumber);
+            return qsTr("SentSmsCode").arg(phoneNumber);
         case "TelegramMessage":
-            return app.getString("SentAppCode");
+            return qsTr("SentAppCode");
         default:
             return "";
         }
@@ -181,9 +181,9 @@ Page {
     function getCodeNextTypeString() {
         switch (nextType.type) {
         case "Call":
-            return app.getString("CallText");
+            return qsTr("CallText");
         case "Sms":
-            return app.getString("SmsText");
+            return qsTr("SmsText");
         default:
             return "";
         }

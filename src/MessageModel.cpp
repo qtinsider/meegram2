@@ -2,8 +2,8 @@
 
 #include "Client.hpp"
 #include "Common.hpp"
-#include "StorageManager.hpp"
 #include "Localization.hpp"
+#include "StorageManager.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>
@@ -16,17 +16,17 @@
 
 namespace {
 
-QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int onlineCount, Locale *locale) noexcept
+QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int onlineCount) noexcept
 {
     const auto count = basicGroup->member_count_;
     const auto statusId = basicGroup->status_->get_id();
 
     if (statusId == td::td_api::chatMemberStatusBanned::ID)
     {
-        return locale->getString("YouWereKicked");
+        return QObject::tr("YouWereKicked");
     }
 
-    const auto memberString = locale->formatPluralString("Members", count);
+    const auto memberString = Locale::instance().formatPluralString("Members", count);
     if (count <= 1)
     {
         return memberString;
@@ -34,13 +34,13 @@ QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int online
 
     if (onlineCount > 1)
     {
-        return memberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
+        return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
     }
 
     return memberString;
 }
 
-QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
+QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
 {
     if (!supergroup->is_channel_)
     {
@@ -55,10 +55,10 @@ QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCou
 
     if (count <= 0)
     {
-        return supergroup->usernames_ ? locale->getString("ChannelPublic") : locale->getString("ChannelPrivate");
+        return supergroup->usernames_ ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
     }
 
-    const auto subscriberString = locale->formatPluralString("Subscribers", count);
+    const auto subscriberString = Locale::instance().formatPluralString("Subscribers", count);
     if (count <= 1)
     {
         return subscriberString;
@@ -66,13 +66,13 @@ QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCou
 
     if (onlineCount > 1)
     {
-        return subscriberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
+        return subscriberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
     }
 
     return subscriberString;
 }
 
-QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store, Locale *locale) noexcept
+QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
 {
     const auto hasLocation = supergroup->has_location_;
     auto count = supergroup->member_count_;
@@ -80,7 +80,7 @@ QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int online
 
     if (statusId == td::td_api::chatMemberStatusBanned::ID)
     {
-        return locale->getString("YouWereKicked");
+        return QObject::tr("YouWereKicked");
     }
 
     if (count == 0)
@@ -92,12 +92,12 @@ QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int online
     {
         if (hasLocation)
         {
-            return locale->getString("MegaLocation");
+            return QObject::tr("MegaLocation");
         }
-        return supergroup->usernames_ ? locale->getString("MegaPublic") : locale->getString("MegaPrivate");
+        return supergroup->usernames_ ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
     }
 
-    const auto memberString = locale->formatPluralString("Members", count);
+    const auto memberString = Locale::instance().formatPluralString("Members", count);
     if (count <= 1)
     {
         return memberString;
@@ -105,42 +105,42 @@ QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int online
 
     if (onlineCount > 1)
     {
-        return memberString + ", " + locale->formatPluralString("OnlineCount", onlineCount);
+        return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
     }
 
     return memberString;
 }
 
-QString getUserStatus(const td::td_api::user *user, Locale *locale) noexcept
+QString getUserStatus(const td::td_api::user *user) noexcept
 {
     if (std::ranges::contains(ServiceNotificationsUserIds, user->id_))
     {
-        return locale->getString("ServiceNotifications");
+        return QObject::tr("ServiceNotifications");
     }
 
     if (user->is_support_)
     {
-        return locale->getString("SupportStatus");
+        return QObject::tr("SupportStatus");
     }
 
     if (user->type_->get_id() == td::td_api::userTypeBot::ID)
     {
-        return locale->getString("Bot");
+        return QObject::tr("Bot");
     }
 
     switch (user->status_->get_id())
     {
         case td::td_api::userStatusEmpty::ID:
-            return locale->getString("ALongTimeAgo");
+            return QObject::tr("ALongTimeAgo");
         case td::td_api::userStatusLastMonth::ID:
-            return locale->getString("WithinAMonth");
+            return QObject::tr("WithinAMonth");
         case td::td_api::userStatusLastWeek::ID:
-            return locale->getString("WithinAWeek");
+            return QObject::tr("WithinAWeek");
         case td::td_api::userStatusOffline::ID: {
             const auto was_online = static_cast<const td::td_api::userStatusOffline &>(*user->status_).was_online_;
             if (was_online == 0)
             {
-                return locale->getString("Invisible");
+                return QObject::tr("Invisible");
             }
 
             const auto wasOnline = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(was_online) * 1000);
@@ -148,26 +148,22 @@ QString getUserStatus(const td::td_api::user *user, Locale *locale) noexcept
 
             if (currentDate == wasOnline.date())
             {
-                return locale->getString("LastSeenFormatted")
-                    .arg(locale->getString("TodayAtFormatted"))
-                    .arg(wasOnline.toString(locale->getString("formatterDay12H")));
+                return QObject::tr("LastSeenFormatted").arg(QObject::tr("TodayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
             }
             else if (wasOnline.date().daysTo(currentDate) < 2)
             {
-                return locale->getString("LastSeenFormatted")
-                    .arg(locale->getString("YesterdayAtFormatted"))
-                    .arg(wasOnline.toString(locale->getString("formatterDay12H")));
+                return QObject::tr("LastSeenFormatted").arg(QObject::tr("YesterdayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
             }
 
-            return locale->getString("LastSeenDateFormatted")
-                .arg(locale->getString("formatDateAtTime")
-                         .arg(wasOnline.toString(locale->getString("formatterYear")))
-                         .arg(wasOnline.toString(locale->getString("formatterDay12H"))));
+            return QObject::tr("LastSeenDateFormatted")
+                .arg(QObject::tr("formatDateAtTime")
+                         .arg(wasOnline.toString(QObject::tr("formatterYear")))
+                         .arg(wasOnline.toString(QObject::tr("formatterDay12H"))));
         }
         case td::td_api::userStatusOnline::ID:
-            return locale->getString("Online");
+            return QObject::tr("Online");
         case td::td_api::userStatusRecently::ID:
-            return locale->getString("Lately");
+            return QObject::tr("Lately");
         default:
             return {};
     }
@@ -179,7 +175,6 @@ MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_storageManager(&StorageManager::instance())
     , m_client(StorageManager::instance().client())
-    , m_locale(&Locale::instance())
 
 {
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
@@ -245,7 +240,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             if (message->is_outgoing_)
                 return QString();
 
-            return Utils::getTitle(*message, m_storageManager, m_locale);
+            return Utils::getTitle(*message, m_storageManager);
         }
         // case ChatIdRole:
         //     return message->chatId();
@@ -276,12 +271,12 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case DateRole: {
             auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->date_) * 1000);
 
-            return date.toString(m_locale->getString("formatterDay12H"));
+            return date.toString(QObject::tr("formatterDay12H"));
         }
         case EditDateRole: {
             auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->edit_date_) * 1000);
 
-            return date.toString(m_locale->getString("formatterDay12H"));
+            return date.toString(QObject::tr("formatterDay12H"));
         }
             // case ForwardInfoRole:
             //     return message->forwardInfo();
@@ -327,14 +322,14 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             const auto days = date.daysTo(QDateTime::currentDateTime());
 
             if (days == 0)
-                return m_locale->getString("Today");
+                return QObject::tr("Today");
             else if (days < 2)
-                return m_locale->getString("Yesterday");
+                return QObject::tr("Yesterday");
 
-            return date.toString(m_locale->getString("chatFullDate"));
+            return date.toString(QObject::tr("chatFullDate"));
         }
         case ServiceMessageRole: {
-            return Utils::getServiceMessageContent(*message, m_storageManager, m_locale, true);
+            return Utils::getServiceMessageContent(*message, m_storageManager, true);
         }
     }
     return QVariant();
@@ -423,24 +418,24 @@ QString MessageModel::getChatSubtitle() const noexcept
     {
         case td::td_api::chatTypePrivate::ID: {
             const auto userId = static_cast<const td::td_api::chatTypePrivate *>(m_selectedChat->type_.get())->user_id_;
-            return getUserStatus(m_storageManager->getUser(userId), m_locale);
+            return getUserStatus(m_storageManager->getUser(userId));
         }
 
         case td::td_api::chatTypeSecret::ID: {
             const auto secretChatId = static_cast<const td::td_api::chatTypeSecret *>(m_selectedChat->type_.get())->secret_chat_id_;
-            return getUserStatus(m_storageManager->getUser(secretChatId), m_locale);
+            return getUserStatus(m_storageManager->getUser(secretChatId));
         }
 
         case td::td_api::chatTypeBasicGroup::ID: {
             const auto basicGroupId = static_cast<const td::td_api::chatTypeBasicGroup *>(m_selectedChat->type_.get())->basic_group_id_;
-            return getBasicGroupStatus(m_storageManager->getBasicGroup(basicGroupId), m_onlineCount, m_locale);
+            return getBasicGroupStatus(m_storageManager->getBasicGroup(basicGroupId), m_onlineCount);
         }
 
         case td::td_api::chatTypeSupergroup::ID: {
             const auto *type = static_cast<const td::td_api::chatTypeSupergroup *>(m_selectedChat->type_.get());
             const auto supergroup = m_storageManager->getSupergroup(type->supergroup_id_);
-            return type->is_channel_ ? getChannelStatus(supergroup, m_onlineCount, m_storageManager, m_locale)
-                                     : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager, m_locale);
+            return type->is_channel_ ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
+                                     : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
         }
 
         default:
@@ -455,9 +450,9 @@ QString MessageModel::getChatTitle() const noexcept
 
     const auto title = QString::fromStdString(m_selectedChat->title_);
     if (Utils::isMeChat(m_selectedChat, m_storageManager))
-        return m_locale->getString("SavedMessages");
+        return QObject::tr("SavedMessages");
 
-    return title.isEmpty() ? m_locale->getString("HiddenName") : title;
+    return title.isEmpty() ? QObject::tr("HiddenName") : title;
 }
 
 QString MessageModel::getChatPhoto() const noexcept
@@ -709,7 +704,8 @@ void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, 
     }
 }
 
-void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
+void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId,
+                                                td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
 {
     if (!m_selectedChat || chatId != m_selectedChat->id_)
         return;

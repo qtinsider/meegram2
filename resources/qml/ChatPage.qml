@@ -43,7 +43,7 @@ Page {
                             buttonWidth: 100
                             buttonHeight: 42
                         }
-                        text: app.getString("Chats") + app.emptyString
+                        text: qsTr("Chats")
                         onClicked: pageStack.pop()
                     }
                 }

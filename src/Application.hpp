@@ -18,7 +18,6 @@ class Application : public QObject
     Q_OBJECT
     Q_PROPERTY(bool authorized READ isAuthorized NOTIFY authorizedChanged)
 
-    Q_PROPERTY(QString emptyString READ emptyString NOTIFY languageChanged)
     Q_PROPERTY(QString connectionStateString READ connectionStateString NOTIFY connectionStateChanged)
 
 public:
@@ -26,16 +25,10 @@ public:
 
     bool isAuthorized() const noexcept;
 
-    QString emptyString() const noexcept;
-
     const QString &connectionStateString() const noexcept;
-
-    Q_INVOKABLE QString getString(const QString &key) const noexcept;
 
 signals:
     void authorizedChanged();
-
-    void languageChanged();
     void connectionStateChanged();
 
     void appInitialized();

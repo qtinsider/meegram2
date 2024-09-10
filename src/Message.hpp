@@ -4,7 +4,6 @@
 
 #include <QVariant>
 
-class Locale;
 class StorageManager;
 
 class Message : public QObject
@@ -140,6 +139,5 @@ private:
 
     bool m_openUser{false};
 
-    Locale *m_locale{};
     StorageManager *m_storageManager{};
 };

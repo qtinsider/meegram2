@@ -5,7 +5,7 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QString>
+#include <QTranslator>
 
 #include <memory>
 #include <unordered_map>
@@ -40,3 +40,24 @@ private:
     std::unique_ptr<PluralRules> m_currentPluralRules;
     std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
 };
+
+
+class Translator : public QTranslator {
+public:
+    Translator(QObject *parent = nullptr) : QTranslator(parent) {}
+
+    QString translate(const char *context, const char *sourceText, const char *disambiguation) const override
+    {
+        Q_UNUSED(context);
+        Q_UNUSED(disambiguation);
+
+        // if (n >= 0)
+        // {
+        //     return formatPluralString(sourceText, n);
+        // }
+        // Plural logic that never saw the light of day... 😢
+
+        return Locale::instance().getString(sourceText);
+    }
+};
+

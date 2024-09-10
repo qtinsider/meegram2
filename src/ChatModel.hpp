@@ -57,6 +57,9 @@ public:
     int chatFolderId() const;
     void setChatFolderId(int value);
 
+    Q_INVOKABLE void toggleChatIsPinned(qlonglong chatId, bool isPinned);
+    Q_INVOKABLE void toggleChatNotificationSettings(qlonglong chatId, bool isMuted);
+
 signals:
     void countChanged();
     void loadingChanged();
