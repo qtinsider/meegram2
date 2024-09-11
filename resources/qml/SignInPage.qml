@@ -40,7 +40,7 @@ Page {
 
                 Label {
                     id: countryNameLabel
-                    text: countryModel.get(selectionDialog.selectedIndex).name
+                    text: proxyModel.get(selectionDialog.selectedIndex, "name")
                     width: parent.width
                     font.pixelSize: 48
                     platformSelectable: true
@@ -55,12 +55,15 @@ Page {
                 Row {
                     spacing: 16
 
+                    // Future Upgrade Alert: TumblerButton will soon be swapped for a TextField. 🚀
+                    // Because typing is the new black! Stay tuned for a stylish input makeover. 😉
                     TumblerButton {
                         id: countryCodeButton
                         width: 160
-                        text: "+" + countryModel.get(selectionDialog.selectedIndex).code
+                        text: "+" + proxyModel.get(selectionDialog.selectedIndex, "code")
                         onClicked: selectionDialog.open()
                     }
+
 
                     TextField {
                         id: phoneNumber
@@ -107,11 +110,17 @@ Page {
         id: countryModel
     }
 
+    SortFilterProxyModel {
+        id: proxyModel
+        sourceModel: countryModel
+        filterRole: "name"
+    }
+
     SelectionDialog {
         id: selectionDialog
         titleText: qsTr("ChooseCountry")
         selectedIndex: countryModel.defaultIndex
-        model: countryModel
+        model: proxyModel
     }
 
     BusyIndicator {

@@ -1,15 +1,13 @@
 #include "SortFilterProxyModel.hpp"
 
-#include <algorithm>
-
 SortFilterProxyModel::SortFilterProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)
 {
     connect(this, SIGNAL(modelReset()), this, SLOT(updateRoles()));
     connect(this, SIGNAL(rowsInserted(QModelIndex, int, int)), this, SIGNAL(countChanged()));
     connect(this, SIGNAL(rowsRemoved(QModelIndex, int, int)), this, SIGNAL(countChanged()));
-    connect(this, SIGNAL(modelReset()), this, SLOT(countChanged()));
-    connect(this, SIGNAL(layoutChanged()), this, SLOT(countChanged()));
+    connect(this, SIGNAL(modelReset()), this, SIGNAL(countChanged()));
+    connect(this, SIGNAL(layoutChanged()), this, SIGNAL(countChanged()));
     connect(this, SIGNAL(dataChanged(QModelIndex, QModelIndex)), this, SLOT(onDataChanged(QModelIndex, QModelIndex)));
     setDynamicSortFilter(true);
 }

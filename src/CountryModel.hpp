@@ -4,6 +4,8 @@
 
 #include <QAbstractListModel>
 
+#include <memory>
+
 class Client;
 
 class CountryModel : public QAbstractListModel
@@ -34,11 +36,18 @@ signals:
     void countChanged();
 
 private:
+    struct CountryInfo
+    {
+        QString name;
+        QString countryCode;
+        QString callingCode;
+    };
+
     void loadData() noexcept;
 
     int getDefaultIndex() const noexcept;
 
-    Client *m_client;
+    Client *m_client{};
 
-    std::vector<td::td_api::object_ptr<td::td_api::countryInfo>> m_countries;
+    std::vector<std::unique_ptr<CountryInfo>> m_countries;
 };

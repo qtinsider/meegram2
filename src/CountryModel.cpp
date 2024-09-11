@@ -2,7 +2,6 @@
 
 #include "StorageManager.hpp"
 
-#include <QStringList>
 #include <algorithm>
 
 CountryModel::CountryModel(QObject *parent)
@@ -33,22 +32,14 @@ QVariant CountryModel::data(const QModelIndex &index, int role) const
     switch (role)
     {
         case NameRole:
-            return QString::fromStdString(countryInfo->name_);
+            return countryInfo->name;
         case Iso2Role:
-            return QString::fromStdString(countryInfo->country_code_);
-        case CodeRole: {
-            QStringList result;
-
-            for (const auto &value : countryInfo->calling_codes_)
-            {
-                result.append(QString::fromStdString(value));
-            }
-
-            return result;
-        }
+            return countryInfo->countryCode;
+        case CodeRole:
+            return countryInfo->callingCode;
+        default:
+            return QVariant();
     }
-
-    return QVariant();
 }
 
 QVariant CountryModel::get(int index) const noexcept
@@ -74,7 +65,24 @@ void CountryModel::loadData() noexcept
         if (response->get_id() == td::td_api::countries::ID)
         {
             beginResetModel();
-            m_countries = std::move(td::move_tl_object_as<td::td_api::countries>(response)->countries_);
+
+            auto countries = std::move(td::move_tl_object_as<td::td_api::countries>(response)->countries_);
+
+            // Clear existing countries before loading new data
+            m_countries.clear();
+            m_countries.reserve(countries.size() * 8);  // Estimate number of entries, adjust if needed
+
+            for (const auto &country : countries)
+            {
+                const auto name = QString::fromStdString(country->name_);
+                const auto countryCode = QString::fromStdString(country->country_code_);
+
+                for (const auto &code : country->calling_codes_)
+                {
+                    m_countries.emplace_back(std::make_unique<CountryInfo>(name, countryCode, QString::fromStdString(code)));
+                }
+            }
+
             endResetModel();
 
             emit countChanged();
@@ -85,8 +93,7 @@ void CountryModel::loadData() noexcept
 int CountryModel::getDefaultIndex() const noexcept
 {
     // TODO(strawberry): refactor
-    auto it = std::ranges::find_if(m_countries,
-                                   [](const auto &value) { return QString::fromStdString(value->country_code_).compare("NG", Qt::CaseInsensitive) == 0; });
+    auto it = std::ranges::find_if(m_countries, [](const auto &value) { return value->countryCode.compare("NG", Qt::CaseInsensitive) == 0; });
 
     if (it != m_countries.end())
     {

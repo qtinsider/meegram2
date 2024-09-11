@@ -128,7 +128,7 @@ Page {
         }
         ToolIcon {
             anchors.right: parent.right
-            iconSource: "image://icon/info?black"
+            iconSource: "image://icon/info2?black"
             onClicked: aboutDialog.open()
         }
     }
