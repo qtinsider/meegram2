@@ -13,23 +13,27 @@ Authorization::Authorization(QObject *parent)
             auto result = td::move_tl_object_as<td::td_api::error>(response);
             emit error(result->code_, QString::fromStdString(result->message_));
         }
-        setLoading(false);
     };
 
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
-bool Authorization::loading() const noexcept
+QVariant Authorization::content() const noexcept
 {
-    return m_loading;
+    return m_content;
 }
 
-void Authorization::setLoading(bool value) noexcept
+QString Authorization::state() const noexcept
 {
-    if (m_loading != value)
+    return m_state;
+}
+
+void Authorization::setState(const QString &value) noexcept
+{
+    if (m_state != value)
     {
-        m_loading = value;
-        emit loadingChanged();
+        m_state = value;
+        emit stateChanged();
     }
 }
 
@@ -75,6 +79,11 @@ void Authorization::resendCode() noexcept
     m_client->send(td::td_api::make_object<td::td_api::resendAuthenticationCode>(), m_responseCallback);
 }
 
+void Authorization::destroy() noexcept
+{
+    m_client->send(td::td_api::make_object<td::td_api::destroy>(), m_responseCallback);
+}
+
 void Authorization::deleteAccount(const QString &reason) noexcept
 {
     auto request = td::td_api::make_object<td::td_api::deleteAccount>();
@@ -99,23 +108,35 @@ void Authorization::handleResult(td::td_api::Object *object)
             switch (authorizationState->get_id())
             {
                 case td::td_api::authorizationStateWaitPhoneNumber::ID:
-                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));
+                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));                    
+                    // setState("phone_number");
                     break;
                 case td::td_api::authorizationStateWaitCode::ID:
                     handleAuthorizationStateWaitCode(static_cast<const td::td_api::authorizationStateWaitCode *>(authorizationState));
+                    setState("code");
                     break;
                 case td::td_api::authorizationStateWaitOtherDeviceConfirmation::ID:
                     handleAuthorizationStateWaitOtherDeviceConfirmation(
                         static_cast<const td::td_api::authorizationStateWaitOtherDeviceConfirmation *>(authorizationState));
+                    // setState("other_device_confirmation");
                     break;
                 case td::td_api::authorizationStateWaitPassword::ID:
                     handleAuthorizationStateWaitPassword(static_cast<const td::td_api::authorizationStateWaitPassword *>(authorizationState));
+                    setState("password");
                     break;
                 case td::td_api::authorizationStateWaitRegistration::ID:
                     handleAuthorizationStateWaitRegistration(static_cast<const td::td_api::authorizationStateWaitRegistration *>(authorizationState));
+                    setState("registration");
                     break;
                 case td::td_api::authorizationStateReady::ID:
                     handleAuthorizationStateReady(static_cast<const td::td_api::authorizationStateReady *>(authorizationState));
+                    setState("ready");
+                    break;
+                case td::td_api::authorizationStateClosing::ID:
+                    setState("closing");
+                    break;
+                case td::td_api::authorizationStateClosed::ID:
+                    setState("closed");
                     break;
                 default:
                     break;
@@ -132,7 +153,75 @@ void Authorization::handleResult(td::td_api::Object *object)
 
 void Authorization::handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *)
 {
-    // Handle wait phone number state
+}
+
+void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *authorizationState)
+{
+    if (!authorizationState || !authorizationState->code_info_)
+        return;
+
+
+    const auto &codeInfo = *authorizationState->code_info_;
+
+    QVariantMap content;
+    content.insert("phoneNumber", QString::fromStdString(codeInfo.phone_number_));
+    content.insert("timeout", codeInfo.timeout_);
+    content.insert("type", codeInfo.type_ ? getCodeTypeMap(*codeInfo.type_) : QVariantMap());
+    content.insert("nextType", codeInfo.next_type_ ? getCodeTypeMap(*codeInfo.next_type_) : QVariantMap());
+
+    m_content = std::move(content);
+
+    emit contentChanged();
+}
+
+void Authorization::handleAuthorizationStateWaitOtherDeviceConfirmation(const td::td_api::authorizationStateWaitOtherDeviceConfirmation *authorizationState)
+{
+    if (!authorizationState)
+        return;
+
+    QVariantMap content;
+    content.insert("link", QString::fromStdString(authorizationState->link_));
+
+    m_content = std::move(content);
+
+    emit contentChanged();
+}
+
+void Authorization::handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *authorizationState)
+{
+    if (!authorizationState)
+        return;
+
+    QVariantMap content;
+    content.insert("passwordHint", QString::fromStdString(authorizationState->password_hint_));
+    content.insert("hasRecoveryEmail", authorizationState->has_recovery_email_address_);
+    content.insert("recoveryEmailPattern", QString::fromStdString(authorizationState->recovery_email_address_pattern_));
+
+    m_content = std::move(content);
+
+    emit contentChanged();
+}
+
+void Authorization::handleAuthorizationStateWaitRegistration(const td::td_api::authorizationStateWaitRegistration *authorizationState)
+{
+    if (!authorizationState || !authorizationState->terms_of_service_)
+        return;
+
+    const auto &termsOfService = *authorizationState->terms_of_service_;
+    const auto &text = *termsOfService.text_;
+
+    QVariantMap content;
+    content.insert("termsText", QString::fromStdString(text.text_));
+    content.insert("minUserAge", termsOfService.min_user_age_);
+    content.insert("showPopup", termsOfService.show_popup_);
+
+    m_content = std::move(content);
+
+    emit contentChanged();
+}
+
+void Authorization::handleAuthorizationStateReady(const td::td_api::authorizationStateReady *)
+{
 }
 
 QVariantMap Authorization::getCodeTypeMap(const td::td_api::AuthenticationCodeType &type)
@@ -160,58 +249,4 @@ QVariantMap Authorization::getCodeTypeMap(const td::td_api::AuthenticationCodeTy
     }
 
     return typeMap;
-}
-
-void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *authorizationState)
-{
-    if (!authorizationState || !authorizationState->code_info_)
-        return;
-
-    const auto &codeInfo = *authorizationState->code_info_;
-
-    auto phoneNumber = QString::fromStdString(codeInfo.phone_number_);
-    auto timeout = codeInfo.timeout_;
-    auto type = codeInfo.type_ ? getCodeTypeMap(*codeInfo.type_) : QVariantMap();
-    auto nextType = codeInfo.next_type_ ? getCodeTypeMap(*codeInfo.next_type_) : QVariantMap();
-
-    emit codeRequested(phoneNumber, type, nextType, timeout);
-}
-
-void Authorization::handleAuthorizationStateWaitOtherDeviceConfirmation(const td::td_api::authorizationStateWaitOtherDeviceConfirmation *authorizationState)
-{
-    if (!authorizationState)
-        return;
-
-    emit qrCodeRequested(QString::fromStdString(authorizationState->link_));
-}
-
-void Authorization::handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *authorizationState)
-{
-    if (!authorizationState)
-        return;
-
-    auto passwordHint = QString::fromStdString(authorizationState->password_hint_);
-    bool hasRecoveryEmail = authorizationState->has_recovery_email_address_;
-    auto recoveryEmailPattern = QString::fromStdString(authorizationState->recovery_email_address_pattern_);
-
-    emit passwordRequested(passwordHint, hasRecoveryEmail, recoveryEmailPattern);
-}
-
-void Authorization::handleAuthorizationStateWaitRegistration(const td::td_api::authorizationStateWaitRegistration *authorizationState)
-{
-    if (!authorizationState || !authorizationState->terms_of_service_)
-        return;
-
-    const auto &termsOfService = *authorizationState->terms_of_service_;
-    const auto &text = *termsOfService.text_;
-    auto termsText = QString::fromStdString(text.text_);
-    auto minUserAge = termsOfService.min_user_age_;
-    bool showPopup = termsOfService.show_popup_;
-
-    emit registrationRequested(termsText, minUserAge, showPopup);
-}
-
-void Authorization::handleAuthorizationStateReady(const td::td_api::authorizationStateReady *)
-{
-    emit ready();
 }

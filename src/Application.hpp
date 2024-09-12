@@ -56,7 +56,7 @@ private:
     Settings *m_settings{};
     StorageManager *m_storageManager{};
 
-    bool m_isAuthorized = false;
+    bool m_isAuthorized{false};
 
     QString m_connectionStateString;
 

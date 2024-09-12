@@ -64,7 +64,7 @@ private slots:
     void onDataChanged(td::td_api::Object *object);
 
 private:
-    td::td_api::file *m_file;
+    td::td_api::file *m_file{};
 
     Client *m_client{};
     StorageManager *m_storageManager{};

@@ -19,5 +19,5 @@ public slots:
     Q_NOREPLY void activateWindow(const QStringList &dummy = QStringList()); // parameter for .desktop activation
 
 private:
-    QDeclarativeView *m_view;
+    QDeclarativeView *m_view{};
 };

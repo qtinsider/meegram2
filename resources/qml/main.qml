@@ -7,12 +7,15 @@ import "components"
 PageStackWindow {
     id: appWindow
 
-    property QtObject icons: Icons {}
     property bool isPortrait: screen.currentOrientation !== Screen.Landscape
 
     initialPage: Component { MainPage {} }
 
     onOrientationChangeFinished: showStatusBar = isPortrait
+
+    Icons { id: icons }
+    UIStyles { id: uiStyles }
+    Authorization { id: authorization }
 
     InfoBanner {
         id: banner
@@ -20,8 +23,9 @@ PageStackWindow {
         z: 100
     }
 
-    Authorization {
-        id: authorization
+    Connections {
+        target: settings
+        onInvertedThemeChanged: theme.inverted = settings.invertedTheme
     }
 
     function showInfoBanner(message) {
@@ -39,5 +43,5 @@ PageStackWindow {
         }
     }
 
-    Component.onCompleted: app.initialize()
+    Component.onCompleted: theme.inverted = false /*settings.invertedTheme*/
 }

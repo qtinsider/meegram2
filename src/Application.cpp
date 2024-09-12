@@ -94,6 +94,9 @@ void Application::setParameters() noexcept
     request->system_version_ = SystemVersion;
     request->application_version_ = AppVersion;
 
+    // request->use_test_dc_ = true;
+
+
     m_client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::ok::ID)
         {

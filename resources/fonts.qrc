@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>fonts/Icons.ttf</file>
+        <file>fonts/NotoEmoji-Regular.ttf</file>
+        <file>fonts/NotoSansSymbols-Regular.ttf</file>
+    </qresource>
+</RCC>

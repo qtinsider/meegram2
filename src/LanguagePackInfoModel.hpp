@@ -20,7 +20,7 @@ public:
         BaseIdRole,
         NameRole,
         NativeNameRole,
-        PluralCodeRole,
+        PluralCodeRole
     };
 
     int rowCount(const QModelIndex &index = QModelIndex()) const override;
@@ -37,7 +37,7 @@ signals:
 private:
     void loadData() noexcept;
 
-    Client *m_client;
+    Client *m_client{};
 
     std::vector<td::td_api::object_ptr<td::td_api::languagePackInfo>> m_languagePackInfo;
 };

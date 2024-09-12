@@ -93,7 +93,14 @@ set(HEADER_FILES
     src/Utils.hpp
 )
 
-set(QRC_FILES resources/icons.qrc resources/resources.qrc)
+set(QRC_FILES
+    resources/fonts.qrc
+    resources/icons.qrc
+    resources/i18n.qrc
+    resources/images.qrc
+    resources/qml.qrc
+    resources/tgs.qrc
+)
 
 add_executable(meegram ${SRC_FILES} ${HEADER_FILES} ${QRC_FILES})
 

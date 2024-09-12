@@ -27,7 +27,7 @@ QImage IconProvider::requestImage(const QString &id, QSize *size, const QSize &r
     }
 
     // Determine the image size
-    QSize imageSize = requestedSize.isValid() ? requestedSize : QSize(40, 40);
+    QSize imageSize = requestedSize.isValid() ? requestedSize : QSize(32, 32);
 
     // Load and render the SVG
     if (loadSvg(filePath, color))

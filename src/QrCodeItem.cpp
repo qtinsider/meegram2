@@ -13,6 +13,8 @@ namespace Qr {
 // https://github.com/desktop-app/lib_qr/blob/master/qr/qr_generate.cpp
 // This includes QR code encoding, image generation functions, and related utilities.
 
+using namespace qrcodegen;
+
 enum class Redundancy {
     Low,
     Medium,
@@ -28,8 +30,6 @@ struct Data
     Redundancy redundancy = Redundancy::Default;
     std::vector<bool> values;  // size x size
 };
-
-using namespace qrcodegen;
 
 namespace {
 
@@ -308,21 +308,6 @@ void QrCodeItem::setForeground(const QColor &color)
     {
         m_foreground = color;
         emit foregroundChanged();
-        updateQrCode();
-    }
-}
-
-QColor QrCodeItem::background() const
-{
-    return m_background;
-}
-
-void QrCodeItem::setBackground(const QColor &color)
-{
-    if (m_background != color)
-    {
-        m_background = color;
-        emit backgroundChanged();
         updateQrCode();
     }
 }

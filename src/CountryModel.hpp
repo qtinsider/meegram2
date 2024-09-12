@@ -13,7 +13,13 @@ class CountryModel : public QAbstractListModel
     Q_OBJECT
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
-    Q_PROPERTY(int defaultIndex READ getDefaultIndex NOTIFY countChanged)
+
+    Q_PROPERTY(int selectedIndex READ selectedIndex NOTIFY selectedIndexChanged)
+
+    Q_PROPERTY(QString phoneNumberPrefix READ phoneNumberPrefix WRITE setPhoneNumberPrefix NOTIFY phoneNumberPrefixChanged)
+
+    Q_PROPERTY(QString countryCallingCode READ countryCallingCode NOTIFY countryCallingCodeChanged)
+    Q_PROPERTY(QString formattedPhoneNumber READ formattedPhoneNumber NOTIFY formattedPhoneNumberChanged)
 
 public:
     CountryModel(QObject *parent = nullptr);
@@ -28,12 +34,33 @@ public:
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
 
+    QHash<int, QByteArray> roleNames() const;
+
     Q_INVOKABLE QVariant get(int index) const noexcept;
 
     int count() const noexcept;
 
+    int selectedIndex() const noexcept;
+    void setSelectedIndex(int value) noexcept;
+
+    QString phoneNumberPrefix() const noexcept;
+    void setPhoneNumberPrefix(const QString &value) noexcept;
+
+    QString countryCallingCode() const noexcept;
+    QString formattedPhoneNumber() const noexcept;
+
 signals:
     void countChanged();
+
+    void selectedIndexChanged();
+
+    void phoneNumberPrefixChanged();
+
+    void countryCallingCodeChanged();
+    void formattedPhoneNumberChanged();
+
+private slots:
+    void updatePhoneInfoFromPrefix();
 
 private:
     struct CountryInfo
@@ -43,9 +70,12 @@ private:
         QString callingCode;
     };
 
-    void loadData() noexcept;
+    void fetchAndLoadCountries() noexcept;
 
-    int getDefaultIndex() const noexcept;
+    int m_selectedIndex{-1};
+
+    QString m_phoneNumberPrefix;
+    QString m_countryCallingCode, m_formattedPhoneNumber;
 
     Client *m_client{};
 

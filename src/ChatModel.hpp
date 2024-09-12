@@ -80,7 +80,7 @@ private slots:
 private:
     void clear();
 
-    bool m_loading = true;
+    bool m_loading{true};
 
     int m_count{};
 

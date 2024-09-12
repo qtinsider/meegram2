@@ -115,7 +115,8 @@ private slots:
 private:
     void handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message);
     void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId);
-    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
+    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
+                                 td::td_api::object_ptr<td::td_api::error> &&error);
     void handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
     void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
     void handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned);
@@ -141,10 +142,10 @@ private:
     Client *m_client{};
     StorageManager *m_storageManager{};
 
-    int m_onlineCount = 0;
+    int m_onlineCount{0};
 
-    bool m_loading = true;
-    bool m_loadingHistory = true;
+    bool m_loading{true};
+    bool m_loadingHistory{true};
 
     const td::td_api::chat *m_selectedChat{};
 

@@ -1,0 +1,15 @@
+<RCC>
+    <qresource prefix="/">
+        <file>tgs/AuthorizationStateWaitCode.tgs</file>
+        <file>tgs/Discussion.tgs</file>
+        <file>tgs/Folders_1.tgs</file>
+        <file>tgs/Folders_2.tgs</file>
+        <file>tgs/TwoFactorSetupIntro.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyClose.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyCloseAndPeek.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyCloseAndPeekToIdle.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyIdle.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyPeek.tgs</file>
+        <file>tgs/TwoFactorSetupMonkeyTracking.tgs</file>
+    </qresource>
+</RCC>

@@ -28,5 +28,5 @@ private:
 private:
     NotificationManager();
 
-    Client *m_client;
+    Client *m_client{};
 };

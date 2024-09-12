@@ -12,12 +12,17 @@
 class Authorization : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(bool loading READ loading WRITE setLoading NOTIFY loadingChanged)
+
+    Q_PROPERTY(QString state READ state WRITE setState NOTIFY stateChanged)
+    Q_PROPERTY(QVariant content READ content NOTIFY contentChanged)
+
 public:
     explicit Authorization(QObject *parent = nullptr);
 
-    [[nodiscard]] bool loading() const noexcept;
-    void setLoading(bool value) noexcept;
+    [[nodiscard]] QVariant content() const noexcept;
+
+    [[nodiscard]] QString state() const noexcept;
+    void setState(const QString &value) noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
     Q_INVOKABLE void checkPassword(const QString &password) noexcept;
@@ -26,18 +31,16 @@ public:
     Q_INVOKABLE void registerUser(const QString &firstName, const QString &lastName) noexcept;
     Q_INVOKABLE void setPhoneNumber(const QString &phoneNumber) noexcept;
     Q_INVOKABLE void resendCode() noexcept;
+    Q_INVOKABLE void destroy() noexcept;
     Q_INVOKABLE void deleteAccount(const QString &reason) noexcept;
 
     Q_INVOKABLE QString formatTime(int totalSeconds) const noexcept;
 
 signals:
     void error(int code, const QString &message);
-    void qrCodeRequested(const QString &link);
-    void codeRequested(const QString &phoneNumber, const QVariantMap &type, const QVariantMap &nextType, int timeout);
-    void passwordRequested(const QString &passwordHint, bool hasRecoveryEmailAddress, const QString &recoveryEmailAddressPattern);
-    void registrationRequested(const QString &text, int minUserAge, bool showPopup);
-    void ready();
-    void loadingChanged();
+
+    void stateChanged();
+    void contentChanged();
 
 private slots:
     void handleResult(td::td_api::Object *object);
@@ -52,9 +55,10 @@ private:
 
     static QVariantMap getCodeTypeMap(const td::td_api::AuthenticationCodeType &type);
 
-    bool m_loading{false};
+    QString m_state;
+    QVariant m_content;
 
-    Client* m_client;
+    Client *m_client{};
 
     std::function<void(td::td_api::object_ptr<td::td_api::Object>)> m_responseCallback;
 };

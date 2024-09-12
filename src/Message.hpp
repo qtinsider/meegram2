@@ -134,8 +134,8 @@ private:
     void handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned);
     void handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo);
 
-    td::td_api::chat *m_chat;
-    td::td_api::message *m_message;
+    td::td_api::chat *m_chat{};
+    td::td_api::message *m_message{};
 
     bool m_openUser{false};
 

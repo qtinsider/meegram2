@@ -46,11 +46,12 @@ Page {
                 Text {
                     id: infoText
                     text: "Different, Handy, Powerful"
-                    wrapMode: Text.WordWrap
+                    wrapMode: Text.Wrap
                     font.pixelSize: 30
                     color: "#777777"
                     horizontalAlignment: Text.AlignHCenter
                     anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width
                 }
 
                 Button {
@@ -58,68 +59,18 @@ Page {
                     platformStyle: ButtonStyle { inverted: true }
                     anchors.horizontalCenter: parent.horizontalCenter
                     onClicked: {
-                        authentication.target = authorization
-                        pageStack.push(signInPage)
+                        var component = Qt.createComponent("AuthenticationPage.qml")
+                        if (component.status === Component.Ready) {
+                            var authenticationSheet = component.createObject(root);
+                            authenticationSheet.open();
+                        }
                     }
                 }
             }
         }
     }
 
-    Component {
-        id: signInPage
-        SignInPage {
-            onCancelClicked: pageStack.pop()
-        }
-    }
-
-    Component {
-        id: codeEnterPage
-        CodeEnterPage {
-            onCancelClicked: pageStack.pop()
-        }
-    }
-
-    Component {
-        id: passwordPage
-        PasswordPage {
-            onCancelClicked: pageStack.pop()
-        }
-    }
-
-    Component {
-        id: signUpPage
-        SignUpPage {
-            onCancelClicked: pageStack.pop()
-        }
-    }
-
-    Connections {
-        id: authentication
-        target: null
-        onCodeRequested: internal.changePage(codeEnterPage, {
-                                                 phoneNumber: phoneNumber,
-                                                 type: type,
-                                                 nextType: nextType,
-                                                 timeout: timeout * 1000
-                                             })
-        onPasswordRequested: internal.changePage(passwordPage, {
-                                                     passwordHint: passwordHint,
-                                                     hasRecoveryEmailAddress: hasRecoveryEmailAddress,
-                                                     recoveryEmailAddressPattern: recoveryEmailAddressPattern
-                                                 })
-        onRegistrationRequested: internal.changePage(signUpPage, {
-                                                         text: text,
-                                                         minUserAge: minUserAge,
-                                                         showPopup: showPopup
-                                                     })
-        onError: appWindow.showInfoBanner(message)
-        onReady: pageStack.push(Qt.createComponent("ChatsPage.qml"))
-    }
-
-    AboutDialog {
-        id: aboutDialog
-    }
+    AboutDialog { id: aboutDialog }
 
     tools: ToolBarLayout {
         ToolIcon {
@@ -144,14 +95,5 @@ Page {
         }
     }
 
-    QtObject {
-        id: internal
-        function changePage(page, prop) {
-            if (pageStack.depth > 1) {
-                pageStack.replace(page, prop)
-            } else {
-                pageStack.push(page, prop)
-            }
-        }
-    }
+    Component.onCompleted: app.initialize()
 }

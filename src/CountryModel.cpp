@@ -1,6 +1,9 @@
 #include "CountryModel.hpp"
 
+#include "Settings.hpp"
 #include "StorageManager.hpp"
+
+#include <QDebug>
 
 #include <algorithm>
 
@@ -8,14 +11,11 @@ CountryModel::CountryModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_client(StorageManager::instance().client())
 {
-    QHash<int, QByteArray> roles;
-    roles.insert(NameRole, "name");
-    roles.insert(Iso2Role, "iso2");
-    roles.insert(CodeRole, "code");
+    setRoleNames(roleNames());
 
-    setRoleNames(roles);
+    connect(this, SIGNAL(phoneNumberPrefixChanged()), this, SLOT(updatePhoneInfoFromPrefix()));
 
-    loadData();
+    fetchAndLoadCountries();
 }
 
 int CountryModel::rowCount(const QModelIndex &) const
@@ -42,6 +42,16 @@ QVariant CountryModel::data(const QModelIndex &index, int role) const
     }
 }
 
+QHash<int, QByteArray> CountryModel::roleNames() const
+{
+    QHash<int, QByteArray> roles;
+    roles.insert(NameRole, "name");
+    roles.insert(Iso2Role, "iso2");
+    roles.insert(CodeRole, "code");
+
+    return roles;
+}
+
 QVariant CountryModel::get(int index) const noexcept
 {
     QModelIndex modelIndex = createIndex(index, 0);
@@ -59,7 +69,95 @@ int CountryModel::count() const noexcept
     return m_countries.size();
 }
 
-void CountryModel::loadData() noexcept
+int CountryModel::selectedIndex() const noexcept
+{
+    return m_selectedIndex;
+}
+
+void CountryModel::setSelectedIndex(int value) noexcept
+{
+    if (m_selectedIndex != value)
+    {
+        m_selectedIndex = value;
+        emit selectedIndexChanged();
+    }
+}
+
+QString CountryModel::phoneNumberPrefix() const noexcept
+{
+    return m_phoneNumberPrefix;
+}
+
+void CountryModel::setPhoneNumberPrefix(const QString &value) noexcept
+{
+    if (m_phoneNumberPrefix != value)
+    {
+        m_phoneNumberPrefix = value;
+        emit phoneNumberPrefixChanged();
+    }
+}
+
+QString CountryModel::countryCallingCode() const noexcept
+{
+    return m_countryCallingCode;
+}
+
+QString CountryModel::formattedPhoneNumber() const noexcept
+{
+    return m_formattedPhoneNumber;
+}
+
+void CountryModel::updatePhoneInfoFromPrefix()
+{
+    m_phoneNumberPrefix.remove(QRegExp("\\D"));  // Strip all non-digit characters
+
+    const auto languageCode = Settings::instance().languagePackId().toStdString();
+    const auto phoneNumberPrefix = m_phoneNumberPrefix.toStdString();
+
+    auto info = td::ClientManager::execute(td::td_api::make_object<td::td_api::getPhoneNumberInfoSync>(languageCode, phoneNumberPrefix));
+
+    if (info->get_id() == td::td_api::error::ID)
+    {
+        qDebug() << "Error:" << QString::fromStdString(td::move_tl_object_as<td::td_api::error>(info)->message_);
+        return;  // Early exit on error
+    }
+
+    QString countryCode;
+
+    const auto phoneInfo = td::move_tl_object_as<td::td_api::phoneNumberInfo>(info);
+
+    const auto countryCallingCode = QString::fromStdString(phoneInfo->country_calling_code_);
+    const auto formattedPhoneNumber = QString::fromStdString(phoneInfo->formatted_phone_number_);
+
+    if (phoneInfo->country_)
+    {
+        const auto &country = phoneInfo->country_;
+        countryCode = QString::fromStdString(country->country_code_);  // Direct assignment from country code
+    }
+
+    if (auto it = std::ranges::find(m_countries, countryCode, &CountryInfo::countryCode); it != m_countries.end())
+    {
+        setSelectedIndex(static_cast<int>(std::distance(m_countries.begin(), it)));
+    }
+    else
+    {
+        setSelectedIndex(-1);
+    }
+
+    if (m_countryCallingCode != countryCallingCode)
+    {
+        m_countryCallingCode = countryCallingCode;
+        emit countryCallingCodeChanged();
+    }
+
+    if (m_formattedPhoneNumber != formattedPhoneNumber)
+    {
+        m_formattedPhoneNumber = formattedPhoneNumber;
+        emit formattedPhoneNumberChanged();
+    }
+}
+
+void CountryModel::fetchAndLoadCountries() noexcept
 {
     m_client->send(td::td_api::make_object<td::td_api::getCountries>(), [this](auto response) {
         if (response->get_id() == td::td_api::countries::ID)
@@ -70,7 +168,9 @@ void CountryModel::loadData() noexcept
 
             // Clear existing countries before loading new data
             m_countries.clear();
-            m_countries.reserve(countries.size() * 8);  // Estimate number of entries, adjust if needed
+            m_countries.reserve(countries.size() * 2);  // Estimate number of entries
+
+            std::ranges::sort(countries, std::ranges::less{}, &td::td_api::countryInfo::name_);
 
             for (const auto &country : countries)
             {
@@ -88,17 +188,4 @@ void CountryModel::loadData() noexcept
             emit countChanged();
         }
     });
-}
-
-int CountryModel::getDefaultIndex() const noexcept
-{
-    // TODO(strawberry): refactor
-    auto it = std::ranges::find_if(m_countries, [](const auto &value) { return value->countryCode.compare("NG", Qt::CaseInsensitive) == 0; });
-
-    if (it != m_countries.end())
-    {
-        return int(std::distance(m_countries.begin(), it));
-    }
-
-    return {};
 }

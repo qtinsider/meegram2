@@ -103,12 +103,12 @@ private:
 
     QString m_filterRoleName;
     QString m_sortRoleName;
-    bool m_ascendingSortOrder = true;
-    bool m_completed = false;
+    bool m_ascendingSortOrder{true};
+    bool m_completed{false};
     QHash<int, QByteArray> m_roleNames;
 
-    bool m_invalidateFilterQueued = false;
-    bool m_invalidateQueued = false;
-    bool m_invalidateProxyRolesQueued = false;
+    bool m_invalidateFilterQueued{false};
+    bool m_invalidateQueued{false};
+    bool m_invalidateProxyRolesQueued{false};
     QVariant m_filterValue;
 };

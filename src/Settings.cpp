@@ -8,6 +8,8 @@
 Settings::Settings()
     : m_settings(new QSettings(QSettings::IniFormat, QSettings::UserScope, QCoreApplication::organizationName(), QCoreApplication::applicationName()))
 {
+    m_invertedTheme = m_settings->value("invertedTheme", true).toBool();
+
     m_languagePackId = m_settings->value("languagePackId", DefaultLanguageCode).toString();
     m_languagePluralId = m_settings->value("languagePluralId", DefaultLanguageCode).toString();
 }
@@ -16,6 +18,21 @@ Settings &Settings::instance()
 {
     static Settings staticObject;
     return staticObject;
+}
+
+bool Settings::invertedTheme() const
+{
+    return m_invertedTheme;
+}
+
+void Settings::setInvertedTheme(bool value)
+{
+    if (m_invertedTheme != value)
+    {
+        m_invertedTheme = value;
+        m_settings->setValue("invertedTheme", m_invertedTheme);
+        emit invertedThemeChanged();
+    }
 }
 
 QString Settings::languagePackId() const

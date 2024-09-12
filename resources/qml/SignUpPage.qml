@@ -1,100 +1,56 @@
 import QtQuick 1.1
-import com.nokia.meego 1.0
+import com.nokia.meego 1.1
 import com.nokia.extras 1.1
 import MyComponent 1.0
 
-Page {
+Item {
     id: root
 
-    property string text
-    property int minUserAge
-    property bool showPopup
+    anchors.fill: parent
+    anchors.margins: UiConstants.DefaultMargin * 2
 
-    signal cancelClicked
+    property variant content: authorization.content
 
-    Flickable {
-        id: flickable
+    property string text: content.text
+    property int minUserAge: content.minUserAge
+    property bool showPopup: content.showPopup
+
+    // Registration
+    Column {
+        id: signUpColumn
+
         anchors.fill: parent
-        anchors.margins: 16
-        contentHeight: contentColumn.height
+        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
+
+        Label {
+            text: qsTr("RegisterText2")
+        }
 
         Column {
-            id: contentColumn
+            spacing: 15
+            width: parent.width
 
-            width: flickable.width
-            height: childrenRect.height
-
-            spacing: 16
-
-
-            Label {
-                id: title
-                text: qsTr("YourName")
-                font.pixelSize: 40
-            }
-            Rectangle {
-                color: "#b2b2b4"
-                height: 1
-                width: flickable.width
-            }
-
-            // Registration
-            Column {
-                id: signUpColumn
-
+            TextField {
+                id: firstName
                 width: parent.width
-                spacing: 10
-
-                Label {
-                    text: qsTr("RegisterText2")
-                }
-
-                Column {
-                    spacing: 15
-                    width: parent.width
-
-                    TextField {
-                        id: firstName
-                        width: parent.width
-                        inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("FirstName")
-                    }
-                    TextField {
-                        id: lastName
-                        width: parent.width
-                        inputMethodHints: Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("LastName")
-                    }
-                }
-
-                // TODO(strawberry): refactor
-                Label {
-                    width: parent.width
-                    text: "<style type=text/css> a { text-decoration: none; color: #0088cc } </style>By signing up,<br>you agree to the <a href='http://www.telegram.com'>Terms of Service.</a>"
-                    font.pixelSize: 24
-                    onLinkActivated: dialog.open()
-                    horizontalAlignment: Text.AlignHCenter
-                }
+                inputMethodHints: Qt.ImhNoPredictiveText
+                placeholderText: qsTr("FirstName")
+            }
+            TextField {
+                id: lastName
+                width: parent.width
+                inputMethodHints: Qt.ImhNoPredictiveText
+                placeholderText: qsTr("LastName")
             }
         }
-    }
 
-    tools: ToolBarLayout {
-        ToolButtonRow {
-            ToolButton {
-                text: qsTr("Next")
-                onClicked: {
-                    authorization.loading = true;
-                    authorization.registerUser(firstName.text, lastName.text);
-                }
-            }
-            ToolButton {
-                text: qsTr("Cancel")
-                onClicked: {
-                    authorization.loading = false;
-                    root.cancelClicked()
-                }
-            }
+        // TODO(strawberry): refactor
+        Label {
+            width: parent.width
+            text: "<style type=text/css> a { text-decoration: none; color: #0088cc } </style>By signing up,<br>you agree to the <a href='http://www.telegram.com'>Terms of Service.</a>"
+            font.pixelSize: 24
+            onLinkActivated: dialog.open()
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
@@ -105,10 +61,9 @@ Page {
         rejectButtonText: qsTr("Close")
     }
 
-    BusyIndicator {
-        anchors.centerIn: parent
-        running: authorization.loading
-        visible: authorization.loading
-        platformStyle: BusyIndicatorStyle { size: "large" }
+    Component.onCompleted: {
+        firstName.forceActiveFocus();
+
+        acceptButton.clicked.connect(function () { authorization.registerUser(firstName.text, lastName.text) })
     }
 }

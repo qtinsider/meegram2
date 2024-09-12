@@ -1,132 +1,138 @@
 import QtQuick 1.1
-import com.nokia.meego 1.0
+import com.nokia.meego 1.1
 import com.nokia.extras 1.1
 import MyComponent 1.0
+import "components"
 
-Page {
-    id: root
+Item {
+    id: signInItem
 
-    anchors.margins: 16
+    anchors.fill: parent
+    anchors.margins: UiConstants.DefaultMargin * 2
 
-    signal cancelClicked
+    property variant content: authorization.content
 
-    Flickable {
-        id: flickable
+    Column {
+        id: phoneLoginColumn
         anchors.fill: parent
-        contentHeight: contentColumn.height
-        contentWidth: contentColumn.width
-        flickableDirection: Flickable.VerticalFlick
+        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
 
-        Column {
-            id: contentColumn
-            width: flickable.width
-            spacing: 16
+        Label {
+            text: qsTr("YourPhone")
+            font: UiConstants.TitleFont
+            anchors.horizontalCenter: parent.horizontalCenter
+            horizontalAlignment: Text.AlignHCenter
+            wrapMode: Text.WordWrap
+            width: parent.width
+        }
+
+        Label {
+            text: qsTr("StartText")
+            wrapMode: Text.WordWrap
+            font: UiConstants.SubtitleFont
+            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+        }
+
+        TumblerButton {
+            text: countryModel.get(selectionDialog.selectedIndex).name || qsTr("Country")
+            height: UiConstants.HeaderDefaultHeightPortrait
+            width: parent.width
+            onClicked: { selectionDialog.open() }
+        }
+
+        TextField {
+            id: phoneNumberField
+            width: parent.width
+            placeholderText: qsTr("PhoneNumberSearch")
+            inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
+            anchors.horizontalCenter: parent.horizontalCenter
+            errorHighlight: text ? !acceptableInput : false
+            platformStyle: TextFieldStyle { paddingLeft: plusLabel.width * 2 }
+            platformSipAttributes: SipAttributes {
+                actionKeyLabel: qsTr("Next")
+                actionKeyHighlighted: true
+            }
 
             Label {
-                id: title
-                text: qsTr("YourPhone")
-                font.pixelSize: 40
+                id: plusLabel
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: 12
+                text: "+"
+                color: "gray"
+                visible: phoneNumberField.text !== ""
             }
 
-            Rectangle {
-                color: "#b2b2b4"
-                width: parent.width
-                height: 1
+            onTextChanged: {
+                countryModel.phoneNumberPrefix = text
+                phoneNumberField.text = countryModel.countryCallingCode + countryModel.formattedPhoneNumber
+
+                var match = text.match(/(\d)(?!.*\d)/);
+                var lastDigitPosition = match ? text.lastIndexOf(match[0]) : -1;
+
+                phoneNumberField.cursorPosition = lastDigitPosition + 1;
             }
 
-            Column {
-                id: signInColumn
-                spacing: 16
-
-                Label {
-                    id: countryNameLabel
-                    text: proxyModel.get(selectionDialog.selectedIndex, "name")
-                    width: parent.width
-                    font.pixelSize: 48
-                    platformSelectable: true
-                    color: "#0088cc"
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: selectionDialog.open()
-                    }
-                }
-
-                Row {
-                    spacing: 16
-
-                    // Future Upgrade Alert: TumblerButton will soon be swapped for a TextField. 🚀
-                    // Because typing is the new black! Stay tuned for a stylish input makeover. 😉
-                    TumblerButton {
-                        id: countryCodeButton
-                        width: 160
-                        text: "+" + proxyModel.get(selectionDialog.selectedIndex, "code")
-                        onClicked: selectionDialog.open()
-                    }
-
-
-                    TextField {
-                        id: phoneNumber
-                        inputMethodHints: Qt.ImhDialableCharactersOnly | Qt.ImhNoPredictiveText
-                        placeholderText: qsTr("PhoneNumberSearch")
-                    }
-                }
-
-                Label {
-                    font.pixelSize: 24
-                    text: qsTr("StartText")
-                }
-
-                Row {
-                    spacing: 16
-                }
-            }
+            Keys.onReturnPressed: {}
         }
-    }
 
-    tools: ToolBarLayout {
-        ToolButtonRow {
-            ToolButton {
-                text: qsTr("Next")
-                onClicked: {
-                    if (phoneNumber.text.length > 0) {
-                        authorization.loading = true
-                        authorization.setPhoneNumber(countryCodeButton.text + phoneNumber.text);
-                    }
-                }
-            }
+        Item {
+            height: UiConstants.IndentDefault
+            width: parent.width
+        }
 
-            ToolButton {
-                text: qsTr("Cancel")
-                onClicked: {
-                    authorization.loading = false
-                    root.cancelClicked()
-                }
-            }
+        Button {
+            text: "Log in by QR Code"
+            anchors.horizontalCenter: parent.horizontalCenter
+            onClicked: { authorization.state = "qr_code" }
         }
     }
 
     CountryModel {
         id: countryModel
+
+        onSelectedIndexChanged: {
+            if (selectionDialog.selectedIndex !== selectedIndex)
+                selectionDialog.selectedIndex = selectedIndex
+        }
     }
 
-    SortFilterProxyModel {
-        id: proxyModel
-        sourceModel: countryModel
-        filterRole: "name"
-    }
-
-    SelectionDialog {
+    CountryPickerDialog {
         id: selectionDialog
         titleText: qsTr("ChooseCountry")
-        selectedIndex: countryModel.defaultIndex
-        model: proxyModel
+        selectedIndex: countryModel.selectedIndex
+        model: countryModel
+        onSelectedIndexChanged: {
+            if (selectedIndex !== -1) {
+                phoneNumberField.text = countryModel.get(selectedIndex).code
+                phoneNumberField.forceActiveFocus();
+            }
+        }
     }
 
-    BusyIndicator {
-        anchors.centerIn: parent
-        running: authorization.loading
-        visible: authorization.loading
-        platformStyle: BusyIndicatorStyle { size: "large" }
+    function error(code, message) {
+        console.log(message)
+    }
+
+    QueryDialog {
+        id: dialog
+        titleText: qsTr("ConfirmCorrectNumber")
+        message: "+" + countryModel.countryCallingCode + " " + countryModel.formattedPhoneNumber
+        acceptButtonText: qsTr("OK")
+        rejectButtonText: qsTr("Edit")
+
+        onAccepted: {
+            var cleanedPhoneNumber = phoneNumberField.text.replace(/\D/g, "");
+            authorization.setPhoneNumber(cleanedPhoneNumber);
+        }
+    }
+
+    Component.onCompleted: {
+        phoneNumberField.forceActiveFocus();
+
+        acceptButton.clicked.connect(function () { dialog.open(); })
+        rejectButton.clicked.connect(function () { sheet.state = "closed"; })
     }
 }

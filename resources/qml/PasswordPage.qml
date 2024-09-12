@@ -1,101 +1,87 @@
 import QtQuick 1.1
-import com.nokia.meego 1.0
+import com.nokia.meego 1.1
 import com.nokia.extras 1.1
 import MyComponent 1.0
 
-Page {
+Item {
     id: root
 
-    property string passwordHint
-    property bool hasRecoveryEmailAddress
-    property string recoveryEmailAddressPattern
+    anchors.fill: parent
+    anchors.margins: UiConstants.DefaultMargin * 2
 
-    signal cancelClicked
+    property variant content: authorization.content
 
-    Flickable {
-        id: flickable
+    property string passwordHint: content.passwordHint
+    property bool hasRecoveryEmailAddress: content.hasRecoveryEmailAddress
+    property string recoveryEmailAddressPattern: content.recoveryEmailAddressPattern
+
+    Column {
+        id: enterPasswordColumn
+
         anchors.fill: parent
-        anchors.margins: 16
-        contentHeight: contentColumn.height
+        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
 
-        Column {
-            id: contentColumn
-            width: flickable.width
-            height: childrenRect.height
-            spacing: 16
+        LottieAnimation {
+            id: lottieAnimation
+            width: 160
+            height: 160
+            loopCount: 1
+            anchors.horizontalCenter: parent.horizontalCenter
+            source: "qrc:/tgs/TwoFactorSetupIntro.tgs"
 
-            Label {
-                id: title
-                text: qsTr("TwoStepVerification")
-                font.pixelSize: 40
+            onStatusChanged: {
+                if (status === LottieAnimation.Ready)
+                    lottieAnimation.play();
             }
+        }
 
-            Rectangle {
-                color: "#b2b2b4"
-                height: 1
-                width: flickable.width
+        Label {
+            text: qsTr("YourPassword")
+            wrapMode: Text.WordWrap
+            font: UiConstants.TitleFont
+            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+        }
+
+        Label {
+            text: qsTr("LoginPasswordText")
+            wrapMode: Text.WordWrap
+            font: UiConstants.SubtitleFont
+            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+        }
+
+        Item {
+            height: 3
+        }
+
+        TextField {
+            id: password
+            width: parent.width
+            echoMode: TextInput.Password
+            placeholderText:  passwordHint || qsTr("Password")
+            platformSipAttributes: SipAttributes {
+                actionKeyLabel: qsTr("Next")
+                actionKeyHighlighted: true
             }
+        }
 
-            // Password Section
-            Column {
-                id: enterPasswordColumn
-                width: parent.width
-                spacing: 10
-
-                Label {
-                    width: parent.width
-                    text: qsTr("LoginPasswordText")
-                }
-
-                Item {
-                    height: 3
-                }
-
-                Label {
-                    text: qsTr("YourPassword")
-                }
-
-                TextField {
-                    id: password
-                    width: parent.width
-                    echoMode: TextInput.Password
-                    placeholderText: qsTr("Password")
-                }
-
-                Label {
-                    id: hint
-                    width: parent.width
-                    font.pixelSize: 24
-                    text: "<b>%1:</b> <span style=\"color: #999\">(%2)</span>".arg(qsTr("PasswordHint")).arg(passwordHint)
-                    visible: passwordHint !== ""
-                }
-            }
+        Label {
+            wrapMode: Text.WordWrap
+            font: UiConstants.SubtitleFont
+            text: qsTr("ForgotPassword")
+            width: parent.width
+            color: theme.selectionColor // "#ffcc00"
         }
     }
 
-    tools: ToolBarLayout {
-        ToolButtonRow {
-            ToolButton {
-                text: qsTr("Next")
-                onClicked: {
-                    authorization.loading = true;
-                    authorization.checkPassword(password.text)
-                }
-            }
-            ToolButton {
-                text: qsTr("Cancel")
-                onClicked: {
-                    authorization.loading = false;
-                    root.cancelClicked()
-                }
-            }
-        }
-    }
+    Component.onCompleted: {
+        password.forceActiveFocus();
 
-    BusyIndicator {
-        anchors.centerIn: parent
-        running: authorization.loading
-        visible: authorization.loading
-        platformStyle: BusyIndicatorStyle { size: "large" }
-    }
+        acceptButton.clicked.connect(function () { authorization.checkPassword(password.text); })
+     }
 }
+
+
