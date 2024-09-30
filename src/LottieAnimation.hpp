@@ -10,7 +10,7 @@ class LottieAnimation : public QDeclarativeItem
     Q_OBJECT
     Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged)
     Q_PROPERTY(Status status READ status WRITE setStatus NOTIFY statusChanged)
-    Q_PROPERTY(int loopCount READ loopCount WRITE setLoopCount NOTIFY loopCountChanged)
+    Q_PROPERTY(qreal loop READ loop WRITE setLoop NOTIFY loopChanged)
 
     Q_ENUMS(Status)
 public:
@@ -24,8 +24,8 @@ public:
     QUrl source() const noexcept;
     void setSource(const QUrl &source);
 
-    int loopCount() const noexcept;
-    void setLoopCount(int loopCount);
+    qreal loop() const noexcept;
+    void setLoop(qreal loop);
 
 public slots:
     void play();
@@ -35,7 +35,7 @@ signals:
     void sourceChanged();
     void statusChanged();
     void finished();
-    void loopCountChanged();
+    void loopChanged();
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
@@ -53,9 +53,10 @@ private:
 
     int m_frameCount{0};
     int m_currentFrame{0};
-    int m_loopCount{-1};
-    int m_loopIteration{0};
     int m_frameRate{30};  // 30 FPS
+
+    qreal m_loop{1};
+    qreal m_loopIteration{0};
 
     Status m_status{Status::Null};
 

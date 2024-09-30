@@ -20,7 +20,7 @@ public:
 
     int clientId() const noexcept;
 
-    void send(td::td_api::object_ptr<td::td_api::Function> request, std::function<void(td::td_api::object_ptr<td::td_api::Object>)> callback);
+    void send(td::td_api::object_ptr<td::td_api::Function> request, std::function<void(td::td_api::object_ptr<td::td_api::Object>)> callback = {});
 
 signals:
     void result(td::td_api::Object *object);

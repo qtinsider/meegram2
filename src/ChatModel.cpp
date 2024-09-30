@@ -7,6 +7,8 @@
 #include "StorageManager.hpp"
 #include "Utils.hpp"
 
+#include <QDebug>
+
 #include <td/telegram/td_api.h>
 
 #include <algorithm>
@@ -70,9 +72,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return {};
 
-    const auto chat = m_chats.at(index.row());
-
-    const auto lastMessage = chat->lastMessage();
+    const auto &chat = m_chats.at(index.row());
 
     switch (role)
     {
@@ -81,15 +81,11 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TypeRole:
             return chat->type();
         case TitleRole:
-            return chat->getTitle();
+            return chat->title();
         case PhotoRole:
-            return !chat->photo().isEmpty() ? QString("image://chatPhoto/" + chat->photo()) : "image://theme/icon-l-content-avatar-placeholder";
-        case LastMessageSenderRole:
-            return lastMessage ? lastMessage->getSenderName() : QVariant();
-        case LastMessageContentRole:
-            return lastMessage ? lastMessage->getContent() : QVariant();
-        case LastMessageDateRole:
-            return lastMessage ? lastMessage->getDate() : QVariant();
+            return QVariant::fromValue(chat->photo());
+        case LastMessage:
+            return QVariant::fromValue(chat->lastMessage());
         case IsPinnedRole:
             return chat->isPinned();
         case UnreadCountRole:
@@ -98,6 +94,8 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             return chat->unreadMentionCount();
         case IsMutedRole:
             return chat->isMuted();
+        case ChatRole:
+            return QVariant::fromValue(chat.get());
         default:
             return {};
     }
@@ -111,9 +109,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[TypeRole] = "type";
     roles[TitleRole] = "title";
     roles[PhotoRole] = "photo";
-    roles[LastMessageSenderRole] = "lastMessageSender";
-    roles[LastMessageContentRole] = "lastMessageContent";
-    roles[LastMessageDateRole] = "lastMessageDate";
+    roles[LastMessage] = "lastMessage";
     roles[IsPinnedRole] = "isPinned";
     roles[UnreadCountRole] = "unreadCount";
     roles[UnreadMentionCountRole] = "unreadMentionCount";
@@ -160,35 +156,31 @@ void ChatModel::setChatFolderId(int value)
     }
 }
 
+Chat *ChatModel::get(int index) const
+{
+    // Assuming ChatRole returns a Chat* stored in QVariant
+    return data(createIndex(index, 0), ChatRole).value<Chat *>();
+}
+
 void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
 {
     auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
     request->chat_list_ = Utils::toChatList(m_chatList);
     request->chat_id_ = chatId;
-    request->is_pinned_ = !isPinned;
+    request->is_pinned_ = isPinned;
 
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::ok::ID)
-            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
-    });
+    m_client->send(std::move(request));
 }
 
 void ChatModel::toggleChatNotificationSettings(qlonglong chatId, bool isMuted)
 {
-    const int muteFor = isMuted ? MutedValueMin : MutedValueMax;
+    const auto muteFor = isMuted ? MutedValueMin : MutedValueMax;
 
     auto notificationSettings = td::td_api::make_object<td::td_api::chatNotificationSettings>();
     notificationSettings->use_default_mute_for_ = false;
     notificationSettings->mute_for_ = muteFor;
 
-    auto request = td::td_api::make_object<td::td_api::setChatNotificationSettings>();
-    request->chat_id_ = chatId;
-    request->notification_settings_ = std::move(notificationSettings);
-
-    m_client->send(std::move(request), [this](auto &&response) {
-        if (response->get_id() == td::td_api::ok::ID)
-            QMetaObject::invokeMethod(this, "populate", Qt::QueuedConnection);
-    });
+    m_client->send(td::td_api::make_object<td::td_api::setChatNotificationSettings>(chatId, std::move(notificationSettings)));
 }
 
 void ChatModel::populate()
@@ -208,7 +200,7 @@ void ChatModel::populate()
 
         if (std::ranges::any_of(chat->positions_, [&](const auto &position) { return comparator(position->list_, targetChatList); }))
         {
-            auto newChat = std::make_shared<Chat>(id, m_chatList);
+            auto newChat = std::make_unique<Chat>(id, m_chatList);
 
             connect(newChat.get(), SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
             connect(newChat.get(), SIGNAL(chatPositionUpdated(qlonglong)), this, SLOT(handleChatPosition(qlonglong)));

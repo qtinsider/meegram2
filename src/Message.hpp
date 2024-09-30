@@ -110,13 +110,13 @@ public:
     QVariantMap content() const;
     QVariantMap replyMarkup() const;
 
-    QString getContent() noexcept;
-    QString getTitle() noexcept;
-    QString getDate() noexcept;
-    QString getSenderName() noexcept;
+    Q_INVOKABLE QString getContent() noexcept;
+    Q_INVOKABLE QString getTitle() noexcept;
+    Q_INVOKABLE QString getDate() noexcept;
+    Q_INVOKABLE QString getSenderName() noexcept;
 
-    bool isServiceMessage();
-    QString getServiceMessageContent();
+    Q_INVOKABLE bool isServiceMessage();
+    Q_INVOKABLE QString getServiceMessageContent();
 
     void setMessage(td::td_api::message *message);
 
@@ -128,7 +128,8 @@ private slots:
 
 private:
     void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId);
-    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId, td::td_api::object_ptr<td::td_api::error> &&error);
+    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
+                                 td::td_api::object_ptr<td::td_api::error> &&error);
     void handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
     void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
     void handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned);
@@ -141,3 +142,5 @@ private:
 
     StorageManager *m_storageManager{};
 };
+
+Q_DECLARE_METATYPE(Message *);

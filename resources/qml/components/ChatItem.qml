@@ -4,17 +4,11 @@ import com.nokia.extras 1.1
 
 Item {
     id: root
+
     signal pressAndHold
 
     height: 88
     width: parent.width
-
-    BorderImage {
-        id: background
-        anchors.fill: parent
-        visible: mouseArea.pressed
-        source: "image://theme/meegotouch-panel-background-pressed"
-    }
 
     MaskedItem {
         id: maskedItem
@@ -26,8 +20,6 @@ Item {
         mask: Image {
             sourceSize.width: maskedItem.width
             sourceSize.height: maskedItem.height
-            width: maskedItem.width
-            height: maskedItem.height
             source: "qrc:/images/avatar-image-mask.png"
         }
         Image {
@@ -37,7 +29,9 @@ Item {
             smooth: true
             fillMode: Image.PreserveAspectCrop
             clip: true
-            source: model.photo
+            source: model.photo && model.photo.localPath !== "" ?
+                    "image://chatPhoto/" + model.photo.localPath :
+                    "image://theme/icon-l-content-avatar-placeholder"
         }
     }
 
@@ -48,6 +42,7 @@ Item {
         anchors.left: maskedItem.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+
         Label {
             id: title
             width: parent.width - date.width
@@ -58,6 +53,7 @@ Item {
             elide: Text.ElideRight
             text: model.title
         }
+
         Label {
             id: date
             anchors.right: parent.right
@@ -65,7 +61,8 @@ Item {
             font.weight: Font.Light
             font.pixelSize: 20
             color: mouseArea.pressed ? "#797979" : "#505050"
-            text: model.lastMessageDate
+
+            text: model.lastMessage.getDate()
         }
     }
 
@@ -74,6 +71,7 @@ Item {
         width: parent.width - maskedItem.width - 44
         anchors.left: row1.left
         anchors.top: row1.bottom
+
         Label {
             id: lastMessage
             width: parent.width - mentionLoader.width - bubbleLoader.width
@@ -82,22 +80,25 @@ Item {
             font.pixelSize: 22
             color: mouseArea.pressed ? "#797979" : "#505050"
             elide: Text.ElideRight
-            text: model.lastMessageContent
+            text: model.lastMessage.getContent()
         }
+
         Loader {
             id: bubbleLoader
             anchors.verticalCenter: parent.verticalCenter
             anchors.right: parent.right
             sourceComponent: model.unreadCount > 0 ? countBubble : model.isPinned ? pinnedBubble : undefined
         }
+
         Loader {
             id: mentionLoader
             anchors.leftMargin: 8
-            anchors.right: bubbleLoader.left
             anchors.rightMargin: 8
+            anchors.right: bubbleLoader.left
             anchors.verticalCenter: parent.verticalCenter
             sourceComponent: model.unreadMentionCount > 0 ? mentionBubble : undefined
         }
+
         Component {
             id: countBubble
             MyCountBubble {
@@ -105,6 +106,7 @@ Item {
                 value: model.unreadCount
             }
         }
+
         Component {
             id: pinnedBubble
             BorderImage {
@@ -115,8 +117,7 @@ Item {
                 source: "image://theme/" + theme.colorString + "meegotouch-new-items-counter-background-combined"
                 width: 32
                 height: 32
-                Text {
-                    id: text
+                Label {
                     height: parent.height
                     color: "#ffffff"
                     font.family: icons.fontFamily
@@ -127,6 +128,7 @@ Item {
                 }
             }
         }
+
         Component {
             id: mentionBubble
             BorderImage {
@@ -137,8 +139,7 @@ Item {
                 source: "image://theme/" + theme.colorString + "meegotouch-countbubble-background-large"
                 width: 32
                 height: 32
-                Text {
-                    id: text
+                Label {
                     height: parent.height
                     color: "#ffffff"
                     font.family: icons.fontFamily
@@ -151,7 +152,7 @@ Item {
         }
     }
 
-    MouseArea {
+    Ripple {
         id: mouseArea
         anchors.fill: parent
         onClicked: appWindow.openChat(model.id)

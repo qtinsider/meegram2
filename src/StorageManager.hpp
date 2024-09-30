@@ -38,14 +38,14 @@ public:
     [[nodiscard]] qlonglong myId() const noexcept;
 
 signals:
-    void basicGroupUpdated(td::td_api::Object *object);
-    void basicGroupFullInfoUpdated(td::td_api::Object *object);
+    void basicGroupUpdated(qlonglong groupId, td::td_api::Object *object);
+    void basicGroupFullInfoUpdated(qlonglong groupId, td::td_api::Object *object);
     void chatsUpdated(td::td_api::Object *object);
-    void filesUpdated(td::td_api::Object *object);
-    void supergroupUpdated(td::td_api::Object *object);
-    void supergroupFullInfoUpdated(td::td_api::Object *object);
-    void usersUpdated(td::td_api::Object *object);
-    void userFullInfoUpdated(td::td_api::Object *object);
+    void fileUpdated(int fileId, td::td_api::Object *object);
+    void supergroupUpdated(qlonglong groupId, td::td_api::Object *object);
+    void supergroupFullInfoUpdated(qlonglong groupId, td::td_api::Object *object);
+    void usersUpdated(qlonglong userId, td::td_api::Object *object);
+    void userFullInfoUpdated(qlonglong userId, td::td_api::Object *object);
     void chatFoldersUpdated(td::td_api::Object *object);
 
 private slots:

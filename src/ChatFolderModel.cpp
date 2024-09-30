@@ -84,3 +84,8 @@ int ChatFolderModel::count() const noexcept
 {
     return m_chatFolders.size();
 }
+
+void ChatFolderModel::retranslateUi()
+{
+
+}

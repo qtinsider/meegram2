@@ -36,6 +36,9 @@ signals:
     void countChanged();
     void localeStringChanged();
 
+private slots:
+    void retranslateUi();
+
 private:
     QString m_localeString;
 

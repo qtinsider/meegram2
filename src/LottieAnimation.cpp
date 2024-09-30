@@ -135,18 +135,18 @@ void LottieAnimation::setSource(const QUrl &source)
         loadContent();
 }
 
-int LottieAnimation::loopCount() const noexcept
+qreal LottieAnimation::loop() const noexcept
 {
-    return m_loopCount;
+    return m_loop;
 }
 
-void LottieAnimation::setLoopCount(int loopCount)
+void LottieAnimation::setLoop(qreal loop)
 {
-    if (m_loopCount == loopCount)
+    if (m_loop == loop)
         return;
 
-    m_loopCount = loopCount;
-    emit loopCountChanged();
+    m_loop = loop;
+    emit loopChanged();
 }
 
 void LottieAnimation::play()
@@ -182,7 +182,7 @@ void LottieAnimation::updateFrame()
 {
     if (m_currentFrame >= m_frameCount)
     {
-        if (m_loopCount == -1 || m_loopIteration < m_loopCount)
+        if (m_loopIteration < m_loop)
         {
             m_currentFrame = 0;
             ++m_loopIteration;

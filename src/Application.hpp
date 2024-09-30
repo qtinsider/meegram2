@@ -36,6 +36,7 @@ signals:
 public slots:
     void close() noexcept;
     void setOption(const QString &name, const QVariant &value);
+
     void initialize() noexcept;
 
 private slots:

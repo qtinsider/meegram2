@@ -1,9 +1,9 @@
 #include "Application.hpp"
 
 #include "Common.hpp"
-#include "StorageManager.hpp"
-#include "Settings.hpp"
 #include "Localization.hpp"
+#include "Settings.hpp"
+#include "StorageManager.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -19,7 +19,6 @@ Application::Application(QObject *parent)
     , m_settings(&Settings::instance())
     , m_storageManager(&StorageManager::instance())
 {
-
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
 
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
@@ -63,7 +62,7 @@ void Application::setOption(const QString &name, const QVariant &value)
             optionValue = td::td_api::make_object<td::td_api::optionValueEmpty>();
     }
 
-    m_client->send(td::td_api::make_object<td::td_api::setOption>(name.toStdString(), std::move(optionValue)), {});
+    m_client->send(td::td_api::make_object<td::td_api::setOption>(name.toStdString(), std::move(optionValue)));
 }
 
 void Application::initialize() noexcept
@@ -95,7 +94,6 @@ void Application::setParameters() noexcept
     request->application_version_ = AppVersion;
 
     // request->use_test_dc_ = true;
-
 
     m_client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::ok::ID)

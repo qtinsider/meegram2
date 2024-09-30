@@ -10,6 +10,7 @@
         <file>qml/components/ListItem.qml</file>
         <file>qml/components/MessageBubble.qml</file>
         <file>qml/components/MyCountBubble.qml</file>
+        <file>qml/components/Ripple.qml</file>
         <file>qml/components/SettingsSwitch.qml</file>
         <file>qml/components/TopBar.qml</file>
         <file>qml/components/UIConstants.js</file>

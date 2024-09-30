@@ -2,7 +2,7 @@
 
 #include <td/telegram/td_api.h>
 
-#include <QObject>
+#include <QVariant>
 
 class Client;
 class StorageManager;
@@ -61,11 +61,14 @@ signals:
     void fileChanged();
 
 private slots:
-    void onDataChanged(td::td_api::Object *object);
+    void onDataChanged(int fileId, td::td_api::Object *object);
 
 private:
-    td::td_api::file *m_file{};
-
     Client *m_client{};
     StorageManager *m_storageManager{};
+
+    td::td_api::file *m_file{};
 };
+
+// This allows us to store File * as a QVariant
+Q_DECLARE_METATYPE(File *);

@@ -30,13 +30,12 @@ public:
         TypeRole,
         TitleRole,
         PhotoRole,
-        LastMessageSenderRole,
-        LastMessageContentRole,
-        LastMessageDateRole,
+        LastMessage,
         IsPinnedRole,
         UnreadMentionCountRole,
         UnreadCountRole,
         IsMutedRole,
+        ChatRole
     };
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -56,6 +55,8 @@ public:
 
     int chatFolderId() const;
     void setChatFolderId(int value);
+
+    Q_INVOKABLE Chat *get(int index) const;
 
     Q_INVOKABLE void toggleChatIsPinned(qlonglong chatId, bool isPinned);
     Q_INVOKABLE void toggleChatNotificationSettings(qlonglong chatId, bool isMuted);
@@ -93,5 +94,5 @@ private:
     Locale *m_locale{};
     StorageManager *m_storageManager{};
 
-    std::vector<std::shared_ptr<Chat>> m_chats;
+    std::vector<std::unique_ptr<Chat>> m_chats;
 };

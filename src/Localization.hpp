@@ -41,7 +41,6 @@ private:
     std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
 };
 
-
 class Translator : public QTranslator {
 public:
     Translator(QObject *parent = nullptr) : QTranslator(parent) {}

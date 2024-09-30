@@ -19,7 +19,7 @@ class Chat : public QObject
     Q_PROPERTY(qlonglong id READ id NOTIFY chatItemUpdated)
     Q_PROPERTY(QString type READ type NOTIFY chatItemUpdated)
     Q_PROPERTY(QString title READ title NOTIFY chatItemUpdated)
-    Q_PROPERTY(QString photo READ photo NOTIFY chatItemUpdated)
+    Q_PROPERTY(File *photo READ photo NOTIFY chatItemUpdated)
     Q_PROPERTY(Message *lastMessage READ lastMessage NOTIFY chatItemUpdated)
     Q_PROPERTY(bool isMarkedAsUnread READ isMarkedAsUnread NOTIFY chatItemUpdated)
     Q_PROPERTY(bool hasScheduledMessages READ hasScheduledMessages NOTIFY chatItemUpdated)
@@ -34,6 +34,11 @@ class Chat : public QObject
     Q_PROPERTY(qlonglong replyMarkupMessageId READ replyMarkupMessageId NOTIFY chatItemUpdated)
     Q_PROPERTY(Message *draftMessage READ draftMessage NOTIFY chatItemUpdated)
 
+    Q_PROPERTY(bool isMe READ isMe NOTIFY chatItemUpdated)
+    Q_PROPERTY(bool isPinned READ isPinned NOTIFY chatItemUpdated)
+    Q_PROPERTY(int muteFor READ muteFor NOTIFY chatItemUpdated)
+    Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatItemUpdated)
+
 public:
     explicit Chat(QObject *parent = nullptr);
     explicit Chat(qlonglong chatId, ChatList chatList, QObject *parent = nullptr);
@@ -41,7 +46,7 @@ public:
     qlonglong id() const;
     QString type() const;
     QString title() const;
-    QString photo() const;
+    File *photo() const;
     Message *lastMessage() const;
     bool isMarkedAsUnread() const;
     bool hasScheduledMessages() const;
@@ -56,16 +61,12 @@ public:
     qlonglong replyMarkupMessageId() const;
     Message *draftMessage() const;
 
-    QString getTitle() const noexcept;
-
     qlonglong getOrder() const noexcept;
 
-    bool isPinned() const noexcept;
-
-    bool isMuted() const noexcept;
-    int muteFor() const noexcept;
-
-    bool isMe() const noexcept;
+    Q_INVOKABLE bool isMe() const noexcept;
+    Q_INVOKABLE bool isPinned() const noexcept;
+    Q_INVOKABLE int muteFor() const noexcept;
+    Q_INVOKABLE bool isMuted() const noexcept;
 
 signals:
     void chatItemUpdated(qlonglong chatId);
@@ -87,8 +88,10 @@ private:
 
     bool m_showSavedMessages;
 
-    std::shared_ptr<File> m_file;
-    std::shared_ptr<Message> m_lastMessage;
+    std::unique_ptr<File> m_file;
+    std::unique_ptr<Message> m_lastMessage;
 
     StorageManager *m_storageManager;
 };
+
+Q_DECLARE_METATYPE(Chat *);

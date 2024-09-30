@@ -9,6 +9,8 @@ Page {
 
     orientationLock: PageOrientation.LockPortrait
 
+    property variant currentChat: null
+
     TopBar {
         id: header
         title: "MeeGram"
@@ -57,7 +59,7 @@ Page {
 
         delegate: ChatItem {
             onPressAndHold: {
-                listView.currentIndex = index;
+                currentChat = myChatModel.get(index);
                 contextMenu.open();
             }
         }
@@ -66,12 +68,41 @@ Page {
         snapMode: ListView.SnapToItem
     }
 
-    Label {
+    Column {
         anchors.centerIn: listView
-        font.pixelSize: 60
-        color: "gray"
-        text: qsTr("NoChats")
+        anchors.margins: UiConstants.DefaultMargin * 2
+        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
+
+        width: parent.width
+
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
+
+        LottieAnimation {
+            id: lottieAnimation
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 160
+            height: 160
+            source: "qrc:/tgs/Newborn.json"
+            onStatusChanged: {
+                if (status === LottieAnimation.Ready)
+                    lottieAnimation.play();
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: lottieAnimation.play();
+            }
+        }
+
+        Label {
+            text: qsTr("NoChats")
+            wrapMode: Text.WordWrap
+            color: "gray"
+            font.pixelSize: 42
+            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+        }
     }
 
     BusyIndicator {
@@ -117,17 +148,23 @@ Page {
 
         MenuLayout {
             MenuItem {
-                // text: myChatModel.isPinned(listView.currentIndex)
-                //     ? qsTr("UnpinFromTop")
-                //     : qsTr("PinToTop")
-                // onClicked: myChatModel.toggleChatIsPinned(listView.currentIndex)
+                text: currentChat && currentChat.isPinned
+                      ? qsTr("UnpinFromTop")
+                      : qsTr("PinToTop")
+                onClicked: {
+                    if (currentChat)
+                        myChatModel.toggleChatIsPinned(currentChat.id, !currentChat.isPinned)
+                }
             }
 
             MenuItem {
-                // text: myChatModel.isMuted(listView.currentIndex)
-                //     ? qsTr("ChatsUnmute")
-                //     : qsTr("ChatsMute")
-                // onClicked: myChatModel.toggleChatNotificationSettings(listView.currentIndex)
+                text: currentChat && currentChat.isMuted
+                      ? qsTr("ChatsUnmute")
+                      : qsTr("ChatsMute")
+                onClicked: {
+                    if (currentChat)
+                        myChatModel.toggleChatNotificationSettings(currentChat.id, !currentChat.isMuted)
+                }
             }
         }
     }

@@ -25,7 +25,6 @@ Item {
             id: lottieAnimation
             width: 160
             height: 160
-            loopCount: 1
             anchors.horizontalCenter: parent.horizontalCenter
             source: "qrc:/tgs/TwoFactorSetupIntro.tgs"
 

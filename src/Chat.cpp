@@ -24,11 +24,11 @@ Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
 
     if (auto &photo = m_chat->photo_; photo && photo->small_)
     {
-        m_file = std::make_shared<File>(photo->small_.get());
+        m_file = std::make_unique<File>(photo->small_.get());
 
         connect(m_file.get(), SIGNAL(fileChanged()), this, SLOT(onFileChanged()));
 
-        if (m_file->canBeDownloaded() && !m_file->isDownloadingCompleted())
+        if (m_file->canBeDownloaded() && !m_file->isDownloadingActive() && !m_file->isDownloadingCompleted())
         {
             m_file->downloadFile();
         }
@@ -36,7 +36,7 @@ Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
 
     if (m_chat->last_message_)
     {
-        m_lastMessage = std::make_shared<Message>(m_chat->last_message_.get());
+        m_lastMessage = std::make_unique<Message>(m_chat->last_message_.get());
     }
 
     m_chatPosition = calculateChatPosition();
@@ -72,12 +72,18 @@ QString Chat::type() const
 
 QString Chat::title() const
 {
-    return QString::fromStdString(m_chat->title_);
+    if (isMe() && m_showSavedMessages)
+    {
+        return tr("SavedMessages");
+    }
+
+    const auto title = QString::fromStdString(m_chat->title_).trimmed();
+    return !title.isEmpty() ? title : tr("HiddenName");
 }
 
-QString Chat::photo() const
+File *Chat::photo() const
 {
-    return m_file ? m_file->localPath() : QString();
+    return m_file.get();
 }
 
 Message *Chat::lastMessage() const
@@ -179,17 +185,6 @@ bool Chat::isMe() const noexcept
     }
 }
 
-QString Chat::getTitle() const noexcept
-{
-    if (isMe() && m_showSavedMessages)
-    {
-        return tr("SavedMessages");
-    }
-
-    const auto title = QString::fromStdString(m_chat->title_).trimmed();
-    return !title.isEmpty() ? title : tr("HiddenName");
-}
-
 bool Chat::isMuted() const noexcept
 {
     return muteFor() > 0;
@@ -202,13 +197,13 @@ int Chat::muteFor() const noexcept
 
 void Chat::onDataChanged(td::td_api::Object *object)
 {
-    auto handleChatUpdate = [&](auto *value, bool emitSignal = false) {
+    auto handleChatUpdate = [&](auto *value, bool positionSignal = false) {
         if (value->chat_id_ != m_chat->id_)
             return;
 
         m_chat = m_storageManager->getChat(value->chat_id_);
 
-        if (emitSignal)
+        if (positionSignal)
         {
             if (m_chat->last_message_)
             {

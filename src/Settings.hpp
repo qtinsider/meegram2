@@ -22,9 +22,6 @@ public:
     bool invertedTheme() const;
     void setInvertedTheme(bool value);
 
-    bool languageIsRtl() const;
-    void setLanguageIsRtl(bool value);
-
     QString languagePackId() const;
     void setLanguagePackId(const QString &value);
 

@@ -2,21 +2,23 @@
 
 #include "StorageManager.hpp"
 
+#include <QDebug>
+
 File::File(QObject *parent)
     : QObject(parent)
     , m_client(StorageManager::instance().client())
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(filesUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onDataChanged(int, td::td_api::Object *)));
 }
 
 File::File(td::td_api::file *file, QObject *parent)
     : QObject(parent)
-    , m_file(file)
     , m_client(StorageManager::instance().client())
     , m_storageManager(&StorageManager::instance())
+    , m_file(file)
 {
-    connect(m_storageManager, SIGNAL(filesUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onDataChanged(int, td::td_api::Object *)));
 }
 
 int File::id() const
@@ -101,15 +103,18 @@ void File::setFile(td::td_api::file *file)
     emit fileChanged();
 }
 
-void File::onDataChanged(td::td_api::Object *object)
+void File::onDataChanged(int fileId, td::td_api::Object *object)
 {
-    if (object->get_id() == td::td_api::updateFile::ID)
-    {
-        if (auto file = m_storageManager->getFile(m_file->id_); file)
-        {
-            m_file = file;
+    if (object->get_id() != td::td_api::updateFile::ID)
+        return;
 
-            emit fileChanged();  // Emit signal after updating
-        }
+    if (fileId != m_file->id_)
+        return;
+
+    if (auto file = m_storageManager->getFile(m_file->id_); file)
+    {
+        m_file = file;
+
+        emit fileChanged();
     }
 }

@@ -207,28 +207,40 @@ void StorageManager::handleResult(td::td_api::Object *object)
                 }
             },
             [this, object](td::td_api::updateUser &value) {
-                m_users.insert_or_assign(value.user_->id_, std::move(value.user_));
-                emit usersUpdated(object);
+                auto userId = value.user_->id_;
+
+                m_users.insert_or_assign(userId, std::move(value.user_));
+                emit usersUpdated(userId, object);
             },
             [this, object](td::td_api::updateBasicGroup &value) {
-                m_basicGroup.insert_or_assign(value.basic_group_->id_, std::move(value.basic_group_));
-                emit basicGroupUpdated(object);
+                auto groupId = value.basic_group_->id_;
+
+                m_basicGroup.insert_or_assign(groupId, std::move(value.basic_group_));
+                emit basicGroupUpdated(groupId, object);
             },
             [this, object](td::td_api::updateSupergroup &value) {
-                m_supergroup.insert_or_assign(value.supergroup_->id_, std::move(value.supergroup_));
-                emit supergroupUpdated(object);
+                auto groupId = value.supergroup_->id_;
+
+                m_supergroup.insert_or_assign(groupId, std::move(value.supergroup_));
+                emit supergroupUpdated(groupId, object);
             },
             [this, object](td::td_api::updateUserFullInfo &value) {
-                m_userFullInfo.insert_or_assign(value.user_id_, std::move(value.user_full_info_));
-                emit userFullInfoUpdated(object);
+                auto userId = value.user_id_;
+
+                m_userFullInfo.insert_or_assign(userId, std::move(value.user_full_info_));
+                emit userFullInfoUpdated(userId, object);
             },
             [this, object](td::td_api::updateBasicGroupFullInfo &value) {
-                m_basicGroupFullInfo.insert_or_assign(value.basic_group_id_, std::move(value.basic_group_full_info_));
-                emit basicGroupFullInfoUpdated(object);
+                auto groupId = value.basic_group_id_;
+
+                m_basicGroupFullInfo.insert_or_assign(groupId, std::move(value.basic_group_full_info_));
+                emit basicGroupFullInfoUpdated(groupId, object);
             },
             [this, object](td::td_api::updateSupergroupFullInfo &value) {
-                m_supergroupFullInfo.insert_or_assign(value.supergroup_id_, std::move(value.supergroup_full_info_));
-                emit supergroupFullInfoUpdated(object);
+                auto groupId = value.supergroup_id_;
+
+                m_supergroupFullInfo.insert_or_assign(groupId, std::move(value.supergroup_full_info_));
+                emit supergroupFullInfoUpdated(groupId, object);
             },
             [this, object](td::td_api::updateChatFolders &value) {
                 m_chatFolders.reserve(value.chat_folders_.size());
@@ -237,9 +249,11 @@ void StorageManager::handleResult(td::td_api::Object *object)
                 emit chatFoldersUpdated(object);
             },
             [this, object](td::td_api::updateFile &value) {
-                m_files.insert_or_assign(value.file_->id_, std::move(value.file_));
+                auto fileId = value.file_->id_;
 
-                emit filesUpdated(object);
+                m_files.insert_or_assign(fileId, std::move(value.file_));
+
+                emit fileUpdated(fileId, object);
             },
             [this](td::td_api::updateOption &value) {
                 auto optionValue = [](td::td_api::object_ptr<td::td_api::OptionValue> &&option) -> QVariant {
