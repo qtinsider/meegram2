@@ -155,7 +155,7 @@ Item {
     Ripple {
         id: mouseArea
         anchors.fill: parent
-        onClicked: appWindow.openChat(model.id)
+        onClicked: appWindow.openChat(model.selectedChat)
         onPressAndHold: root.pressAndHold()
     }
 }

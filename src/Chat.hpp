@@ -62,6 +62,7 @@ public:
     Message *draftMessage() const;
 
     qlonglong getOrder() const noexcept;
+    qlonglong getChatTypeId() const noexcept;
 
     Q_INVOKABLE bool isMe() const noexcept;
     Q_INVOKABLE bool isPinned() const noexcept;

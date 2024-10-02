@@ -9,10 +9,12 @@
 #include <QDateTime>
 #include <QDebug>
 #include <QLocale>
+#include <QStringList>
 #include <QTimer>
 
 #include <algorithm>
-#include <utility>
+#include <ranges>
+#include <unordered_set>
 
 namespace {
 
@@ -173,10 +175,11 @@ QString getUserStatus(const td::td_api::user *user) noexcept
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_storageManager(&StorageManager::instance())
     , m_client(StorageManager::instance().client())
-
+    , m_storageManager(&StorageManager::instance())
 {
+    qDebug() << "MessageModel initialized.";
+
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
     setRoleNames(roleNames());
@@ -190,52 +193,18 @@ int MessageModel::rowCount(const QModelIndex &parent) const
     return m_messages.size();
 }
 
-bool MessageModel::canFetchMore(const QModelIndex &parent) const
-{
-    if (parent.isValid())
-        return false;
-
-    if (!m_selectedChat)
-        return {};
-
-    if (!m_messages.empty())
-    {
-        if (auto max = std::ranges::max(m_messageIds); max.has_value())
-        {
-            return !m_loading && m_selectedChat->last_message_->id_ != *max;
-        }
-    }
-
-    return false;
-}
-
-void MessageModel::fetchMore(const QModelIndex &parent)
-{
-    if (parent.isValid())
-        return;
-
-    if (!m_loading)
-    {
-        if (auto max = std::ranges::max(m_messageIds); max.has_value())
-        {
-            getChatHistory(*max, -MessageSliceLimit, MessageSliceLimit);
-        }
-
-        m_loading = true;
-        emit loadingChanged();
-    }
-}
-
 QVariant MessageModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(m_messages.size()))
         return QVariant();
 
-    const auto &message = m_messages.at(index.row());
+    const auto it = std::ranges::next(m_messages.begin(), index.row());
+    const auto &message = it->second;  // Access the message directly
+
     switch (role)
     {
         case IdRole:
-            return QString::number(message->id_);
+            return QVariant::fromValue(message->id_);
         case SenderRole: {
             if (message->is_outgoing_)
                 return QString();
@@ -313,6 +282,14 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
 
         case BubbleColorRole:
             return QVariant();
+        case ContentTypeRole: {
+            if (const auto *content = message->content_.get(); content->get_id() == td::td_api::messageText::ID)
+            {
+                return "text";
+            }
+
+            return QVariant();
+        }
         case IsServiceMessageRole: {
             return Utils::isServiceMessage(*message);
         }
@@ -366,6 +343,7 @@ QHash<int, QByteArray> MessageModel::roleNames() const noexcept
     roles[ReplyMarkupRole] = "replyMarkup";
     // Custom
     roles[BubbleColorRole] = "bubbleColor";
+    roles[ContentTypeRole] = "contentType";
     roles[IsServiceMessageRole] = "isServiceMessage";
     roles[SectionRole] = "section";
     roles[ServiceMessageRole] = "serviceMessage";
@@ -382,159 +360,137 @@ bool MessageModel::loading() const noexcept
     return m_loading;
 }
 
-bool MessageModel::loadingHistory() const noexcept
+bool MessageModel::isEndReached() const noexcept
 {
-    return m_loadingHistory;
-}
-
-QString MessageModel::getChatId() const noexcept
-{
-    if (!m_selectedChat)
-        return {};
-
-    return QString::number(m_selectedChat->id_);
-}
-
-void MessageModel::setChatId(const QString &value) noexcept
-{
-    auto chat = m_storageManager->getChat(value.toLongLong());
-
-    if (chat && (!m_selectedChat || m_selectedChat->id_ != chat->id_))
-    {
-        m_selectedChat = chat;
-
-        emit selectedChatChanged();
-    }
+    return m_isEndReached;
 }
 
 QString MessageModel::getChatSubtitle() const noexcept
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return {};
 
-    const auto chatTypeId = m_selectedChat->type_->get_id();
+    const auto chatTypeId = m_chat->getChatTypeId();
+    const auto &chatTypeString = m_chat->type();
 
-    switch (chatTypeId)
+    if (chatTypeString == "Private" || chatTypeString == "Secret")
     {
-        case td::td_api::chatTypePrivate::ID: {
-            const auto userId = static_cast<const td::td_api::chatTypePrivate *>(m_selectedChat->type_.get())->user_id_;
-            return getUserStatus(m_storageManager->getUser(userId));
-        }
-
-        case td::td_api::chatTypeSecret::ID: {
-            const auto secretChatId = static_cast<const td::td_api::chatTypeSecret *>(m_selectedChat->type_.get())->secret_chat_id_;
-            return getUserStatus(m_storageManager->getUser(secretChatId));
-        }
-
-        case td::td_api::chatTypeBasicGroup::ID: {
-            const auto basicGroupId = static_cast<const td::td_api::chatTypeBasicGroup *>(m_selectedChat->type_.get())->basic_group_id_;
-            return getBasicGroupStatus(m_storageManager->getBasicGroup(basicGroupId), m_onlineCount);
-        }
-
-        case td::td_api::chatTypeSupergroup::ID: {
-            const auto *type = static_cast<const td::td_api::chatTypeSupergroup *>(m_selectedChat->type_.get());
-            const auto supergroup = m_storageManager->getSupergroup(type->supergroup_id_);
-            return type->is_channel_ ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
-                                     : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
-        }
-
-        default:
-            return {};
-    }
-}
-
-QString MessageModel::getChatTitle() const noexcept
-{
-    if (!m_selectedChat)
-        return {};
-
-    const auto title = QString::fromStdString(m_selectedChat->title_);
-    if (Utils::isMeChat(m_selectedChat, m_storageManager))
-        return QObject::tr("SavedMessages");
-
-    return title.isEmpty() ? QObject::tr("HiddenName") : title;
-}
-
-QString MessageModel::getChatPhoto() const noexcept
-{
-    if (!m_selectedChat)
-        return "image://theme/icon-l-content-avatar-placeholder";
-
-    const auto &chatPhoto = m_selectedChat->photo_;
-    if (chatPhoto && chatPhoto->small_)
-    {
-        const auto &smallPhoto = chatPhoto->small_;
-        if (smallPhoto->local_ && smallPhoto->local_->is_downloading_completed_)
-        {
-            return QString::fromStdString("image://chatPhoto/" + smallPhoto->local_->path_);
-        }
+        return getUserStatus(m_storageManager->getUser(chatTypeId));
     }
 
-    return "image://theme/icon-l-content-avatar-placeholder";
+    if (chatTypeString == "BasicGroup")
+    {
+        return getBasicGroupStatus(m_storageManager->getBasicGroup(chatTypeId), m_onlineCount);
+    }
+
+    if (chatTypeString == "Supergroup" || chatTypeString == "Channel")
+    {
+        const auto &supergroup = m_storageManager->getSupergroup(chatTypeId);
+
+        return (chatTypeString == "Channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
+                                             : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
+    }
+
+    return {};
 }
 
-void MessageModel::loadHistory() noexcept
+Chat *MessageModel::chat() const noexcept
 {
-    if (m_messageIds.empty())
-    {
-        qDebug() << "No messages available to load history.";
+    return m_chat;
+}
+
+void MessageModel::setChat(Chat *value) noexcept
+{
+    if (m_chat == value)
         return;
+
+    qDebug() << "Setting new chat. Previous chat ID:" << (m_chat ? m_chat->id() : -1) << ", new chat ID:" << (value ? value->id() : -1);
+    if (m_chat)
+    {
+        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
+        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
     }
 
-    if (auto min = std::ranges::min(m_messageIds); min.has_value() && !m_loadingHistory)
+    m_chat = value;
+
+    if (m_chat)
     {
-        qDebug() << "Loading history starting from message ID:" << *min;
+        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
+        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+    }
 
-        m_loadingHistory = true;
+    emit chatChanged();
+}
 
-        getChatHistory(*min, 0, MessageSliceLimit);
+void MessageModel::loadNextSlice() noexcept
+{
+    if (!m_loading)
+    {
+        qDebug() << "Loading next message slice. Max message ID:" << std::ranges::max(m_messages | std::views::keys);
+
+        getChatHistory(std::ranges::max(m_messages | std::views::keys), -MessageSliceLimit, MessageSliceLimit);
+
+        m_loading = true;
 
         emit loadingChanged();
     }
-    else
+}
+
+void MessageModel::loadPreviousSlice() noexcept
+{
+    if (!m_loading)
     {
-        qDebug() << "No minimum message ID found or already loading history.";
+        qDebug() << "Loading previous message slice. Min message ID:" << std::ranges::min(m_messages | std::views::keys);
+
+        m_loading = true;
+
+        getChatHistory(std::ranges::min(m_messages | std::views::keys), 0, MessageSliceLimit);
+
+        emit loadingChanged();
     }
 }
 
 void MessageModel::openChat() noexcept
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
 
-    m_client->send(td::td_api::make_object<td::td_api::openChat>(m_selectedChat->id_), {});
+    m_client->send(td::td_api::make_object<td::td_api::openChat>(m_chat->id()), {});
 }
 
 void MessageModel::closeChat() noexcept
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
 
-    m_client->send(td::td_api::make_object<td::td_api::closeChat>(m_selectedChat->id_), {});
+    m_client->send(td::td_api::make_object<td::td_api::closeChat>(m_chat->id()), {});
 }
 
-void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit)
+void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit, bool previous)
 {
-    if (!m_selectedChat)
+    if (!m_chat)
+    {
         return;
+    }
 
     auto request = td::td_api::make_object<td::td_api::getChatHistory>();
-
-    request->chat_id_ = m_selectedChat->id_;
+    request->chat_id_ = m_chat->id();
     request->from_message_id_ = fromMessageId;
     request->offset_ = offset;
     request->limit_ = limit;
     request->only_local_ = false;
 
-    m_client->send(std::move(request), [this](auto &&response) {
+    m_client->send(std::move(request), [this, previous](auto &&response) {
         if (response->get_id() == td::td_api::messages::ID)
-            handleMessages(td::move_tl_object_as<td::td_api::messages>(response));
+        {
+            handleMessages(td::move_tl_object_as<td::td_api::messages>(response), previous);
+        }
     });
 }
 
 void MessageModel::sendMessage(const QString &message, qlonglong replyToMessageId)
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
 
     auto request = td::td_api::make_object<td::td_api::sendMessage>();
@@ -544,11 +500,11 @@ void MessageModel::sendMessage(const QString &message, qlonglong replyToMessageI
     inputMessageContent->text_ = td::td_api::make_object<td::td_api::formattedText>();
     inputMessageContent->text_->text_ = message.toStdString();
 
-    request->chat_id_ = m_selectedChat->id_;
+    request->chat_id_ = m_chat->id();
 
     if (replyToMessageId != 0)
     {
-        request->reply_to_ = td::td_api::make_object<td::td_api::inputMessageReplyToMessage>(m_selectedChat->id_, replyToMessageId, nullptr);
+        request->reply_to_ = td::td_api::make_object<td::td_api::inputMessageReplyToMessage>(m_chat->id(), replyToMessageId, nullptr);
     }
 
     request->input_message_content_ = std::move(inputMessageContent);
@@ -556,15 +512,23 @@ void MessageModel::sendMessage(const QString &message, qlonglong replyToMessageI
     m_client->send(std::move(request), {});
 }
 
-void MessageModel::viewMessages(std::vector<int64_t> &&messageIds)
+void MessageModel::viewMessages(const QStringList &messageIds)
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
+
+    std::vector<int64_t> result;
+    result.reserve(messageIds.size());
+
+    for (const auto &id : messageIds)
+    {
+        result.emplace_back(id.toLongLong());
+    }
 
     auto request = td::td_api::make_object<td::td_api::viewMessages>();
 
-    request->chat_id_ = m_selectedChat->id_;
-    request->message_ids_ = std::move(messageIds);
+    request->chat_id_ = m_chat->id();
+    request->message_ids_ = std::move(result);
     request->force_read_ = true;
 
     m_client->send(std::move(request), {});
@@ -572,12 +536,12 @@ void MessageModel::viewMessages(std::vector<int64_t> &&messageIds)
 
 void MessageModel::deleteMessage(qlonglong messageId, bool revoke) noexcept
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
 
     auto request = td::td_api::make_object<td::td_api::deleteMessages>();
 
-    request->chat_id_ = m_selectedChat->id_;
+    request->chat_id_ = m_chat->id();
     request->message_ids_ = std::move(std::vector<int64_t>(messageId));
     request->revoke_ = revoke;
 
@@ -590,11 +554,10 @@ void MessageModel::refresh() noexcept
         return;
 
     m_loading = true;
-    m_loadingHistory = true;
+    m_isEndReached = false;
 
     beginResetModel();
     m_messages.clear();
-    m_messageIds.clear();
     endResetModel();
 
     emit countChanged();
@@ -608,6 +571,15 @@ void MessageModel::componentComplete()
 {
     openChat();
     loadMessages();
+}
+
+void MessageModel::handleChatItem(qlonglong chatId)
+{
+    qDebug() << "Is m_chat ID equal to chatId?:" << (m_chat->id() == chatId) << "(m_chat ID:" << m_chat->id() << ", chatId:" << chatId << ")";
+    qDebug() << "Total number of items in the model:" << count();
+    qDebug() << "Last read inbox message ID:" << m_chat->lastReadInboxMessageId();
+    qDebug() << "Last read outbox message ID:" << m_chat->lastReadOutboxMessageId();
+    qDebug() << "Total unread message count:" << m_chat->unreadCount();
 }
 
 void MessageModel::handleResult(td::td_api::Object *object)
@@ -632,27 +604,19 @@ void MessageModel::handleResult(td::td_api::Object *object)
                 handleDeleteMessages(value.chat_id_, std::move(value.message_ids_), value.is_permanent_, value.from_cache_);
             },
             [this](td::td_api::updateChatOnlineMemberCount &value) { handleChatOnlineMemberCount(value.chat_id_, value.online_member_count_); },
-            [this](td::td_api::updateChatReadInbox &value) { handleChatReadInbox(value.chat_id_, value.last_read_inbox_message_id_, value.unread_count_); },
-            [this](td::td_api::updateChatReadOutbox &value) { handleChatReadOutbox(value.chat_id_, value.last_read_outbox_message_id_); }, [](auto &) {}});
+            [](auto &) {}});
 }
 
 void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message)
 {
-    if (!m_selectedChat || m_selectedChat->id_ != message->chat_id_)
+    if (!m_chat || m_chat->id() != message->chat_id_)
         return;
 
-    if (auto &lastMessage = m_selectedChat->last_message_; !m_messageIds.contains(lastMessage->id_))
-    {
-        auto id = message->id_;
+    beginInsertRows(QModelIndex(), rowCount(), rowCount());
+    m_messages.emplace(message->id_, std::move(message));
+    endInsertRows();
 
-        beginInsertRows(QModelIndex(), rowCount(), rowCount());
-        m_messageIds.insert(id);
-        m_messages.emplace_back(std::move(message));
-        endInsertRows();
-
-        viewMessages({id});
-        emit countChanged();
-    }
+    emit countChanged();
 }
 
 void MessageModel::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId)
@@ -666,12 +630,12 @@ void MessageModel::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::me
 
 void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = std::ranges::find(m_messages, messageId, &td::td_api::message::id_); it != m_messages.end())
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
     {
-        (*it)->content_ = std::move(newContent);
+        it->second->content_ = std::move(newContent);
 
         itemChanged(std::ranges::distance(m_messages.begin(), it));
     }
@@ -679,13 +643,13 @@ void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, t
 
 void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = std::ranges::find(m_messages, messageId, &td::td_api::message::id_); it != m_messages.end())
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
     {
-        (*it)->edit_date_ = editDate;
-        (*it)->reply_markup_ = std::move(replyMarkup);
+        it->second->edit_date_ = editDate;
+        it->second->reply_markup_ = std::move(replyMarkup);
 
         itemChanged(std::ranges::distance(m_messages.begin(), it));
     }
@@ -693,198 +657,125 @@ void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, in
 
 void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = std::ranges::find(m_messages, messageId, &td::td_api::message::id_); it != m_messages.end())
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
     {
-        (*it)->is_pinned_ = isPinned;
+        it->second->is_pinned_ = isPinned;
 
-        itemChanged(std::distance(m_messages.begin(), it));
+        itemChanged(std::ranges::distance(m_messages.begin(), it));
     }
 }
 
 void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId,
                                                 td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = std::ranges::find(m_messages, messageId, &td::td_api::message::id_); it != m_messages.end())
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
     {
-        (*it)->interaction_info_ = std::move(interactionInfo);
+        it->second->interaction_info_ = std::move(interactionInfo);
 
-        itemChanged(std::distance(m_messages.begin(), it));
+        itemChanged(std::ranges::distance(m_messages.begin(), it));
     }
 }
 
 void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool /*isPermanent*/, bool /*fromCache*/)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
-    for (const auto id : messageIds)
-    {
-        if (auto it = std::ranges::find(m_messages, id, &td::td_api::message::id_); it != m_messages.end())
-        {
-            auto index = std::ranges::distance(m_messages.begin(), it);
+    std::unordered_set idsSet(messageIds.begin(), messageIds.end());
 
-            beginRemoveRows(QModelIndex(), index, index);
-            m_messages.erase(it);
-            endRemoveRows();
+    std::vector<int> indicesToRemove;
+
+    for (const auto &[id, message] : m_messages)
+    {
+        if (idsSet.contains(id))
+        {
+            auto it = m_messages.find(id);
+            auto index = std::ranges::distance(m_messages.begin(), it);
+            indicesToRemove.emplace_back(index);
         }
+    }
+
+    std::ranges::sort(indicesToRemove, std::less<>());
+
+    if (!indicesToRemove.empty())
+    {
+        beginRemoveRows(QModelIndex(), indicesToRemove.front(), indicesToRemove.back());
+
+        std::erase_if(m_messages, [&idsSet](const auto &pair) { return idsSet.contains(pair.first); });
+
+        endRemoveRows();
     }
 }
 
 void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
+    if (!m_chat || chatId != m_chat->id())
         return;
 
     m_onlineCount = onlineMemberCount;
 
-    emit selectedChatChanged();
+    emit chatChanged();
 }
 
-void MessageModel::handleChatReadInbox(qlonglong chatId, qlonglong lastReadInboxMessageId, int unreadCount)
+void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&value, bool previous)
 {
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
-        return;
+    auto &messages = value->messages_;
+    const auto messageCount = static_cast<int>(messages.size());
 
-    // m_selectedChat->last_read_inbox_message_id_ = lastReadInboxMessageId;
-    // m_selectedChat->unread_count_ = unreadCount;
+    qDebug() << "handleMessages called. Number of messages received:" << messageCount;
 
-    emit selectedChatChanged();
-}
-
-void MessageModel::handleChatReadOutbox(qlonglong chatId, qlonglong lastReadOutboxMessageId)
-{
-    if (!m_selectedChat || chatId != m_selectedChat->id_)
-        return;
-
-    // m_selectedChat->last_read_outbox_message_id_ = lastReadOutboxMessageId;
-
-    emit selectedChatChanged();
-}
-
-void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messages)
-{
-    if (!messages)
+    // Early return if no messages are received
+    if (messageCount == 0)
     {
-        finalizeLoading();
-    }
-    else
-    {
-        std::ranges::sort(messages->messages_, std::ranges::less{}, &td::td_api::message::id_);
-        insertMessages(std::move(messages->messages_));
-    }
+        qDebug() << "No messages received.";
 
-    emit countChanged();
-}
-
-void MessageModel::insertMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept
-{
-    processMessages(messages);
-
-    if (m_loadingHistory)
-    {
-        m_loadingHistory = false;
-        auto count = static_cast<int>(messages.size());
-
-        if (count > 0)
-        {
-            beginInsertRows(QModelIndex(), 0, count - 1);
-
-            // Insert messages
-            m_messages.insert(m_messages.begin(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
-
-            endInsertRows();
-            emit moreHistoriesLoaded(count);
-        }
-    }
-    else if (m_loading)
-    {
-        handleNewMessages(std::move(messages));
-    }
-
-    emit loadingChanged();
-}
-
-void MessageModel::finalizeLoading() noexcept
-{
-    if (m_loadingHistory)
-        m_loadingHistory = false;
-    else
         m_loading = false;
 
-    emit loadingChanged();
-}
-
-void MessageModel::processMessages(const std::vector<td::td_api::object_ptr<td::td_api::message>> &messages) noexcept
-{
-    for (const auto &message : messages)
-    {
-        m_messageIds.emplace(message->id_);
-    }
-}
-
-void MessageModel::handleNewMessages(std::vector<td::td_api::object_ptr<td::td_api::message>> &&messages) noexcept
-{
-    // Check if the selected chat is valid
-    if (!m_selectedChat)
+        emit loadingChanged();
         return;
-
-    m_loading = false;
-
-    // Handle unread messages first
-    if (m_selectedChat->unread_count_ > 0 && !messages.empty())
-    {
-        std::vector<int64_t> messageIds;
-        messageIds.reserve(messages.size());  // Reserve space to avoid reallocations
-
-        for (const auto &message : messages)
-        {
-            if (message)  // Ensure the message is valid
-            {
-                auto id = message->id_;
-                if (!message->is_outgoing_ && id > m_selectedChat->last_read_inbox_message_id_)
-                {
-                    messageIds.emplace_back(id);
-                }
-            }
-        }
-
-        if (!messageIds.empty())
-        {
-            viewMessages(std::move(messageIds));  // Move the message IDs to viewMessages
-        }
     }
 
-    // Insert messages into the model
-    auto rowCountBefore = rowCount();
-    auto count = static_cast<int>(messages.size());
+    qDebug() << "Messages received, processing...";
 
-    if (count > 0)
+    // Calculate the insertion position
+    const int insertPos = previous ? 0 : rowCount();
+    beginInsertRows(QModelIndex(), insertPos, insertPos + messageCount - 1);
+    qDebug() << "beginInsertRows called. Inserting at position:" << insertPos;
+
+    std::ranges::for_each(messages, [this](auto &&message) { m_messages.emplace(message->id_, std::move(message)); });
+
+    endInsertRows();
+
+    if (previous)
     {
-        beginInsertRows(QModelIndex(), rowCountBefore, rowCountBefore + count - 1);
-
-        // Move messages into m_messages
-        m_messages.insert(m_messages.end(), std::make_move_iterator(messages.begin()), std::make_move_iterator(messages.end()));
-
-        endInsertRows();
+        emit moreHistoriesLoaded(messageCount);
+        qDebug() << "moreHistoriesLoaded signal emitted with count:" << messageCount;
     }
 
-    emit loadingChanged();  // Emit signal to notify that loading state has changed
+    if (m_loading)
+    {
+        m_loading = false;
+        qDebug() << "Loading is true, inserting messages at the end.";
+    }
+
+    emit loadingChanged();
+    emit countChanged();
 }
 
 void MessageModel::loadMessages() noexcept
 {
-    if (!m_selectedChat)
+    if (!m_chat)
         return;
 
-    const auto unread = m_selectedChat->unread_count_ > 0;
+    const auto unread = m_chat->unreadCount() > 0;
 
-    const auto fromMessageId = unread ? m_selectedChat->last_read_inbox_message_id_ : m_selectedChat->last_message_->id_;
+    const auto fromMessageId = unread ? m_chat->lastReadInboxMessageId() : m_chat->lastMessage()->id();
 
     const auto offset = unread ? -1 - MessageSliceLimit : 0;
     const auto limit = unread ? 2 * MessageSliceLimit : MessageSliceLimit;

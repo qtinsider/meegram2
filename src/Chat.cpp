@@ -156,6 +156,30 @@ qlonglong Chat::getOrder() const noexcept
     return m_chatPosition ? m_chatPosition->order_ : 0;
 }
 
+qlonglong Chat::getChatTypeId() const noexcept
+{
+    const auto chatTypeId = m_chat->type_->get_id();
+
+    if (chatTypeId == td::td_api::chatTypePrivate::ID)
+    {
+        return static_cast<const td::td_api::chatTypePrivate *>(m_chat->type_.get())->user_id_;
+    }
+    if (chatTypeId == td::td_api::chatTypeSecret::ID)
+    {
+        return static_cast<const td::td_api::chatTypeSecret *>(m_chat->type_.get())->secret_chat_id_;
+    }
+    if (chatTypeId == td::td_api::chatTypeBasicGroup::ID)
+    {
+        return static_cast<const td::td_api::chatTypeBasicGroup *>(m_chat->type_.get())->basic_group_id_;
+    }
+    if (chatTypeId == td::td_api::chatTypeSupergroup::ID)
+    {
+        return static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get())->supergroup_id_;
+    }
+
+    return {};
+}
+
 bool Chat::isPinned() const noexcept
 {
     return m_chatPosition ? m_chatPosition->is_pinned_ : false;

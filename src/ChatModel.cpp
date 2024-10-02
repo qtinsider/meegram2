@@ -114,6 +114,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[UnreadCountRole] = "unreadCount";
     roles[UnreadMentionCountRole] = "unreadMentionCount";
     roles[IsMutedRole] = "isMuted";
+    roles[ChatRole] = "selectedChat";
 
     return roles;
 }

@@ -99,6 +99,13 @@ void TextFormatter::setFormattedText(const QVariant &value)
 
 void TextFormatter::applyFormatting()
 {
+    if (m_formattedText.canConvert<QString>())
+    {
+        m_document->setHtml(m_formattedText.toString());
+        emit textChanged();
+        return;
+    }
+
     // Safely retrieve and cast the pointer from QVariant
     auto formattedText = static_cast<td::td_api::formattedText *>(m_formattedText.value<void *>());
 
