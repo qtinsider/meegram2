@@ -19,7 +19,7 @@ LanguagePackInfoModel::LanguagePackInfoModel(QObject *parent)
 
     setRoleNames(roles);
 
-    loadData();
+    loadLocalizationData();
 }
 
 int LanguagePackInfoModel::rowCount(const QModelIndex &) const
@@ -69,16 +69,33 @@ int LanguagePackInfoModel::count() const noexcept
     return m_languagePackInfo.size();
 }
 
-void LanguagePackInfoModel::loadData() noexcept
+void LanguagePackInfoModel::loadLocalizationData() noexcept
 {
     auto request = td::td_api::make_object<td::td_api::getLocalizationTargetInfo>();
-    request->only_local_ = true;
+    request->only_local_ = false;
+
+    qDebug() << "Loading localization target info...";
 
     m_client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::localizationTargetInfo::ID)
         {
+            auto localizationInfo = td::move_tl_object_as<td::td_api::localizationTargetInfo>(response);
+            if (!localizationInfo)
+            {
+                qDebug() << "Failed to retrieve localization info";
+                return;
+            }
+
+            auto languagePacks = std::move(localizationInfo->language_packs_);
+
+            if (languagePacks.empty())
+            {
+                qDebug() << "No language packs found";
+                return;
+            }
+
             beginResetModel();
-            m_languagePackInfo = std::move(td::move_tl_object_as<td::td_api::localizationTargetInfo>(response)->language_packs_);
+            m_languagePackInfo = std::move(languagePacks);
             endResetModel();
 
             emit countChanged();

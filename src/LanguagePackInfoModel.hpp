@@ -35,7 +35,7 @@ signals:
     void countChanged();
 
 private:
-    void loadData() noexcept;
+    void loadLocalizationData() noexcept;
 
     Client *m_client{};
 
