@@ -370,24 +370,24 @@ QString MessageModel::getChatSubtitle() const noexcept
     if (!m_chat)
         return {};
 
-    const auto chatTypeId = m_chat->getChatTypeId();
+    const auto chatTypeId = m_chat->getTypeId();
     const auto &chatTypeString = m_chat->type();
 
-    if (chatTypeString == "Private" || chatTypeString == "Secret")
+    if (chatTypeString == "private" || chatTypeString == "secret")
     {
         return getUserStatus(m_storageManager->getUser(chatTypeId));
     }
 
-    if (chatTypeString == "BasicGroup")
+    if (chatTypeString == "basicGroup")
     {
         return getBasicGroupStatus(m_storageManager->getBasicGroup(chatTypeId), m_onlineCount);
     }
 
-    if (chatTypeString == "Supergroup" || chatTypeString == "Channel")
+    if (chatTypeString == "supergroup" || chatTypeString == "channel")
     {
         const auto &supergroup = m_storageManager->getSupergroup(chatTypeId);
 
-        return (chatTypeString == "Channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
+        return (chatTypeString == "channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
                                              : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
     }
 
@@ -723,25 +723,20 @@ void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMembe
     emit chatChanged();
 }
 
-void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&value, bool previous)
+void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messagesPtr, bool previous)
 {
-    auto &messages = value->messages_;
+    if (!messagesPtr || messagesPtr->messages_.empty())
+    {
+        qDebug() << "handleMessages called. No messages received.";
+        m_loading = false;
+        emit loadingChanged();
+        return;  // Early return if messagesPtr is null or messages are empty
+    }
+
+    const auto &messages = messagesPtr->messages_;
     const auto messageCount = static_cast<int>(messages.size());
 
     qDebug() << "handleMessages called. Number of messages received:" << messageCount;
-
-    // Early return if no messages are received
-    if (messageCount == 0)
-    {
-        qDebug() << "No messages received.";
-
-        m_loading = false;
-
-        emit loadingChanged();
-        return;
-    }
-
-    qDebug() << "Messages received, processing...";
 
     // Calculate the insertion position
     const int insertPos = previous ? 0 : rowCount();

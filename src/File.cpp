@@ -9,7 +9,7 @@ File::File(QObject *parent)
     , m_client(StorageManager::instance().client())
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onDataChanged(int, td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onItemChanged(int, td::td_api::Object *)));
 }
 
 File::File(td::td_api::file *file, QObject *parent)
@@ -18,7 +18,7 @@ File::File(td::td_api::file *file, QObject *parent)
     , m_storageManager(&StorageManager::instance())
     , m_file(file)
 {
-    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onDataChanged(int, td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(fileUpdated(int, td::td_api::Object *)), this, SLOT(onItemChanged(int, td::td_api::Object *)));
 }
 
 int File::id() const
@@ -103,18 +103,23 @@ void File::setFile(td::td_api::file *file)
     emit fileChanged();
 }
 
-void File::onDataChanged(int fileId, td::td_api::Object *object)
+void File::onItemChanged(int fileId, td::td_api::Object *object)
 {
-    if (object->get_id() != td::td_api::updateFile::ID)
+    if (object == nullptr || object->get_id() != td::td_api::updateFile::ID)
         return;
 
-    if (fileId != m_file->id_)
+    const auto currentFileId =  m_file->id_;
+
+    if (fileId != currentFileId)
         return;
 
-    if (auto file = m_storageManager->getFile(m_file->id_); file)
+    if (auto file = m_storageManager->getFile(currentFileId); file)
     {
-        m_file = file;
-
-        emit fileChanged();
+        if (m_file != file)  // Avoid unnecessary emits if file hasn't changed
+        {
+            m_file = std::move(file);
+            emit fileChanged();
+        }
     }
 }
+

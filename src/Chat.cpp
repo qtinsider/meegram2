@@ -9,7 +9,7 @@ Chat::Chat(QObject *parent)
     : QObject(parent)
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onItemChanged(td::td_api::Object *)));
 }
 
 Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
@@ -18,7 +18,7 @@ Chat::Chat(qlonglong chatId, ChatList chatList, QObject *parent)
     , m_chatList(std::move(chatList))
     , m_storageManager(&StorageManager::instance())
 {
-    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onDataChanged(td::td_api::Object *)));
+    connect(m_storageManager, SIGNAL(chatsUpdated(td::td_api::Object *)), this, SLOT(onItemChanged(td::td_api::Object *)));
 
     m_chat = m_storageManager->getChat(m_chatId);
 
@@ -49,20 +49,28 @@ qlonglong Chat::id() const
 
 QString Chat::type() const
 {
+    if (!m_chat || !m_chat->type_)
+    {
+        return {};
+    }
+
     switch (m_chat->type_->get_id())
     {
         case td::td_api::chatTypePrivate::ID:
-            return "Private";
+            return "private";
 
         case td::td_api::chatTypeSecret::ID:
-            return "Secret";
+            return "secret";
 
         case td::td_api::chatTypeBasicGroup::ID:
-            return "Group";
+            return "group";
 
         case td::td_api::chatTypeSupergroup::ID: {
-            auto chatType = static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get());
-            return chatType->is_channel_ ? "Channel" : "Supergroup";
+            if (const auto *chatType = static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get()))
+            {
+                return chatType->is_channel_ ? "channel" : "supergroup";
+            }
+            return {};
         }
 
         default:
@@ -72,13 +80,7 @@ QString Chat::type() const
 
 QString Chat::title() const
 {
-    if (isMe() && m_showSavedMessages)
-    {
-        return tr("SavedMessages");
-    }
-
-    const auto title = QString::fromStdString(m_chat->title_).trimmed();
-    return !title.isEmpty() ? title : tr("HiddenName");
+    return QString::fromStdString(m_chat->title_);
 }
 
 File *Chat::photo() const
@@ -156,57 +158,45 @@ qlonglong Chat::getOrder() const noexcept
     return m_chatPosition ? m_chatPosition->order_ : 0;
 }
 
-qlonglong Chat::getChatTypeId() const noexcept
+qlonglong Chat::getTypeId() const noexcept
 {
+    if (!m_chat || !m_chat->type_)
+    {
+        return {};  // Return an empty value if m_chat or type is null
+    }
+
     const auto chatTypeId = m_chat->type_->get_id();
 
-    if (chatTypeId == td::td_api::chatTypePrivate::ID)
+    switch (chatTypeId)
     {
-        return static_cast<const td::td_api::chatTypePrivate *>(m_chat->type_.get())->user_id_;
-    }
-    if (chatTypeId == td::td_api::chatTypeSecret::ID)
-    {
-        return static_cast<const td::td_api::chatTypeSecret *>(m_chat->type_.get())->secret_chat_id_;
-    }
-    if (chatTypeId == td::td_api::chatTypeBasicGroup::ID)
-    {
-        return static_cast<const td::td_api::chatTypeBasicGroup *>(m_chat->type_.get())->basic_group_id_;
-    }
-    if (chatTypeId == td::td_api::chatTypeSupergroup::ID)
-    {
-        return static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get())->supergroup_id_;
-    }
+        case td::td_api::chatTypePrivate::ID: {
+            const auto *privateChat = static_cast<const td::td_api::chatTypePrivate *>(m_chat->type_.get());
+            return privateChat ? privateChat->user_id_ : 0;
+        }
 
-    return {};
+        case td::td_api::chatTypeSecret::ID: {
+            const auto *secretChat = static_cast<const td::td_api::chatTypeSecret *>(m_chat->type_.get());
+            return secretChat ? secretChat->secret_chat_id_ : 0;
+        }
+
+        case td::td_api::chatTypeBasicGroup::ID: {
+            const auto *basicGroupChat = static_cast<const td::td_api::chatTypeBasicGroup *>(m_chat->type_.get());
+            return basicGroupChat ? basicGroupChat->basic_group_id_ : 0;
+        }
+
+        case td::td_api::chatTypeSupergroup::ID: {
+            const auto *supergroupChat = static_cast<const td::td_api::chatTypeSupergroup *>(m_chat->type_.get());
+            return supergroupChat ? supergroupChat->supergroup_id_ : 0;
+        }
+
+        default:
+            return 0;
+    }
 }
 
 bool Chat::isPinned() const noexcept
 {
     return m_chatPosition ? m_chatPosition->is_pinned_ : false;
-}
-
-bool Chat::isMe() const noexcept
-{
-    if (!m_chat || !m_chat->type_)
-    {
-        return false;
-    }
-
-    const auto myId = m_storageManager->myId();
-
-    switch (m_chat->type_->get_id())
-    {
-        case td::td_api::chatTypeSecret::ID: {
-            const auto userId = static_cast<const td::td_api::chatTypeSecret *>(m_chat->type_.get())->user_id_;
-            return myId == userId;
-        }
-        case td::td_api::chatTypePrivate::ID: {
-            const auto userId = static_cast<const td::td_api::chatTypePrivate *>(m_chat->type_.get())->user_id_;
-            return myId == userId;
-        }
-        default:
-            return false;
-    }
 }
 
 bool Chat::isMuted() const noexcept
@@ -219,15 +209,28 @@ int Chat::muteFor() const noexcept
     return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
 }
 
-void Chat::onDataChanged(td::td_api::Object *object)
+void Chat::onItemChanged(td::td_api::Object *object)
 {
-    auto handleChatUpdate = [&](auto *value, bool positionSignal = false) {
-        if (value->chat_id_ != m_chat->id_)
+    if (object == nullptr)
+    {
+        return;  // Early return if object is null
+    }
+
+    auto handleChatUpdate = [&](auto *value, bool positionEmitted = false) {
+        if (value == nullptr || value->chat_id_ != m_chat->id_)
+        {
             return;
+        }
 
-        m_chat = m_storageManager->getChat(value->chat_id_);
+        auto newChat = m_storageManager->getChat(value->chat_id_);
+        if (!newChat)
+        {
+            return;
+        }
 
-        if (positionSignal)
+        m_chat = std::move(newChat);
+
+        if (positionEmitted)
         {
             if (m_chat->last_message_)
             {
@@ -235,56 +238,37 @@ void Chat::onDataChanged(td::td_api::Object *object)
             }
 
             m_chatPosition = calculateChatPosition();
-
             emit chatPositionUpdated(value->chat_id_);
         }
 
         emit chatItemUpdated(value->chat_id_);
     };
 
-    switch (object->get_id())
+    using UpdateHandler = std::function<void(td::td_api::Object *)>;
+    std::unordered_map<int, UpdateHandler> handlers = {
+        {td::td_api::updateChatTitle::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatTitle *>(obj)); }},
+        {td::td_api::updateChatPhoto::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatPhoto *>(obj)); }},
+        {td::td_api::updateChatPermissions::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatPermissions *>(obj)); }},
+        {td::td_api::updateChatLastMessage::ID,
+         [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatLastMessage *>(obj), true); }},
+        {td::td_api::updateChatPosition::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatPosition *>(obj), true); }},
+        {td::td_api::updateChatReadInbox::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatReadInbox *>(obj)); }},
+        {td::td_api::updateChatReadOutbox::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatReadOutbox *>(obj)); }},
+        {td::td_api::updateChatActionBar::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatActionBar *>(obj)); }},
+        {td::td_api::updateChatDraftMessage::ID,
+         [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatDraftMessage *>(obj), true); }},
+        {td::td_api::updateChatNotificationSettings::ID,
+         [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatNotificationSettings *>(obj)); }},
+        {td::td_api::updateChatReplyMarkup::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatReplyMarkup *>(obj)); }},
+        {td::td_api::updateChatUnreadMentionCount::ID,
+         [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatUnreadMentionCount *>(obj)); }},
+        {td::td_api::updateChatIsMarkedAsUnread::ID,
+         [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatIsMarkedAsUnread *>(obj)); }},
+    };
+
+    if (auto it = handlers.find(object->get_id()); it != handlers.end())
     {
-        case td::td_api::updateChatTitle::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatTitle *>(object));
-            break;
-        case td::td_api::updateChatPhoto::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatPhoto *>(object));
-            break;
-        case td::td_api::updateChatPermissions::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatPermissions *>(object));
-            break;
-        case td::td_api::updateChatLastMessage::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatLastMessage *>(object), true);
-            break;
-        case td::td_api::updateChatPosition::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatPosition *>(object), true);
-            break;
-        case td::td_api::updateChatReadInbox::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatReadInbox *>(object));
-            break;
-        case td::td_api::updateChatReadOutbox::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatReadOutbox *>(object));
-            break;
-        case td::td_api::updateChatActionBar::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatActionBar *>(object));
-            break;
-        case td::td_api::updateChatDraftMessage::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatDraftMessage *>(object), true);
-            break;
-        case td::td_api::updateChatNotificationSettings::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatNotificationSettings *>(object));
-            break;
-        case td::td_api::updateChatReplyMarkup::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatReplyMarkup *>(object));
-            break;
-        case td::td_api::updateChatUnreadMentionCount::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatUnreadMentionCount *>(object));
-            break;
-        case td::td_api::updateChatIsMarkedAsUnread::ID:
-            handleChatUpdate(static_cast<td::td_api::updateChatIsMarkedAsUnread *>(object));
-            break;
-        default:
-            break;
+        it->second(object);  // Call the appropriate handler if found
     }
 }
 
@@ -305,11 +289,10 @@ td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() n
 
     const auto &positions = m_chat->positions_;
 
-    const auto findPosition = [&](int id,
-                                  std::function<bool(const td::td_api::ChatList &)> &&folder = nullptr) -> td::td_api::object_ptr<td::td_api::chatPosition> {
+    const auto findPosition = [&](int id, auto &&folder) -> td::td_api::object_ptr<td::td_api::chatPosition> {
         for (const auto &position : positions)
         {
-            if (const auto &list = position->list_; list->get_id() == id && (!folder || folder(*list)))
+            if (const auto &list = position->list_; list->get_id() == id && folder(*list))  // Always call folder (empty lambda or actual filter)
             {
                 return td::td_api::make_object<td::td_api::chatPosition>(Utils::toChatList(m_chatList), position->order_, position->is_pinned_, nullptr);
             }
@@ -320,15 +303,18 @@ td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() n
     switch (m_chatList.type)
     {
         case TdApi::ChatListMain:
-            return findPosition(td::td_api::chatListMain::ID);
+            return findPosition(td::td_api::chatListMain::ID, [](const auto &) { return true; });
+
         case TdApi::ChatListArchive:
-            return findPosition(td::td_api::chatListArchive::ID);
+            return findPosition(td::td_api::chatListArchive::ID, [](const auto &) { return true; });
+
         case TdApi::ChatListFolder: {
-            auto folder = [this](const td::td_api::ChatList &list) {
+            auto folder = [this](const auto &list) {
                 return static_cast<const td::td_api::chatListFolder &>(list).chat_folder_id_ == m_chatList.folderId;
             };
             return findPosition(td::td_api::chatListFolder::ID, folder);
         }
+
         default:
             return nullptr;
     }

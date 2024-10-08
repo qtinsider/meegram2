@@ -61,7 +61,7 @@ signals:
     void fileChanged();
 
 private slots:
-    void onDataChanged(int fileId, td::td_api::Object *object);
+    void onItemChanged(int fileId, td::td_api::Object *object);
 
 private:
     Client *m_client{};
