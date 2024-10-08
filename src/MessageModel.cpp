@@ -733,7 +733,7 @@ void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &
         return;  // Early return if messagesPtr is null or messages are empty
     }
 
-    const auto &messages = messagesPtr->messages_;
+    auto &messages = messagesPtr->messages_;
     const auto messageCount = static_cast<int>(messages.size());
 
     qDebug() << "handleMessages called. Number of messages received:" << messageCount;

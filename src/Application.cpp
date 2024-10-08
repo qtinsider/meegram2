@@ -6,11 +6,113 @@
 #include "StorageManager.hpp"
 
 #include <QApplication>
+#include <QDebug>
 #include <QDir>
 #include <QLocale>
 #include <QStringList>
 
 #include <algorithm>
+
+namespace {
+
+constexpr std::unordered_map<std::string_view, QLocale::Language> createLanguageMap()
+{
+    return {
+        {"af", QLocale::Afrikaans},
+        {"ar", QLocale::Arabic},
+        {"az", QLocale::Azerbaijani},
+        // {"be", QLocale::Belarusian},
+        {"bg", QLocale::Bulgarian},
+        {"bn", QLocale::Bengali},
+        {"br", QLocale::Breton},
+        {"bs", QLocale::Bosnian},
+        {"ca", QLocale::Catalan},
+        {"cs", QLocale::Czech},
+        {"cy", QLocale::Welsh},
+        {"da", QLocale::Danish},
+        {"de", QLocale::German},
+        {"el", QLocale::Greek},
+        {"en", QLocale::English},
+        {"es", QLocale::Spanish},
+        {"et", QLocale::Estonian},
+        {"fa", QLocale::Persian},
+        {"fi", QLocale::Finnish},
+        {"fo", QLocale::Faroese},
+        {"fr", QLocale::French},
+        {"fy", QLocale::Frisian},
+        {"ga", QLocale::Irish},
+        {"gl", QLocale::Galician},
+        {"gu", QLocale::Gujarati},
+        {"ha", QLocale::Hausa},
+        {"he", QLocale::Hebrew},
+        {"hi", QLocale::Hindi},
+        {"hr", QLocale::Croatian},
+        {"hu", QLocale::Hungarian},
+        {"id", QLocale::Indonesian},
+        {"is", QLocale::Icelandic},
+        {"it", QLocale::Italian},
+        {"ja", QLocale::Japanese},
+        {"jv", QLocale::Javanese},
+        {"ka", QLocale::Georgian},
+        // {"km", QLocale::Khmer},
+        {"kn", QLocale::Kannada},
+        {"ku", QLocale::Kurdish},
+        {"kw", QLocale::Cornish},
+        // {"ky", QLocale::Kyrgyz},
+        // {"lb", QLocale::Luxembourgish},
+        {"lt", QLocale::Lithuanian},
+        {"lv", QLocale::Latvian},
+        {"mg", QLocale::Malagasy},
+        {"mk", QLocale::Macedonian},
+        {"ml", QLocale::Malayalam},
+        {"mn", QLocale::Mongolian},
+        {"mr", QLocale::Marathi},
+        {"mt", QLocale::Maltese},
+        {"ms", QLocale::Malay},
+        {"my", QLocale::Burmese},
+        {"ne", QLocale::Nepali},
+        {"nl", QLocale::Dutch},
+        {"nn", QLocale::NorwegianNynorsk},
+        {"no", QLocale::Norwegian},
+        {"pa", QLocale::Punjabi},
+        {"pl", QLocale::Polish},
+        {"pt", QLocale::Portuguese},
+        {"ro", QLocale::Romanian},
+        {"ru", QLocale::Russian},
+        {"sh", QLocale::SerboCroatian},
+        // {"si", QLocale::Sinhalese},
+        {"sk", QLocale::Slovak},
+        {"sl", QLocale::Slovenian},
+        {"so", QLocale::Somali},
+        {"sq", QLocale::Albanian},
+        {"sr", QLocale::Serbian},
+        {"sv", QLocale::Swedish},
+        {"ta", QLocale::Tamil},
+        {"te", QLocale::Telugu},
+        {"tk", QLocale::Turkmen},
+        {"tr", QLocale::Turkish},
+        {"uk", QLocale::Ukrainian},
+        {"ur", QLocale::Urdu},
+        {"vi", QLocale::Vietnamese},
+        {"wo", QLocale::Wolof},
+        {"zu", QLocale::Zulu},
+    };
+}
+
+// Function to map language codes to QLocale::Language
+QLocale::Language getLanguageFromCode(const QString &code)
+{
+    static const auto languageMap = createLanguageMap();
+
+    if (const auto it = languageMap.find(code.toStdString()); it != languageMap.end())
+    {
+        return it->second;
+    }
+
+    return QLocale::C;  // Default to AnyLanguage if not found
+}
+
+}  // namespace
 
 Application::Application(QObject *parent)
     : QObject(parent)
@@ -23,8 +125,7 @@ Application::Application(QObject *parent)
 
     connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
-    // connect(m_settings, SIGNAL(languagePackIdChanged()), this, SIGNAL(languageChanged()));
-    // connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
+    connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
 }
 
 bool Application::isAuthorized() const noexcept
@@ -88,7 +189,7 @@ void Application::setParameters() noexcept
     request->use_secret_chats_ = true;
     request->api_id_ = ApiId;
     request->api_hash_ = ApiHash;
-    request->system_language_code_ = "en";
+    request->system_language_code_ = DefaultLanguageCode.toStdString();
     request->device_model_ = DeviceModel;
     request->system_version_ = SystemVersion;
     request->application_version_ = AppVersion;
@@ -106,15 +207,24 @@ void Application::setParameters() noexcept
 
 void Application::loadLanguagePack() noexcept
 {
+    const auto &languageCode = m_settings->languagePackId();
+
+    qDebug() << "Requesting language pack with ID:" << languageCode;
+
     auto request = td::td_api::make_object<td::td_api::getLanguagePackStrings>();
+    request->language_pack_id_ = languageCode.toStdString();
 
-    request->language_pack_id_ = m_settings->languagePackId().toStdString();
-
-    m_client->send(std::move(request), [this](auto &&response) {
+    m_client->send(std::move(request), [this, languageCode](auto &&response) noexcept {
         if (response->get_id() == td::td_api::languagePackStrings::ID)
         {
-            m_locale->setLanguagePlural(m_settings->languagePluralId());
+            qDebug() << "Setting language plural for code:" << languageCode;
+
+            m_locale->setLanguagePlural(languageCode);
             m_locale->setLanguagePackStrings(td::move_tl_object_as<td::td_api::languagePackStrings>(response));
+
+            QLocale locale(getLanguageFromCode(languageCode));
+            QLocale::setDefault(locale);
+            qDebug() << "Locale set to:" << locale.name();
 
             if (!m_initializationStatus[1])
             {
