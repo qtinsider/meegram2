@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Chat.hpp"
+#include "Message.hpp"
 
 #include <td/telegram/td_api.h>
 
@@ -9,7 +10,6 @@
 
 #include <map>
 #include <memory>
-#include <optional>
 #include <vector>
 
 class Client;
@@ -123,7 +123,7 @@ private:
 
     void handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount);
 
-    void handleMessages(td::td_api::object_ptr<td::td_api::messages> &&value, bool previous);
+    void handleMessages(std::vector<std::unique_ptr<Message> > &&messages, bool previous);
 
     void loadMessages() noexcept;
 
@@ -139,5 +139,5 @@ private:
     bool m_loading{true};
     bool m_isEndReached{false};
 
-    std::map<qlonglong, td::td_api::object_ptr<td::td_api::message>> m_messages;
+    std::map<qlonglong, std::unique_ptr<Message>> m_messages;
 };

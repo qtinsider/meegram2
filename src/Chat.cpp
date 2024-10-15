@@ -194,9 +194,9 @@ qlonglong Chat::getTypeId() const noexcept
     }
 }
 
-bool Chat::isPinned() const noexcept
+int Chat::muteFor() const noexcept
 {
-    return m_chatPosition ? m_chatPosition->is_pinned_ : false;
+    return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
 }
 
 bool Chat::isMuted() const noexcept
@@ -204,9 +204,9 @@ bool Chat::isMuted() const noexcept
     return muteFor() > 0;
 }
 
-int Chat::muteFor() const noexcept
+bool Chat::isPinned() const noexcept
 {
-    return m_chat && m_chat->notification_settings_ ? m_chat->notification_settings_->mute_for_ : 0;
+    return m_chatPosition ? m_chatPosition->is_pinned_ : false;
 }
 
 void Chat::onItemChanged(td::td_api::Object *object)
@@ -216,7 +216,7 @@ void Chat::onItemChanged(td::td_api::Object *object)
         return;  // Early return if object is null
     }
 
-    auto handleChatUpdate = [&](auto *value, bool positionEmitted = false) {
+    auto handleChatUpdate = [&](auto *value, bool emitPosition = false) {
         if (value == nullptr || value->chat_id_ != m_chat->id_)
         {
             return;
@@ -230,7 +230,7 @@ void Chat::onItemChanged(td::td_api::Object *object)
 
         m_chat = std::move(newChat);
 
-        if (positionEmitted)
+        if (emitPosition)
         {
             if (m_chat->last_message_)
             {
@@ -245,7 +245,7 @@ void Chat::onItemChanged(td::td_api::Object *object)
     };
 
     using UpdateHandler = std::function<void(td::td_api::Object *)>;
-    std::unordered_map<int, UpdateHandler> handlers = {
+    static const std::unordered_map<int, UpdateHandler> handlers = {
         {td::td_api::updateChatTitle::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatTitle *>(obj)); }},
         {td::td_api::updateChatPhoto::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatPhoto *>(obj)); }},
         {td::td_api::updateChatPermissions::ID, [&](td::td_api::Object *obj) { handleChatUpdate(static_cast<td::td_api::updateChatPermissions *>(obj)); }},
@@ -309,9 +309,7 @@ td::td_api::object_ptr<td::td_api::chatPosition> Chat::calculateChatPosition() n
             return findPosition(td::td_api::chatListArchive::ID, [](const auto &) { return true; });
 
         case TdApi::ChatListFolder: {
-            auto folder = [this](const auto &list) {
-                return static_cast<const td::td_api::chatListFolder &>(list).chat_folder_id_ == m_chatList.folderId;
-            };
+            auto folder = [this](const auto &list) { return static_cast<const td::td_api::chatListFolder &>(list).chat_folder_id_ == m_chatList.folderId; };
             return findPosition(td::td_api::chatListFolder::ID, folder);
         }
 

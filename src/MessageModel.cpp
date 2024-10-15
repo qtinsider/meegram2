@@ -204,12 +204,9 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     switch (role)
     {
         case IdRole:
-            return QVariant::fromValue(message->id_);
+            return QVariant::fromValue(message->id());
         case SenderRole: {
-            if (message->is_outgoing_)
-                return QString();
-
-            return Utils::getTitle(*message, m_storageManager);
+            return message->getSenderName();
         }
         // case ChatIdRole:
         //     return message->chatId();
@@ -218,7 +215,7 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         // case SchedulingStateRole:
         //     return message->schedulingState();
         case IsOutgoingRole:
-            return message->is_outgoing_;
+            return message->isOutgoing();
         // case IsPinnedRole:
         //     return message->isPinned();
         // case CanBeEditedRole:
@@ -238,13 +235,11 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         // case ContainsUnreadMentionRole:
         //     return message->containsUnreadMention();
         case DateRole: {
-            auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->date_) * 1000);
-
+            const auto date = message->date();
             return date.toString(QObject::tr("formatterDay12H"));
         }
         case EditDateRole: {
-            auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->edit_date_) * 1000);
-
+            const auto date = message->editDate();
             return date.toString(QObject::tr("formatterDay12H"));
         }
             // case ForwardInfoRole:
@@ -262,17 +257,17 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             // case RestrictionReasonRole:
             //     return message->restrictionReason();
         case ContentRole: {
-            const auto *content = message->content_.get();
+            // const auto *content = message->content_.get();
 
-            if (content->get_id() == td::td_api::messageText::ID)
-            {
-                // Cast to const td::td_api::messageText*
-                const auto *formattedText = static_cast<const td::td_api::messageText *>(content);
-                // Access text_ safely
-                const auto *text = formattedText->text_.get();
-                // Cast const pointer to void* safely
-                return QVariant::fromValue(const_cast<void *>(static_cast<const void *>(text)));
-            }
+            // if (content->get_id() == td::td_api::messageText::ID)
+            // {
+            //     // Cast to const td::td_api::messageText*
+            //     const auto *formattedText = static_cast<const td::td_api::messageText *>(content);
+            //     // Access text_ safely
+            //     const auto *text = formattedText->text_.get();
+            //     // Cast const pointer to void* safely
+            //     return QVariant::fromValue(const_cast<void *>(static_cast<const void *>(text)));
+            // }
 
             return QVariant();
         }
@@ -283,19 +278,18 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case BubbleColorRole:
             return QVariant();
         case ContentTypeRole: {
-            if (const auto *content = message->content_.get(); content->get_id() == td::td_api::messageText::ID)
-            {
-                return "text";
-            }
+            // if (const auto *content = message->content_.get(); content->get_id() == td::td_api::messageText::ID)
+            // {
+            //     return "text";
+            // }
 
             return QVariant();
         }
         case IsServiceMessageRole: {
-            return Utils::isServiceMessage(*message);
+            return message->isService();
         }
         case SectionRole: {
-            const auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(message->date_) * 1000);
-
+            const auto date = message->date();
             const auto days = date.daysTo(QDateTime::currentDateTime());
 
             if (days == 0)
@@ -305,9 +299,9 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
 
             return date.toString(QObject::tr("chatFullDate"));
         }
-        case ServiceMessageRole: {
-            return Utils::getServiceMessageContent(*message, m_storageManager, true);
-        }
+        // case ServiceMessageRole: {
+        //     return message->getServiceMessageContent();
+        // }
     }
     return QVariant();
 }
@@ -404,7 +398,6 @@ void MessageModel::setChat(Chat *value) noexcept
     if (m_chat == value)
         return;
 
-    qDebug() << "Setting new chat. Previous chat ID:" << (m_chat ? m_chat->id() : -1) << ", new chat ID:" << (value ? value->id() : -1);
     if (m_chat)
     {
         disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
@@ -469,9 +462,7 @@ void MessageModel::closeChat() noexcept
 void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit, bool previous)
 {
     if (!m_chat)
-    {
         return;
-    }
 
     auto request = td::td_api::make_object<td::td_api::getChatHistory>();
     request->chat_id_ = m_chat->id();
@@ -483,7 +474,27 @@ void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit
     m_client->send(std::move(request), [this, previous](auto &&response) {
         if (response->get_id() == td::td_api::messages::ID)
         {
-            handleMessages(td::move_tl_object_as<td::td_api::messages>(response), previous);
+            auto message = td::move_tl_object_as<td::td_api::messages>(response);
+            if (!message)
+                return;
+
+            auto messages = std::move(message->messages_);
+
+            if (messages.empty())
+                return;
+
+            std::vector<std::unique_ptr<Message>> newMessages;
+            newMessages.reserve(messages.size());  // Reserve space to avoid reallocations
+
+            for (auto &&msg : messages)
+            {
+                if (msg)
+                {
+                    newMessages.emplace_back(std::make_unique<Message>(msg.get()));
+                }
+            }
+
+            handleMessages(std::move(newMessages), previous);
         }
     });
 }
@@ -613,7 +624,7 @@ void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> 
         return;
 
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    m_messages.emplace(message->id_, std::move(message));
+    m_messages.emplace(message->id_, std::make_unique<Message>(message.get()));
     endInsertRows();
 
     emit countChanged();
@@ -633,12 +644,12 @@ void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, t
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = m_messages.find(messageId); it != m_messages.end())
-    {
-        it->second->content_ = std::move(newContent);
+    // if (auto it = m_messages.find(messageId); it != m_messages.end())
+    // {
+    //     it->second->content_ = std::move(newContent);
 
-        itemChanged(std::ranges::distance(m_messages.begin(), it));
-    }
+    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
+    // }
 }
 
 void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
@@ -646,13 +657,13 @@ void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, in
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = m_messages.find(messageId); it != m_messages.end())
-    {
-        it->second->edit_date_ = editDate;
-        it->second->reply_markup_ = std::move(replyMarkup);
+    // if (auto it = m_messages.find(messageId); it != m_messages.end())
+    // {
+    //     it->second->edit_date_ = editDate;
+    //     it->second->reply_markup_ = std::move(replyMarkup);
 
-        itemChanged(std::ranges::distance(m_messages.begin(), it));
-    }
+    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
+    // }
 }
 
 void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned)
@@ -660,12 +671,12 @@ void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, 
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = m_messages.find(messageId); it != m_messages.end())
-    {
-        it->second->is_pinned_ = isPinned;
+    // if (auto it = m_messages.find(messageId); it != m_messages.end())
+    // {
+    //     it->second->is_pinned_ = isPinned;
 
-        itemChanged(std::ranges::distance(m_messages.begin(), it));
-    }
+    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
+    // }
 }
 
 void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId,
@@ -674,12 +685,12 @@ void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong mess
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    if (auto it = m_messages.find(messageId); it != m_messages.end())
-    {
-        it->second->interaction_info_ = std::move(interactionInfo);
+    // if (auto it = m_messages.find(messageId); it != m_messages.end())
+    // {
+    //     it->second->interaction_info_ = std::move(interactionInfo);
 
-        itemChanged(std::ranges::distance(m_messages.begin(), it));
-    }
+    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
+    // }
 }
 
 void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool /*isPermanent*/, bool /*fromCache*/)
@@ -723,43 +734,41 @@ void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMembe
     emit chatChanged();
 }
 
-void MessageModel::handleMessages(td::td_api::object_ptr<td::td_api::messages> &&messagesPtr, bool previous)
+void MessageModel::handleMessages(std::vector<std::unique_ptr<Message>> &&messages, bool previous)
 {
-    if (!messagesPtr || messagesPtr->messages_.empty())
+    if (messages.empty())
     {
-        qDebug() << "handleMessages called. No messages received.";
         m_loading = false;
         emit loadingChanged();
-        return;  // Early return if messagesPtr is null or messages are empty
+        return;
     }
 
-    auto &messages = messagesPtr->messages_;
     const auto messageCount = static_cast<int>(messages.size());
 
     qDebug() << "handleMessages called. Number of messages received:" << messageCount;
 
-    // Calculate the insertion position
     const int insertPos = previous ? 0 : rowCount();
-    beginInsertRows(QModelIndex(), insertPos, insertPos + messageCount - 1);
-    qDebug() << "beginInsertRows called. Inserting at position:" << insertPos;
 
-    std::ranges::for_each(messages, [this](auto &&message) { m_messages.emplace(message->id_, std::move(message)); });
+    beginInsertRows(QModelIndex(), insertPos, insertPos + messageCount - 1);
+
+    for (auto &message : messages)
+    {
+        m_messages.emplace(message->id(), std::move(message));
+    }
 
     endInsertRows();
 
     if (previous)
     {
         emit moreHistoriesLoaded(messageCount);
-        qDebug() << "moreHistoriesLoaded signal emitted with count:" << messageCount;
     }
 
     if (m_loading)
     {
         m_loading = false;
-        qDebug() << "Loading is true, inserting messages at the end.";
+        emit loadingChanged();
     }
 
-    emit loadingChanged();
     emit countChanged();
 }
 

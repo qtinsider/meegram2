@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <ranges>
+#include <unordered_set>
 
 StorageManager::StorageManager()
     : m_client(std::make_unique<Client>())
@@ -277,9 +278,9 @@ void StorageManager::handleResult(td::td_api::Object *object)
 void StorageManager::setChatPositions(qlonglong chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept
 {
     auto it = m_chats.find(chatId);
-    if (it == m_chats.end())
+    if (it == m_chats.end() || positions.empty())
     {
-        return;  // Early return if chatId is not found
+        return;
     }
 
     auto &currentPositions = it->second->positions_;

@@ -105,5 +105,4 @@ Item {
             return imageSrc + ".png";
         }
     }
-
 }

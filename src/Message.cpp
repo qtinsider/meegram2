@@ -4,7 +4,6 @@
 #include "StorageManager.hpp"
 #include "Utils.hpp"
 
-#include <QDateTime>
 #include <QStringList>
 
 #include <algorithm>
@@ -131,11 +130,11 @@ QString getCallContent(qlonglong userId, const td::td_api::messageCall &content,
                    : (isOutgoing ? QObject::tr("CallMessageOutgoing") : QObject::tr("CallMessageIncoming"));
 }
 
-QString getAudioTitle(const td::td_api::audio &audio) noexcept
+QString getAudioTitle(const MessageAudio *audio) noexcept
 {
-    const auto fileName = QString::fromStdString(audio.file_name_);
-    const auto title = QString::fromStdString(audio.title_).trimmed();
-    const auto performer = QString::fromStdString(audio.performer_).trimmed();
+    const auto &fileName = audio->fileName();
+    const auto &title = audio->title().trimmed();
+    const auto &performer = audio->performer().trimmed();
 
     if (title.isEmpty() && performer.isEmpty())
         return fileName;
@@ -152,8 +151,6 @@ Message::Message(QObject *parent)
     : QObject(parent)
     , m_storageManager(&StorageManager::instance())
 {
-    m_chat = m_storageManager->getChat(m_message->chat_id_);
-
     connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
@@ -161,24 +158,38 @@ Message::Message(td::td_api::message *message, QObject *parent)
     : QObject(parent)
     , m_message(message)
     , m_storageManager(&StorageManager::instance())
+    , m_content(nullptr)
 {
+    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+
     m_chat = m_storageManager->getChat(message->chat_id_);
 
-    connect(m_storageManager->client(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    setContent(std::move(m_message->content_));
 }
 
 qlonglong Message::id() const
 {
-    return 0;
-}
-
-QVariantMap Message::senderId() const
-{
-    return {};
+    return m_message->id_;
 }
 
 qlonglong Message::chatId() const
 {
+    return m_message->chat_id_;
+}
+
+qlonglong Message::senderId() const
+{
+    const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
+
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
+    {
+        return static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_;
+    }
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
+    {
+        return static_cast<const td::td_api::messageSenderChat *>(sender)->chat_id_;
+    }
+
     return 0;
 }
 
@@ -194,17 +205,17 @@ QVariantMap Message::schedulingState() const
 
 bool Message::isOutgoing() const
 {
-    return false;
+    return m_message->is_outgoing_;
 }
 
 bool Message::isPinned() const
 {
-    return false;
+    return m_message->is_pinned_;
 }
 
 bool Message::isFromOffline() const
 {
-    return false;
+    return m_message->is_from_offline_;
 }
 
 bool Message::canBeEdited() const
@@ -292,14 +303,14 @@ bool Message::containsUnreadMention() const
     return false;
 }
 
-qlonglong Message::date() const
+QDateTime Message::date() const
 {
-    return 0;
+    return QDateTime::fromMSecsSinceEpoch(static_cast<qlonglong>(m_message->date_) * 1000);
 }
 
-qlonglong Message::editDate() const
+QDateTime Message::editDate() const
 {
-    return 0;
+    return QDateTime::fromMSecsSinceEpoch(static_cast<qlonglong>(m_message->edit_date_) * 1000);
 }
 
 QVariantMap Message::forwardInfo() const
@@ -392,9 +403,9 @@ QString Message::restrictionReason() const
     return {};
 }
 
-QVariantMap Message::content() const
+MessageContent *Message::content() const
 {
-    return {};
+    return m_content.get();
 }
 
 QVariantMap Message::replyMarkup() const
@@ -402,15 +413,18 @@ QVariantMap Message::replyMarkup() const
     return {};
 }
 
-QString Message::getServiceMessageContent()
+QString Message::getServiceMessageContent() const
 {
     auto &sender = m_message->sender_id_;
     auto &content = m_message->content_;
     auto isOutgoing = m_message->is_outgoing_;
 
+    if (!content)
+        return {};
+
     auto isChannel = isChannelChat(m_chat);
 
-    auto author = getMessageAuthor(*m_message, m_storageManager, m_openUser);
+    auto author = getMessageAuthor(*m_message, m_storageManager, false);
 
     switch (content->get_id())
     {
@@ -510,7 +524,7 @@ QString Message::getServiceMessageContent()
 
                 if (isOutgoing)
                 {
-                    return tr("ActionYouAddUser").replace("un2", getUserName(memberUserId, m_storageManager, m_openUser));
+                    return tr("ActionYouAddUser").replace("un2", getUserName(memberUserId, m_storageManager, false));
                 }
 
                 if (isMeUser(memberUserId, m_storageManager))
@@ -528,13 +542,13 @@ QString Message::getServiceMessageContent()
                     return tr("ActionAddUserYou").replace("un1", author);
                 }
 
-                return tr("ActionAddUser").replace("un1", author).replace("un2", getUserName(memberUserId, m_storageManager, m_openUser));
+                return tr("ActionAddUser").replace("un1", author).replace("un2", getUserName(memberUserId, m_storageManager, false));
             }
 
             QStringList result;
             for (const auto &userId : memberUserIds)
             {
-                result << getUserName(userId, m_storageManager, m_openUser);
+                result.append(getUserName(userId, m_storageManager, false));
             }
 
             auto users = result.join(", ");
@@ -569,14 +583,14 @@ QString Message::getServiceMessageContent()
 
             if (isOutgoing)
             {
-                return tr("ActionYouKickUser").replace("un2", getUserName(userId, m_storageManager, m_openUser));
+                return tr("ActionYouKickUser").replace("un2", getUserName(userId, m_storageManager, false));
             }
             else if (isMeUser(userId, m_storageManager))
             {
                 return tr("ActionKickUserYou").replace("un1", author);
             }
 
-            return tr("ActionKickUser").replace("un1", author).replace("un2", getUserName(userId, m_storageManager, m_openUser));
+            return tr("ActionKickUser").replace("un1", author).replace("un2", getUserName(userId, m_storageManager, false));
         }
         case td::td_api::messageChatUpgradeTo::ID: {
             return tr("ActionMigrateFromGroup");
@@ -600,7 +614,7 @@ QString Message::getServiceMessageContent()
         }
         case td::td_api::messageContactRegistered::ID: {
             return tr("NotificationContactJoined")
-                .arg(getUserName(static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_, m_storageManager, m_openUser));
+                .arg(getUserName(static_cast<const td::td_api::messageSenderUser *>(sender.get())->user_id_, m_storageManager, false));
         }
         case td::td_api::messageUnsupported::ID: {
             return tr("UnsupportedMedia");
@@ -610,7 +624,7 @@ QString Message::getServiceMessageContent()
     return tr("UnsupportedMedia");
 }
 
-bool Message::isServiceMessage()
+bool Message::isService() const noexcept
 {
     const std::unordered_set<int> serviceMessageTypes = {
         td::td_api::messageBasicGroupChatCreate::ID, td::td_api::messageChatAddMembers::ID,      td::td_api::messageChatChangePhoto::ID,
@@ -623,16 +637,29 @@ bool Message::isServiceMessage()
         td::td_api::messageUnsupported::ID,
     };
 
-    if (m_message->content_)
-    {
-        const int contentId = m_message->content_->get_id();
-        return serviceMessageTypes.contains(contentId);
-    }
+    if (m_message)
+        return serviceMessageTypes.contains(m_contentType);
 
     return false;
 }
 
-QString Message::getTitle() noexcept
+QString Message::senderType() const noexcept
+{
+    const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
+
+    if (sender->get_id() == td::td_api::messageSenderUser::ID)
+    {
+        return "user";
+    }
+    else if (sender->get_id() == td::td_api::messageSenderChat::ID)
+    {
+        return "chat";
+    }
+
+    return {};
+}
+
+QString Message::getTitle() const noexcept
 {
     const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
 
@@ -650,118 +677,108 @@ QString Message::getTitle() noexcept
     return {};
 }
 
-QString Message::getDate() noexcept
+QString Message::getContent() const noexcept
 {
-    const auto date = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(m_message->date_) * 1000);
-    const auto days = date.daysTo(QDateTime::currentDateTime());
+    QString result;
 
-    if (days == 0)
-    {
-        return date.toString(tr("formatterDay12H"));
-    }
-    else if (days < 7)
-    {
-        return date.toString(tr("formatterWeek"));
-    }
-
-    return date.toString(tr("formatterYear"));
-}
-
-QString Message::getContent() noexcept
-{
-    const auto *content = m_message->content_.get();
-    const auto *sender = m_message->sender_id_.get();
-
-    // Helper function to sanitize and convert std::string_view to QString
-    const auto sanitizeText = [](std::string_view text) -> QString {
-        QString result;
-        result.reserve(static_cast<int>(text.size()));  // Reserve memory to avoid reallocations
-
-        for (char ch : text)
-        {
-            result.append((ch == '\n' || ch == '\r') ? ' ' : QChar(ch));
-        }
-        return result;
-    };
-
-    // Helper function to create caption text from formattedText
-    const auto captionText = [&](const td::td_api::formattedText &caption) -> QString { return QString(": ").append(sanitizeText(caption.text_)); };
-
-    // Use structured bindings to handle each case efficiently
-    switch (content->get_id())
+    switch (m_contentType)
     {
         case td::td_api::messageAnimation::ID: {
-            const auto *animation = static_cast<const td::td_api::messageAnimation *>(content);
-            return tr("AttachGif").append(captionText(*animation->caption_));
+            const auto *animation = static_cast<const MessageAnimation *>(m_content.get());
+            result = tr("AttachGif").append(animation->caption());
+            break;
         }
         case td::td_api::messageAudio::ID: {
-            const auto *audioMessage = static_cast<const td::td_api::messageAudio *>(content);
-            QString title = getAudioTitle(*audioMessage->audio_);
+            const auto *audioMessage = static_cast<const MessageAudio *>(m_content.get());
+
+            QString title = getAudioTitle(audioMessage);
             if (title.isEmpty())
             {
                 title = tr("AttachMusic");
             }
-            return title.append(captionText(*audioMessage->caption_));
+
+            result = title.append(audioMessage->caption());
+
+            break;
         }
         case td::td_api::messageCall::ID: {
-            const auto *call = static_cast<const td::td_api::messageCall *>(content);
-            const auto callText = getCallContent(static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_, *call, m_storageManager);
-            if (const auto duration = call->duration_; duration > 0)
-            {
-                return tr("CallMessageWithDuration").arg(callText).arg(Locale::instance().formatCallDuration(duration));
-            }
-            return callText;
+            // const auto *call = static_cast<const td::td_api::messageCall *>(content);
+            // const auto callText = getCallContent(static_cast<const td::td_api::messageSenderUser *>(sender)->user_id_, *call, m_storageManager);
+            // if (const auto duration = call->duration_; duration > 0)
+            // {
+            //     result =  tr("CallMessageWithDuration").arg(callText).arg(Locale::instance().formatCallDuration(duration));
+            // }
+            result = tr("CallMessageWithDuration");
+            break;
         }
         case td::td_api::messageDocument::ID: {
-            const auto *documentMessage = static_cast<const td::td_api::messageDocument *>(content);
-            const auto &document = documentMessage->document_;
-            const QString fileName = QString::fromStdString(document->file_name_);
-            return QString(fileName.isEmpty() ? tr("AttachDocument") : fileName).append(captionText(*documentMessage->caption_));
+            // const auto *documentMessage = static_cast<const td::td_api::messageDocument *>(content);
+            // const auto &document = documentMessage->document_;
+            // const QString fileName = QString::fromStdString(document->file_name_);
+            result = tr("AttachDocument") /*QString(fileName.isEmpty() ? tr("AttachDocument") : fileName).append(captionText(*documentMessage->caption_))*/;
+            break;
         }
         case td::td_api::messageInvoice::ID: {
-            const auto *invoice = static_cast<const td::td_api::messageInvoice *>(content);
-            return sanitizeText(invoice->product_info_->title_);
+            // const auto *invoice = static_cast<const td::td_api::messageInvoice *>(content);
+            result = "Invioce" /*sanitizeText(invoice->product_info_->title_)*/;
+            break;
         }
         case td::td_api::messageLocation::ID:
-            return tr("AttachLocation");
+            result = tr("AttachLocation");
+            break;
         case td::td_api::messagePhoto::ID: {
-            const auto *photoMessage = static_cast<const td::td_api::messagePhoto *>(content);
-            return tr("AttachPhoto").append(captionText(*photoMessage->caption_));
+            const auto *photoMessage = static_cast<const MessagePhoto *>(m_content.get());
+            result = tr("AttachPhoto").append(photoMessage->caption());
+            break;
         }
         case td::td_api::messagePoll::ID: {
-            const auto *pollMessage = static_cast<const td::td_api::messagePoll *>(content);
-            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20").append(captionText(*pollMessage->poll_->question_));
+            // const auto *pollMessage = static_cast<const td::td_api::messagePoll *>(content);
+            result = QString::fromUtf8("\xf0\x9f\x93\x8a\x20") /*.append(captionText(*pollMessage->poll_->question_))*/;
+            break;
         }
         case td::td_api::messageSticker::ID: {
-            const auto *stickerMessage = static_cast<const td::td_api::messageSticker *>(content);
-            return tr("AttachSticker").append(": ").append(QString::fromStdString(stickerMessage->sticker_->emoji_));
+            // const auto *stickerMessage = static_cast<const td::td_api::messageSticker *>(content);
+            result = tr("AttachSticker").append(": ") /*.append(QString::fromStdString(stickerMessage->sticker_->emoji_))*/;
+            break;
         }
         case td::td_api::messageText::ID: {
-            const auto *textMessage = static_cast<const td::td_api::messageText *>(content);
-            return sanitizeText(textMessage->text_->text_);
+            const auto *textMessage = static_cast<const MessageText *>(m_content.get());
+            result = textMessage->text();
+            break;
         }
         case td::td_api::messageVideo::ID: {
-            const auto *videoMessage = static_cast<const td::td_api::messageVideo *>(content);
-            return tr("AttachVideo").append(captionText(*videoMessage->caption_));
+            const auto *videoMessage = static_cast<const MessageVideo *>(m_content.get());
+            result = tr("AttachVideo").append(videoMessage->caption());
+            break;
         }
         case td::td_api::messageVideoNote::ID:
-            return tr("AttachRound");
+            result = tr("AttachRound");
+            break;
         case td::td_api::messageVoiceNote::ID: {
-            const auto *voiceNoteMessage = static_cast<const td::td_api::messageVoiceNote *>(content);
-            return tr("AttachAudio").append(captionText(*voiceNoteMessage->caption_));
+            const auto *voiceNoteMessage = static_cast<const MessageVoiceNote *>(m_content.get());
+            result = tr("AttachAudio").append(voiceNoteMessage->caption());
+            break;
         }
         default:
-            if (isServiceMessage())
+            if (isService())
             {
-                return getServiceMessageContent();
+                result = getServiceMessageContent();
             }
-            return tr("UnsupportedAttachment");
+            else
+            {
+                result = tr("UnsupportedAttachment");
+            }
     }
+
+    result.replace('\n', ' ');
+    result.replace('\r', ' ');
+
+    return result;
 }
 
-QString Message::getSenderName() noexcept
+QString Message::getSenderName() const noexcept
 {
-    if (isServiceMessage())
+    if (isService())
         return QString();
 
     const auto sender = static_cast<const td::td_api::MessageSender *>(m_message->sender_id_.get());
@@ -808,7 +825,48 @@ void Message::setMessage(td::td_api::message *message)
 
     m_chat = m_storageManager->getChat(m_message->chat_id_);
 
-    emit dataChanged();
+    setContent(std::move(m_message->content_));
+}
+
+void Message::setContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
+{
+    m_content = nullptr;
+    m_contentType = content->get_id();
+
+    static const std::unordered_map<int32_t, std::function<std::unique_ptr<MessageContent>()>> contentFactory = {
+        {td::td_api::messageText::ID, []() { return std::make_unique<MessageText>(); }},
+        {td::td_api::messageAnimation::ID, []() { return std::make_unique<MessageAnimation>(); }},
+        {td::td_api::messageAudio::ID, []() { return std::make_unique<MessageAudio>(); }},
+        {td::td_api::messageDocument::ID, []() { return std::make_unique<MessageDocument>(); }},
+        {td::td_api::messagePhoto::ID, []() { return std::make_unique<MessagePhoto>(); }},
+        {td::td_api::messageSticker::ID, []() { return std::make_unique<MessageSticker>(); }},
+        {td::td_api::messageVideo::ID, []() { return std::make_unique<MessageVideo>(); }},
+        {td::td_api::messageVideoNote::ID, []() { return std::make_unique<MessageVideoNote>(); }},
+        {td::td_api::messageVoiceNote::ID, []() { return std::make_unique<MessageVoiceNote>(); }},
+        {td::td_api::messageLocation::ID, []() { return std::make_unique<MessageLocation>(); }},
+        {td::td_api::messageVenue::ID, []() { return std::make_unique<MessageVenue>(); }},
+        {td::td_api::messageContact::ID, []() { return std::make_unique<MessageContact>(); }},
+        {td::td_api::messageAnimatedEmoji::ID, []() { return std::make_unique<MessageAnimatedEmoji>(); }},
+        {td::td_api::messagePoll::ID, []() { return std::make_unique<MessagePoll>(); }},
+        {td::td_api::messageInvoice::ID, []() { return std::make_unique<MessageInvoice>(); }},
+        {td::td_api::messageCall::ID, []() { return std::make_unique<MessageCall>(); }},
+    };
+
+    if (auto it = contentFactory.find(m_contentType); it != contentFactory.end())
+    {
+        m_content = it->second();
+    }
+
+    if (m_content)
+    {
+        m_content->handleContent(std::move(content));
+    }
+    else
+    {
+        m_message->content_ = std::move(content);
+    }
+
+    emit messageChanged();
 }
 
 void Message::handleResult(td::td_api::Object *object)
@@ -835,7 +893,7 @@ void Message::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::mess
 {
     if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
     {
-        emit dataChanged();
+        emit messageChanged();
     }
 }
 
@@ -844,7 +902,7 @@ void Message::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message
 {
     if (m_message->chat_id_ == message->chat_id_ && m_message->id_ == oldMessageId)
     {
-        emit dataChanged();
+        emit messageChanged();
     }
 }
 
@@ -852,8 +910,9 @@ void Message::handleMessageContent(qlonglong chatId, qlonglong messageId, td::td
 {
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
-        m_message->content_ = std::move(newContent);
-        emit dataChanged();
+        setContent(std::move(newContent));
+
+        emit messageChanged();
     }
 }
 
@@ -863,7 +922,7 @@ void Message::handleMessageEdited(qlonglong chatId, qlonglong messageId, int edi
     {
         m_message->edit_date_ = editDate;
         m_message->reply_markup_ = std::move(replyMarkup);
-        emit dataChanged();
+        emit messageChanged();
     }
 }
 
@@ -872,7 +931,7 @@ void Message::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool 
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
         m_message->is_pinned_ = isPinned;
-        emit dataChanged();
+        emit messageChanged();
     }
 }
 
@@ -881,6 +940,6 @@ void Message::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId
     if (m_message->chat_id_ == chatId && m_message->id_ == messageId)
     {
         m_message->interaction_info_ = std::move(interactionInfo);
-        emit dataChanged();
+        emit messageChanged();
     }
 }

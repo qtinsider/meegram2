@@ -30,8 +30,8 @@ Item {
             fillMode: Image.PreserveAspectCrop
             clip: true
             source: model.photo && model.photo.localPath !== "" ?
-                    "image://chatPhoto/" + model.photo.localPath :
-                    "image://theme/icon-l-content-avatar-placeholder"
+                        "image://chatPhoto/" + model.photo.localPath :
+                        "image://theme/icon-l-content-avatar-placeholder"
         }
     }
 
@@ -61,8 +61,19 @@ Item {
             font.weight: Font.Light
             font.pixelSize: 20
             color: mouseArea.pressed ? "#797979" : "#505050"
-
-            text: model.lastMessage.getDate()
+            text: {
+                var dateTime = model.lastMessage.date; // Access the C++ QDateTime
+                var now = new Date();
+                var targetDate = new Date(dateTime.toString()); // Convert QDateTime to JavaScript Date
+                var daysDiff = Math.floor((now - targetDate) / (1000 * 60 * 60 * 24)); // Difference in days
+                if (daysDiff === 0) {
+                    return Qt.formatDateTime(dateTime, "hh:mm a");
+                } else if (daysDiff < 7) {
+                    return Qt.formatDateTime(dateTime, "dddd");
+                } else {
+                    return Qt.formatDateTime(dateTime, "dd.MM.yyyy");
+                }
+            }
         }
     }
 
@@ -80,7 +91,7 @@ Item {
             font.pixelSize: 22
             color: mouseArea.pressed ? "#797979" : "#505050"
             elide: Text.ElideRight
-            text: model.lastMessage.getContent()
+            text: model.lastMessage.content
         }
 
         Loader {

@@ -34,9 +34,9 @@ class Chat : public QObject
     Q_PROPERTY(qlonglong replyMarkupMessageId READ replyMarkupMessageId NOTIFY chatItemUpdated)
     Q_PROPERTY(Message *draftMessage READ draftMessage NOTIFY chatItemUpdated)
 
-    Q_PROPERTY(bool isPinned READ isPinned NOTIFY chatItemUpdated)
     Q_PROPERTY(int muteFor READ muteFor NOTIFY chatItemUpdated)
     Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatItemUpdated)
+    Q_PROPERTY(bool isPinned READ isPinned NOTIFY chatItemUpdated)
 
 public:
     explicit Chat(QObject *parent = nullptr);
@@ -63,9 +63,9 @@ public:
     qlonglong getOrder() const noexcept;
     qlonglong getTypeId() const noexcept;
 
-    Q_INVOKABLE bool isPinned() const noexcept;
-    Q_INVOKABLE int muteFor() const noexcept;
-    Q_INVOKABLE bool isMuted() const noexcept;
+    int muteFor() const noexcept;
+    bool isMuted() const noexcept;
+    bool isPinned() const noexcept;
 
 signals:
     void chatItemUpdated(qlonglong chatId);

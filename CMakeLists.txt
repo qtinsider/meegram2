@@ -42,6 +42,7 @@ set(SRC_FILES
     src/LottieAnimation.cpp
     src/main.cpp
     src/Message.cpp
+    src/MessageContent.cpp
     src/MessageModel.cpp
     src/NotificationManager.cpp
     src/PluralRules.cpp
@@ -76,6 +77,7 @@ set(HEADER_FILES
     src/Localization.hpp
     src/LottieAnimation.hpp
     src/Message.hpp
+    src/MessageContent.hpp
     src/MessageModel.hpp
     src/NotificationManager.hpp
     src/PluralRules.hpp
