@@ -26,12 +26,13 @@ include(cmake/qr_code_generator.cmake)
 set(SRC_FILES
     src/Application.cpp
     src/Authorization.cpp
-    # src/BasicGroup.cpp
-    # src/BasicGroupFullInfo.cpp
+    src/BasicGroup.cpp
+    src/BasicGroupFullInfo.cpp
     src/Chat.cpp
     src/ChatFolderModel.cpp
     src/ChatModel.cpp
     src/ChatPhotoProvider.cpp
+    src/ChatPosition.cpp
     src/Client.cpp
     src/CountryModel.cpp
     src/DBusAdaptor.cpp
@@ -50,23 +51,24 @@ set(SRC_FILES
     src/Settings.cpp
     src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
-    # src/SupergroupFullInfo.cpp
-    # src/Supergroup.cpp
+    src/SupergroupFullInfo.cpp
+    src/Supergroup.cpp
     src/TextFormatter.cpp
-    # src/User.cpp
-    # src/UserFullInfo.cpp
+    src/User.cpp
+    src/UserFullInfo.cpp
     src/Utils.cpp
 )
 
 set(HEADER_FILES
     src/Application.hpp
     src/Authorization.hpp
-    # src/BasicGroup.hpp
-    # src/BasicGroupFullInfo.hpp
+    src/BasicGroup.hpp
+    src/BasicGroupFullInfo.hpp
     src/Chat.hpp
     src/ChatFolderModel.hpp
     src/ChatModel.hpp
     src/ChatPhotoProvider.hpp
+    src/ChatPosition.hpp
     src/Client.hpp
     src/Common.hpp
     src/CountryModel.hpp
@@ -86,12 +88,11 @@ set(HEADER_FILES
     src/Settings.hpp
     src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
-    # src/Supergroup.hpp
-    # src/SupergroupFullInfo.hpp
-    src/TdApi.hpp
+    src/Supergroup.hpp
+    src/SupergroupFullInfo.hpp
     src/TextFormatter.hpp
-    # src/User.hpp
-    # src/UserFullInfo.hpp
+    src/User.hpp
+    src/UserFullInfo.hpp
     src/Utils.hpp
 )
 

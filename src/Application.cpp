@@ -1,5 +1,6 @@
 #include "Application.hpp"
 
+#include "Chat.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
 #include "Settings.hpp"
@@ -9,7 +10,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QLocale>
-#include <QStringList>
 
 #include <algorithm>
 
@@ -223,7 +223,7 @@ Application::Application(QObject *parent)
 {
     connect(qApp, SIGNAL(aboutToQuit()), this, SLOT(close()));
 
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
     connect(m_settings, SIGNAL(languagePackIdChanged()), this, SLOT(loadLanguagePack()));
 }
@@ -236,6 +236,11 @@ bool Application::isAuthorized() const noexcept
 const QString &Application::connectionStateString() const noexcept
 {
     return m_connectionStateString;
+}
+
+Chat *Application::getChat(qlonglong chatId) const noexcept
+{
+    return m_storageManager->getChat(chatId).get();
 }
 
 void Application::close() noexcept
@@ -322,7 +327,7 @@ void Application::loadLanguagePack() noexcept
             qDebug() << "Setting language plural for code:" << languagePlural;
 
             m_locale->setLanguagePlural(languagePlural);
-            m_locale->setLanguagePackStrings(td::move_tl_object_as<td::td_api::languagePackStrings>(response));
+            m_locale->setLanguagePackStrings(td::td_api::move_object_as<td::td_api::languagePackStrings>(response));
 
             if (auto locale = createLocale(languageCode); locale)
             {
@@ -341,6 +346,10 @@ void Application::loadLanguagePack() noexcept
             }
         }
     });
+}
+
+void Application::retranslateUi() noexcept
+{
 }
 
 void Application::checkInitializationStatus() noexcept

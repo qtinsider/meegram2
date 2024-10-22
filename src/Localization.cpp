@@ -46,6 +46,16 @@ Locale &Locale::instance()
     return staticObject;
 }
 
+QString Locale::translate(const char *key, int plural) const
+{
+    if (plural >= 0)
+    {
+        return formatPluralString(key, plural);
+    }
+
+    return getString(key);
+}
+
 QString Locale::getString(const QString &key) const
 {
     if (!m_languagePack.contains(key))
@@ -115,12 +125,14 @@ QString Locale::formatCallDuration(int duration) const
         {
             result.append(", ").append(formatPluralString("CallDurationMinutes", minutes));
         }
+
         return result;
     }
     if (duration > 60)
     {
         return formatPluralString("CallDurationMinutes", std::floor(duration / 60));
     }
+
     return formatPluralString("CallDurationSeconds", std::floor(duration));
 }
 
@@ -161,12 +173,12 @@ void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languageP
     {
         if (string->value_->get_id() == td::td_api::languagePackStringValueOrdinary::ID)
         {
-            auto ordinaryValue = td::move_tl_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
+            auto ordinaryValue = td::td_api::move_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
             m_languagePack.emplace(QString::fromStdString(string->key_), QString::fromStdString(ordinaryValue->value_));
         }
         else if (string->value_->get_id() == td::td_api::languagePackStringValuePluralized::ID)
         {
-            auto pluralizedValue = td::move_tl_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
+            auto pluralizedValue = td::td_api::move_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
             const auto keyBase = QString::fromStdString(string->key_);
             if (!pluralizedValue->zero_value_.empty())
             {
@@ -236,4 +248,23 @@ void Locale::updatePluralRules()
     {
         m_currentPluralRules = m_allRules.at("en")->clone();  // Default to English rules if not found
     }
+}
+
+Translator::Translator(QObject *parent)
+    : QTranslator(parent)
+{
+}
+
+QString Translator::translate(const char *context, const char *sourceText, const char *disambiguation) const
+{
+    Q_UNUSED(context);
+    Q_UNUSED(disambiguation);
+
+    // if (n >= 0)
+    // {
+    //     return formatPluralString(sourceText, n);
+    // }
+    // Plural logic that never saw the light of day... 😢
+
+    return Locale::instance().getString(sourceText);
 }

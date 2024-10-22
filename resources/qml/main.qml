@@ -33,11 +33,11 @@ PageStackWindow {
         banner.show()
     }
 
-    function openChat(chat) {
+    function openChat(chatId) {
         var component = Qt.createComponent("ChatPage.qml");
 
         if (component.status === Component.Ready) {
-            pageStack.push(component, { chat: chat });
+            pageStack.push(component, { chat: app.getChat(chatId) });
         } else {
             console.debug("Error loading component:", component.errorString());
         }

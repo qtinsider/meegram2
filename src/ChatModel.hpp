@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Chat.hpp"
-#include "TdApi.hpp"
+#include "ChatPosition.hpp"
 
 #include <QAbstractListModel>
 #include <QTimer>
@@ -20,8 +20,7 @@ class ChatModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
-    Q_PROPERTY(TdApi::ChatList chatList READ chatList WRITE setChatList NOTIFY chatListChanged)
-    Q_PROPERTY(int chatFolderId READ chatFolderId WRITE setChatFolderId NOTIFY chatListChanged)
+    Q_PROPERTY(ChatList *list READ list WRITE setList NOTIFY listChanged)
 public:
     explicit ChatModel(QObject *parent = nullptr);
 
@@ -35,7 +34,6 @@ public:
         UnreadMentionCountRole,
         UnreadCountRole,
         IsMutedRole,
-        ChatRole
     };
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -50,22 +48,19 @@ public:
     int count() const;
     bool loading() const;
 
-    TdApi::ChatList chatList() const;
-    void setChatList(TdApi::ChatList value);
-
-    int chatFolderId() const;
-    void setChatFolderId(int value);
-
-    Q_INVOKABLE Chat *get(int index) const;
+    ChatList *list() const;
+    void setList(ChatList *value);
 
     Q_INVOKABLE void toggleChatIsPinned(qlonglong chatId, bool isPinned);
     Q_INVOKABLE void toggleChatNotificationSettings(qlonglong chatId, bool isMuted);
+
+    Q_INVOKABLE ChatPosition *getChatPosition(Chat *chat, ChatList *list) const;
 
 signals:
     void countChanged();
     void loadingChanged();
 
-    void chatListChanged();
+    void listChanged();
 
 public slots:
     void populate();
@@ -85,14 +80,15 @@ private:
 
     int m_count{};
 
-    ChatList m_chatList;
-
     QTimer m_sortTimer;
     QTimer m_loadingTimer;
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
+
     Locale *m_locale{};
     StorageManager *m_storageManager{};
 
-    std::vector<std::unique_ptr<Chat>> m_chats;
+    std::unique_ptr<ChatList> m_list;
+
+    std::vector<std::weak_ptr<Chat>> m_chats;
 };

@@ -1,48 +1,58 @@
 #pragma once
 
+#include <td/telegram/td_api.h>
+
+#include <QDateTime>
+#include <QObject>
 #include <QVariant>
+
+#include <QStringList>
 
 class User : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(qlonglong id READ id NOTIFY idChanged)
-    Q_PROPERTY(QString firstName READ firstName NOTIFY firstNameChanged)
-    Q_PROPERTY(QString lastName READ lastName NOTIFY lastNameChanged)
-    Q_PROPERTY(QVariantMap usernames READ usernames NOTIFY usernamesChanged)
-    Q_PROPERTY(QString phoneNumber READ phoneNumber NOTIFY phoneNumberChanged)
-    Q_PROPERTY(QVariantMap status READ status NOTIFY statusChanged)
-    Q_PROPERTY(QVariantMap profilePhoto READ profilePhoto NOTIFY profilePhotoChanged)
-    Q_PROPERTY(int accentColorId READ accentColorId NOTIFY accentColorIdChanged)
-    Q_PROPERTY(qlonglong backgroundCustomEmojiId READ backgroundCustomEmojiId NOTIFY backgroundCustomEmojiIdChanged)
-    Q_PROPERTY(int profileAccentColorId READ profileAccentColorId NOTIFY profileAccentColorIdChanged)
-    Q_PROPERTY(qlonglong profileBackgroundCustomEmojiId READ profileBackgroundCustomEmojiId NOTIFY profileBackgroundCustomEmojiIdChanged)
-    Q_PROPERTY(QVariantMap emojiStatus READ emojiStatus NOTIFY emojiStatusChanged)
-    Q_PROPERTY(bool isContact READ isContact NOTIFY isContactChanged)
-    Q_PROPERTY(bool isMutualContact READ isMutualContact NOTIFY isMutualContactChanged)
-    Q_PROPERTY(bool isCloseFriend READ isCloseFriend NOTIFY isCloseFriendChanged)
-    Q_PROPERTY(bool isVerified READ isVerified NOTIFY isVerifiedChanged)
-    Q_PROPERTY(bool isPremium READ isPremium NOTIFY isPremiumChanged)
-    Q_PROPERTY(bool isSupport READ isSupport NOTIFY isSupportChanged)
-    Q_PROPERTY(QString restrictionReason READ restrictionReason NOTIFY restrictionReasonChanged)
-    Q_PROPERTY(bool isScam READ isScam NOTIFY isScamChanged)
-    Q_PROPERTY(bool isFake READ isFake NOTIFY isFakeChanged)
-    Q_PROPERTY(bool hasActiveStories READ hasActiveStories NOTIFY hasActiveStoriesChanged)
-    Q_PROPERTY(bool hasUnreadActiveStories READ hasUnreadActiveStories NOTIFY hasUnreadActiveStoriesChanged)
-    Q_PROPERTY(bool restrictsNewChats READ restrictsNewChats NOTIFY restrictsNewChatsChanged)
-    Q_PROPERTY(bool haveAccess READ haveAccess NOTIFY haveAccessChanged)
-    Q_PROPERTY(QVariantMap type READ type NOTIFY typeChanged)
-    Q_PROPERTY(QString languageCode READ languageCode NOTIFY languageCodeChanged)
-    Q_PROPERTY(bool addedToAttachmentMenu READ addedToAttachmentMenu NOTIFY addedToAttachmentMenuChanged)
+    Q_PROPERTY(qlonglong id READ id NOTIFY userInfoChanged)
+    Q_PROPERTY(QString firstName READ firstName NOTIFY userInfoChanged)
+    Q_PROPERTY(QString lastName READ lastName NOTIFY userInfoChanged)
+    Q_PROPERTY(QVariantMap usernames READ usernames NOTIFY userInfoChanged)
+    Q_PROPERTY(QString phoneNumber READ phoneNumber NOTIFY userInfoChanged)
+    Q_PROPERTY(Status status READ status NOTIFY userInfoChanged)
+    Q_PROPERTY(QVariantMap profilePhoto READ profilePhoto NOTIFY userInfoChanged)
+    Q_PROPERTY(int accentColorId READ accentColorId NOTIFY userInfoChanged)
+    Q_PROPERTY(qlonglong backgroundCustomEmojiId READ backgroundCustomEmojiId NOTIFY userInfoChanged)
+    Q_PROPERTY(int profileAccentColorId READ profileAccentColorId NOTIFY userInfoChanged)
+    Q_PROPERTY(qlonglong profileBackgroundCustomEmojiId READ profileBackgroundCustomEmojiId NOTIFY userInfoChanged)
+    Q_PROPERTY(QVariantMap emojiStatus READ emojiStatus NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isContact READ isContact NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isMutualContact READ isMutualContact NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isCloseFriend READ isCloseFriend NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isVerified READ isVerified NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isPremium READ isPremium NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isSupport READ isSupport NOTIFY userInfoChanged)
+    Q_PROPERTY(QString restrictionReason READ restrictionReason NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isScam READ isScam NOTIFY userInfoChanged)
+    Q_PROPERTY(bool isFake READ isFake NOTIFY userInfoChanged)
+    Q_PROPERTY(bool hasActiveStories READ hasActiveStories NOTIFY userInfoChanged)
+    Q_PROPERTY(bool hasUnreadActiveStories READ hasUnreadActiveStories NOTIFY userInfoChanged)
+    Q_PROPERTY(bool restrictsNewChats READ restrictsNewChats NOTIFY userInfoChanged)
+    Q_PROPERTY(bool haveAccess READ haveAccess NOTIFY userInfoChanged)
+    Q_PROPERTY(Type type READ type NOTIFY userInfoChanged)
+    Q_PROPERTY(QString languageCode READ languageCode NOTIFY userInfoChanged)
+    Q_PROPERTY(bool addedToAttachmentMenu READ addedToAttachmentMenu NOTIFY userInfoChanged)
 
+    Q_ENUMS(Type)
 public:
-    User(QObject *parent = nullptr);
+    explicit User(td::td_api::object_ptr<td::td_api::user> user, QObject *parent = nullptr);
+
+    enum Status { Empty, Online, Offline, Recently, LastWeek, LastMonth };
+    enum Type { Bot, Regular, Deleted, Unknown };
 
     qlonglong id() const;
     QString firstName() const;
     QString lastName() const;
     QVariantMap usernames() const;
     QString phoneNumber() const;
-    QVariantMap status() const;
+    Status status() const;
     QVariantMap profilePhoto() const;
     int accentColorId() const;
     qlonglong backgroundCustomEmojiId() const;
@@ -62,78 +72,27 @@ public:
     bool hasUnreadActiveStories() const;
     bool restrictsNewChats() const;
     bool haveAccess() const;
-    QVariantMap type() const;
+    Type type() const;
     QString languageCode() const;
     bool addedToAttachmentMenu() const;
 
-    void setId(qlonglong id);
-    void setFirstName(const QString &firstName);
-    void setLastName(const QString &lastName);
-    void setUsernames(const QVariantMap &usernames);
-    void setPhoneNumber(const QString &phoneNumber);
-    void setStatus(const QVariantMap &status);
-    void setProfilePhoto(const QVariantMap &profilePhoto);
-    void setAccentColorId(int accentColorId);
-    void setBackgroundCustomEmojiId(qlonglong backgroundCustomEmojiId);
-    void setProfileAccentColorId(int profileAccentColorId);
-    void setProfileBackgroundCustomEmojiId(qlonglong profileBackgroundCustomEmojiId);
-    void setEmojiStatus(const QVariantMap &emojiStatus);
-    void setIsContact(bool isContact);
-    void setIsMutualContact(bool isMutualContact);
-    void setIsCloseFriend(bool isCloseFriend);
-    void setIsVerified(bool isVerified);
-    void setIsPremium(bool isPremium);
-    void setIsSupport(bool isSupport);
-    void setRestrictionReason(const QString &restrictionReason);
-    void setIsScam(bool isScam);
-    void setIsFake(bool isFake);
-    void setHasActiveStories(bool hasActiveStories);
-    void setHasUnreadActiveStories(bool hasUnreadActiveStories);
-    void setRestrictsNewChats(bool restrictsNewChats);
-    void setHaveAccess(bool haveAccess);
-    void setType(const QVariantMap &type);
-    void setLanguageCode(const QString &languageCode);
-    void setAddedToAttachmentMenu(bool addedToAttachmentMenu);
+    QDateTime wasOnline() const;
+    QStringList activeUsernames() const;
 
-    void setFromVariantMap(const QVariantMap &map);
+    void setStatus(td::td_api::object_ptr<td::td_api::UserStatus> status);
 
 signals:
-    void idChanged();
-    void firstNameChanged();
-    void lastNameChanged();
-    void usernamesChanged();
-    void phoneNumberChanged();
-    void statusChanged();
-    void profilePhotoChanged();
-    void accentColorIdChanged();
-    void backgroundCustomEmojiIdChanged();
-    void profileAccentColorIdChanged();
-    void profileBackgroundCustomEmojiIdChanged();
-    void emojiStatusChanged();
-    void isContactChanged();
-    void isMutualContactChanged();
-    void isCloseFriendChanged();
-    void isVerifiedChanged();
-    void isPremiumChanged();
-    void isSupportChanged();
-    void restrictionReasonChanged();
-    void isScamChanged();
-    void isFakeChanged();
-    void hasActiveStoriesChanged();
-    void hasUnreadActiveStoriesChanged();
-    void restrictsNewChatsChanged();
-    void haveAccessChanged();
-    void typeChanged();
-    void languageCodeChanged();
-    void addedToAttachmentMenuChanged();
+    void userInfoChanged();
 
 private:
+    Type determineType(const td::td_api::object_ptr<td::td_api::UserType> &type) const;
+
     qlonglong m_id;
     QString m_firstName;
     QString m_lastName;
     QVariantMap m_usernames;
     QString m_phoneNumber;
-    QVariantMap m_status;
+    Status m_status;
     QVariantMap m_profilePhoto;
     int m_accentColorId;
     qlonglong m_backgroundCustomEmojiId;
@@ -153,7 +112,10 @@ private:
     bool m_hasUnreadActiveStories;
     bool m_restrictsNewChats;
     bool m_haveAccess;
-    QVariantMap m_type;
+    Type m_type;
     QString m_languageCode;
     bool m_addedToAttachmentMenu;
+
+    QDateTime m_wasOnline;
+    QStringList m_activeUsernames;
 };

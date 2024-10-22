@@ -177,7 +177,7 @@ Item {
 
     onTimeoutChanged: {
         codeExpireTimer.start()
-        codeTimeText.text = authorization.formatTime(timeout / 1000)
+        codeTimeText.text = utils.formatTime(timeout / 1000)
     }
 
     QueryDialog {

@@ -1,8 +1,9 @@
 #pragma once
 
+#include "ChatPosition.hpp"
 #include "File.hpp"
 #include "Message.hpp"
-#include "TdApi.hpp"
+#include "Utils.hpp"
 
 #include <td/telegram/td_api.h>
 
@@ -10,85 +11,84 @@
 
 #include <memory>
 
-class StorageManager;
-
 class Chat : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qlonglong id READ id NOTIFY chatItemUpdated)
-    Q_PROPERTY(QString type READ type NOTIFY chatItemUpdated)
-    Q_PROPERTY(QString title READ title NOTIFY chatItemUpdated)
-    Q_PROPERTY(File *photo READ photo NOTIFY chatItemUpdated)
-    Q_PROPERTY(Message *lastMessage READ lastMessage NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool isMarkedAsUnread READ isMarkedAsUnread NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool hasScheduledMessages READ hasScheduledMessages NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool canBeDeletedOnlyForSelf READ canBeDeletedOnlyForSelf NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool canBeDeletedForAllUsers READ canBeDeletedForAllUsers NOTIFY chatItemUpdated)
-    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY chatItemUpdated)
-    Q_PROPERTY(qlonglong lastReadInboxMessageId READ lastReadInboxMessageId NOTIFY chatItemUpdated)
-    Q_PROPERTY(qlonglong lastReadOutboxMessageId READ lastReadOutboxMessageId NOTIFY chatItemUpdated)
-    Q_PROPERTY(int unreadMentionCount READ unreadMentionCount NOTIFY chatItemUpdated)
-    Q_PROPERTY(int unreadReactionCount READ unreadReactionCount NOTIFY chatItemUpdated)
-    Q_PROPERTY(int messageAutoDeleteTime READ messageAutoDeleteTime NOTIFY chatItemUpdated)
-    Q_PROPERTY(qlonglong replyMarkupMessageId READ replyMarkupMessageId NOTIFY chatItemUpdated)
-    Q_PROPERTY(Message *draftMessage READ draftMessage NOTIFY chatItemUpdated)
+    Q_PROPERTY(qlonglong id READ id NOTIFY chatChanged)
+    Q_PROPERTY(Type type READ type NOTIFY chatChanged)
+    Q_PROPERTY(QString title READ title NOTIFY chatChanged)
+    Q_PROPERTY(File *photo READ photo NOTIFY chatChanged)
+    Q_PROPERTY(Message *lastMessage READ lastMessage NOTIFY chatChanged)
+    Q_PROPERTY(bool isMarkedAsUnread READ isMarkedAsUnread NOTIFY chatChanged)
+    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY chatChanged)
+    Q_PROPERTY(qlonglong lastReadInboxMessageId READ lastReadInboxMessageId NOTIFY chatChanged)
+    Q_PROPERTY(qlonglong lastReadOutboxMessageId READ lastReadOutboxMessageId NOTIFY chatChanged)
+    Q_PROPERTY(int unreadMentionCount READ unreadMentionCount NOTIFY chatChanged)
 
-    Q_PROPERTY(int muteFor READ muteFor NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatItemUpdated)
-    Q_PROPERTY(bool isPinned READ isPinned NOTIFY chatItemUpdated)
+    Q_PROPERTY(int muteFor READ muteFor NOTIFY chatChanged)
+    Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatChanged)
 
 public:
-    explicit Chat(QObject *parent = nullptr);
-    explicit Chat(qlonglong chatId, ChatList chatList, QObject *parent = nullptr);
+    explicit Chat(td::td_api::object_ptr<td::td_api::chat> chat, QObject *parent = nullptr);
 
-    qlonglong id() const;
-    QString type() const;
-    QString title() const;
-    File *photo() const;
-    Message *lastMessage() const;
-    bool isMarkedAsUnread() const;
-    bool hasScheduledMessages() const;
-    bool canBeDeletedOnlyForSelf() const;
-    bool canBeDeletedForAllUsers() const;
-    int unreadCount() const;
-    qlonglong lastReadInboxMessageId() const;
-    qlonglong lastReadOutboxMessageId() const;
-    int unreadMentionCount() const;
-    int unreadReactionCount() const;
-    int messageAutoDeleteTime() const;
-    qlonglong replyMarkupMessageId() const;
-    Message *draftMessage() const;
+    enum Type { None, Private, Secret, BasicGroup, Supergroup, Channel };
 
-    qlonglong getOrder() const noexcept;
-    qlonglong getTypeId() const noexcept;
+    qlonglong id() const noexcept;
+    Type type() const noexcept;
+    QString title() const noexcept;
+    File *photo() const noexcept;
+    Message *lastMessage() const noexcept;
+    bool isMarkedAsUnread() const noexcept;
+    int unreadCount() const noexcept;
+    qlonglong lastReadInboxMessageId() const noexcept;
+    qlonglong lastReadOutboxMessageId() const noexcept;
+    int unreadMentionCount() const noexcept;
 
     int muteFor() const noexcept;
     bool isMuted() const noexcept;
-    bool isPinned() const noexcept;
+
+    qlonglong typeId() const noexcept;
+
+    std::vector<std::unique_ptr<ChatPosition>> &positions() noexcept;
+
+    void setTitle(std::string_view title) noexcept;
+    void setPhoto(td::td_api::object_ptr<td::td_api::chatPhotoInfo> photo) noexcept;
+    void setLastMessage(td::td_api::object_ptr<td::td_api::message> lastMessage) noexcept;
+    void setPositions(std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> positions) noexcept;
+    void setIsMarkedAsUnread(bool isMarkedAsUnread) noexcept;
+    void setUnreadCount(int unreadCount) noexcept;
+    void setLastReadInboxMessageId(qlonglong lastReadInboxMessageId) noexcept;
+    void setLastReadOutboxMessageId(qlonglong lastReadOutboxMessageId) noexcept;
+    void setUnreadMentionCount(int unreadMentionCount) noexcept;
+    void setNotificationSettings(td::td_api::object_ptr<td::td_api::chatNotificationSettings> notificationSettings) noexcept;
 
 signals:
-    void chatItemUpdated(qlonglong chatId);
-    void chatPositionUpdated(qlonglong chatId);
+    void chatChanged();
 
 private slots:
-    void onItemChanged(td::td_api::Object *object);
     void onFileChanged();
 
 private:
-    td::td_api::object_ptr<td::td_api::chatPosition> calculateChatPosition() noexcept;
+    void attemptDownload();
+    void setType(td::td_api::object_ptr<td::td_api::ChatType> type) noexcept;
 
-    qlonglong m_chatId;
+    td::td_api::object_ptr<td::td_api::chat> m_chat;
 
-    ChatList m_chatList;
+    qlonglong m_id;
+    Type m_type;
+    QString m_title;
+    bool m_isMarkedAsUnread;
+    int m_unreadCount;
+    qlonglong m_lastReadInboxMessageId;
+    qlonglong m_lastReadOutboxMessageId;
+    int m_unreadMentionCount;
 
-    td::td_api::chat *m_chat;
-    td::td_api::object_ptr<td::td_api::chatPosition> m_chatPosition;
+    int m_muteFor;
+    qlonglong m_typeId;
 
     std::unique_ptr<File> m_file;
     std::unique_ptr<Message> m_lastMessage;
 
-    StorageManager *m_storageManager;
+    std::vector<std::unique_ptr<ChatPosition>> m_positions;
 };
-
-Q_DECLARE_METATYPE(Chat *);

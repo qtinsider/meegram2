@@ -1,177 +1,26 @@
 #include "MessageModel.hpp"
 
+#include "BasicGroup.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
 #include "StorageManager.hpp"
+#include "Supergroup.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>
 #include <QDebug>
 #include <QLocale>
-#include <QStringList>
 #include <QTimer>
 
 #include <algorithm>
 #include <ranges>
 #include <unordered_set>
 
-namespace {
-
-QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int onlineCount) noexcept
-{
-    const auto count = basicGroup->member_count_;
-    const auto statusId = basicGroup->status_->get_id();
-
-    if (statusId == td::td_api::chatMemberStatusBanned::ID)
-    {
-        return QObject::tr("YouWereKicked");
-    }
-
-    const auto memberString = Locale::instance().formatPluralString("Members", count);
-    if (count <= 1)
-    {
-        return memberString;
-    }
-
-    if (onlineCount > 1)
-    {
-        return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
-    }
-
-    return memberString;
-}
-
-QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
-{
-    if (!supergroup->is_channel_)
-    {
-        return {};
-    }
-
-    auto count = supergroup->member_count_;
-    if (count == 0)
-    {
-        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
-    }
-
-    if (count <= 0)
-    {
-        return supergroup->usernames_ ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
-    }
-
-    const auto subscriberString = Locale::instance().formatPluralString("Subscribers", count);
-    if (count <= 1)
-    {
-        return subscriberString;
-    }
-
-    if (onlineCount > 1)
-    {
-        return subscriberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
-    }
-
-    return subscriberString;
-}
-
-QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
-{
-    const auto hasLocation = supergroup->has_location_;
-    auto count = supergroup->member_count_;
-    const auto statusId = supergroup->status_->get_id();
-
-    if (statusId == td::td_api::chatMemberStatusBanned::ID)
-    {
-        return QObject::tr("YouWereKicked");
-    }
-
-    if (count == 0)
-    {
-        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
-    }
-
-    if (count <= 0)
-    {
-        if (hasLocation)
-        {
-            return QObject::tr("MegaLocation");
-        }
-        return supergroup->usernames_ ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
-    }
-
-    const auto memberString = Locale::instance().formatPluralString("Members", count);
-    if (count <= 1)
-    {
-        return memberString;
-    }
-
-    if (onlineCount > 1)
-    {
-        return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
-    }
-
-    return memberString;
-}
-
-QString getUserStatus(const td::td_api::user *user) noexcept
-{
-    if (std::ranges::contains(ServiceNotificationsUserIds, user->id_))
-    {
-        return QObject::tr("ServiceNotifications");
-    }
-
-    if (user->is_support_)
-    {
-        return QObject::tr("SupportStatus");
-    }
-
-    if (user->type_->get_id() == td::td_api::userTypeBot::ID)
-    {
-        return QObject::tr("Bot");
-    }
-
-    switch (user->status_->get_id())
-    {
-        case td::td_api::userStatusEmpty::ID:
-            return QObject::tr("ALongTimeAgo");
-        case td::td_api::userStatusLastMonth::ID:
-            return QObject::tr("WithinAMonth");
-        case td::td_api::userStatusLastWeek::ID:
-            return QObject::tr("WithinAWeek");
-        case td::td_api::userStatusOffline::ID: {
-            const auto was_online = static_cast<const td::td_api::userStatusOffline &>(*user->status_).was_online_;
-            if (was_online == 0)
-            {
-                return QObject::tr("Invisible");
-            }
-
-            const auto wasOnline = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(was_online) * 1000);
-            const auto currentDate = QDate::currentDate();
-
-            if (currentDate == wasOnline.date())
-            {
-                return QObject::tr("LastSeenFormatted").arg(QObject::tr("TodayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
-            }
-            else if (wasOnline.date().daysTo(currentDate) < 2)
-            {
-                return QObject::tr("LastSeenFormatted").arg(QObject::tr("YesterdayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
-            }
-
-            return QObject::tr("LastSeenDateFormatted")
-                .arg(QObject::tr("formatDateAtTime")
-                         .arg(wasOnline.toString(QObject::tr("formatterYear")))
-                         .arg(wasOnline.toString(QObject::tr("formatterDay12H"))));
-        }
-        case td::td_api::userStatusOnline::ID:
-            return QObject::tr("Online");
-        case td::td_api::userStatusRecently::ID:
-            return QObject::tr("Lately");
-        default:
-            return {};
-    }
-}
-
-}  // namespace
+#include <QDate>
+#include <QObject>
+#include <QString>
+#include <memory>
 
 MessageModel::MessageModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -180,7 +29,11 @@ MessageModel::MessageModel(QObject *parent)
 {
     qDebug() << "MessageModel initialized.";
 
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+
+    connect(m_storageManager, SIGNAL(userUpdated(qlonglong)), this, SLOT(handleUserUpdate(qlonglong)));
+    connect(m_storageManager, SIGNAL(basicGroupUpdated(qlonglong)), this, SLOT(handleBasicGroupUpdate(qlonglong)));
+    connect(m_storageManager, SIGNAL(supergroupUpdated(qlonglong)), this, SLOT(handleSupergroupUpdate(qlonglong)));
 
     setRoleNames(roleNames());
 }
@@ -208,32 +61,10 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
         case SenderRole: {
             return message->getSenderName();
         }
-        // case ChatIdRole:
-        //     return message->chatId();
-        // case SendingStateRole:
-        //     return message->sendingState();
-        // case SchedulingStateRole:
-        //     return message->schedulingState();
+        case ChatIdRole:
+            return message->chatId();
         case IsOutgoingRole:
             return message->isOutgoing();
-        // case IsPinnedRole:
-        //     return message->isPinned();
-        // case CanBeEditedRole:
-        //     return message->canBeEdited();
-        // case CanBeForwardedRole:
-        //     return message->canBeForwarded();
-        // case CanBeDeletedOnlyForSelfRole:
-        //     return message->canBeDeletedOnlyForSelf();
-        // case CanBeDeletedForAllUsersRole:
-        //     return message->canBeDeletedForAllUsers();
-        // case CanGetStatisticsRole:
-        //     return message->canGetStatistics();
-        // case CanGetMessageThreadRole:
-        //     return message->canGetMessageThread();
-        // case IsChannelPostRole:
-        //     return message->isChannelPost();
-        // case ContainsUnreadMentionRole:
-        //     return message->containsUnreadMention();
         case DateRole: {
             const auto date = message->date();
             return date.toString(QObject::tr("formatterDay12H"));
@@ -242,20 +73,6 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             const auto date = message->editDate();
             return date.toString(QObject::tr("formatterDay12H"));
         }
-            // case ForwardInfoRole:
-            //     return message->forwardInfo();
-            // case InteractionInfoRole:
-            //     return message->interactionInfo();
-            // case MessageThreadIdRole:
-            //     return message->messageThreadId();
-            // case ViaBotUserIdRole:
-            //     return message->viaBotUserId();
-            // case AuthorSignatureRole:
-            //     return message->authorSignature();
-            // case MediaAlbumIdRole:
-            //     return message->mediaAlbumId();
-            // case RestrictionReasonRole:
-            //     return message->restrictionReason();
         case ContentRole: {
             // const auto *content = message->content_.get();
 
@@ -272,11 +89,6 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return QVariant();
         }
 
-            // case ReplyMarkupRole:
-            //     return message->replyMarkup();
-
-        case BubbleColorRole:
-            return QVariant();
         case ContentTypeRole: {
             // if (const auto *content = message->content_.get(); content->get_id() == td::td_api::messageText::ID)
             // {
@@ -299,9 +111,9 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
 
             return date.toString(QObject::tr("chatFullDate"));
         }
-        // case ServiceMessageRole: {
-        //     return message->getServiceMessageContent();
-        // }
+        case ServiceMessageRole: {
+            return message->getServiceMessageContent();
+        }
     }
     return QVariant();
 }
@@ -312,31 +124,12 @@ QHash<int, QByteArray> MessageModel::roleNames() const noexcept
     roles[IdRole] = "id";
     roles[SenderRole] = "sender";
     roles[ChatIdRole] = "chatId";
-    roles[SendingStateRole] = "sendingState";
-    roles[SchedulingStateRole] = "schedulingState";
     roles[IsOutgoingRole] = "isOutgoing";
     roles[IsPinnedRole] = "isPinned";
-    roles[CanBeEditedRole] = "canBeEdited";
-    roles[CanBeForwardedRole] = "canBeForwarded";
-    roles[CanBeDeletedOnlyForSelfRole] = "canBeDeletedOnlyForSelf";
-    roles[CanBeDeletedForAllUsersRole] = "canBeDeletedForAllUsers";
-    roles[CanGetStatisticsRole] = "canGetStatistics";
-    roles[CanGetMessageThreadRole] = "canGetMessageThread";
-    roles[IsChannelPostRole] = "isChannelPost";
-    roles[ContainsUnreadMentionRole] = "containsUnreadMention";
     roles[DateRole] = "date";
     roles[EditDateRole] = "editDate";
-    roles[ForwardInfoRole] = "forwardInfo";
-    roles[InteractionInfoRole] = "interactionInfo";
-    roles[MessageThreadIdRole] = "messageThreadId";
-    roles[ViaBotUserIdRole] = "viaBotUserId";
-    roles[AuthorSignatureRole] = "authorSignature";
-    roles[MediaAlbumIdRole] = "mediaAlbumId";
-    roles[RestrictionReasonRole] = "restrictionReason";
     roles[ContentRole] = "content";
-    roles[ReplyMarkupRole] = "replyMarkup";
     // Custom
-    roles[BubbleColorRole] = "bubbleColor";
     roles[ContentTypeRole] = "contentType";
     roles[IsServiceMessageRole] = "isServiceMessage";
     roles[SectionRole] = "section";
@@ -359,33 +152,9 @@ bool MessageModel::isEndReached() const noexcept
     return m_isEndReached;
 }
 
-QString MessageModel::getChatSubtitle() const noexcept
+ChatInfo *MessageModel::chatInfo() const noexcept
 {
-    if (!m_chat)
-        return {};
-
-    const auto chatTypeId = m_chat->getTypeId();
-    const auto &chatTypeString = m_chat->type();
-
-    if (chatTypeString == "private" || chatTypeString == "secret")
-    {
-        return getUserStatus(m_storageManager->getUser(chatTypeId));
-    }
-
-    if (chatTypeString == "basicGroup")
-    {
-        return getBasicGroupStatus(m_storageManager->getBasicGroup(chatTypeId), m_onlineCount);
-    }
-
-    if (chatTypeString == "supergroup" || chatTypeString == "channel")
-    {
-        const auto &supergroup = m_storageManager->getSupergroup(chatTypeId);
-
-        return (chatTypeString == "channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
-                                             : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
-    }
-
-    return {};
+    return m_chatInfo.get();
 }
 
 Chat *MessageModel::chat() const noexcept
@@ -400,17 +169,21 @@ void MessageModel::setChat(Chat *value) noexcept
 
     if (m_chat)
     {
-        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
-        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+        disconnect(m_chat, SIGNAL(chatChanged()), this, SIGNAL(chatChanged()));
+        disconnect(m_chat, SIGNAL(chatChanged()), this, SLOT(handleChatItem()));
     }
 
     m_chat = value;
 
     if (m_chat)
     {
-        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
-        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+        connect(m_chat, SIGNAL(chatChanged()), this, SIGNAL(chatChanged()));
+        connect(m_chat, SIGNAL(chatChanged()), this, SLOT(handleChatItem()));
     }
+
+    m_chatInfo = std::make_unique<ChatInfo>(m_chat, this);
+
+    connect(m_chatInfo.get(), SIGNAL(infoChanged()), this, SIGNAL(chatInfoChanged()));
 
     emit chatChanged();
 }
@@ -474,23 +247,24 @@ void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit
     m_client->send(std::move(request), [this, previous](auto &&response) {
         if (response->get_id() == td::td_api::messages::ID)
         {
-            auto message = td::move_tl_object_as<td::td_api::messages>(response);
-            if (!message)
-                return;
+            auto messages = td::td_api::move_object_as<td::td_api::messages>(response);
 
-            auto messages = std::move(message->messages_);
+            if (!messages || messages->messages_.empty())
+            {
+                m_loading = false;
+                emit loadingChanged();
 
-            if (messages.empty())
                 return;
+            }
 
             std::vector<std::unique_ptr<Message>> newMessages;
-            newMessages.reserve(messages.size());  // Reserve space to avoid reallocations
+            newMessages.reserve(messages->total_count_);  // Reserve space to avoid reallocations
 
-            for (auto &&msg : messages)
+            for (auto &&message : messages->messages_)
             {
-                if (msg)
+                if (message)
                 {
-                    newMessages.emplace_back(std::make_unique<Message>(msg.get()));
+                    newMessages.emplace_back(std::make_unique<Message>(std::move(message)));
                 }
             }
 
@@ -523,7 +297,7 @@ void MessageModel::sendMessage(const QString &message, qlonglong replyToMessageI
     m_client->send(std::move(request), {});
 }
 
-void MessageModel::viewMessages(const QStringList &messageIds)
+void MessageModel::viewMessages(const QList<qlonglong> &messageIds)
 {
     if (!m_chat)
         return;
@@ -533,7 +307,7 @@ void MessageModel::viewMessages(const QStringList &messageIds)
 
     for (const auto &id : messageIds)
     {
-        result.emplace_back(id.toLongLong());
+        result.emplace_back(id);
     }
 
     auto request = td::td_api::make_object<td::td_api::viewMessages>();
@@ -584,9 +358,9 @@ void MessageModel::componentComplete()
     loadMessages();
 }
 
-void MessageModel::handleChatItem(qlonglong chatId)
+void MessageModel::handleChatItem()
 {
-    qDebug() << "Is m_chat ID equal to chatId?:" << (m_chat->id() == chatId) << "(m_chat ID:" << m_chat->id() << ", chatId:" << chatId << ")";
+    qDebug() << "(m_chat ID:" << m_chat->id() << ")";
     qDebug() << "Total number of items in the model:" << count();
     qDebug() << "Last read inbox message ID:" << m_chat->lastReadInboxMessageId();
     qDebug() << "Last read outbox message ID:" << m_chat->lastReadOutboxMessageId();
@@ -607,10 +381,6 @@ void MessageModel::handleResult(td::td_api::Object *object)
             [this](td::td_api::updateMessageEdited &value) {
                 handleMessageEdited(value.chat_id_, value.message_id_, value.edit_date_, std::move(value.reply_markup_));
             },
-            [this](td::td_api::updateMessageIsPinned &value) { handleMessageIsPinned(value.chat_id_, value.message_id_, value.is_pinned_); },
-            [this](td::td_api::updateMessageInteractionInfo &value) {
-                handleMessageInteractionInfo(value.chat_id_, value.message_id_, std::move(value.interaction_info_));
-            },
             [this](td::td_api::updateDeleteMessages &value) {
                 handleDeleteMessages(value.chat_id_, std::move(value.message_ids_), value.is_permanent_, value.from_cache_);
             },
@@ -618,13 +388,57 @@ void MessageModel::handleResult(td::td_api::Object *object)
             [](auto &) {}});
 }
 
+void MessageModel::handleUserUpdate(qlonglong userId)
+{
+    if (!m_chat || m_chat->typeId() != userId)
+        return;
+
+    if (m_chat->type() == Chat::Private || m_chat->type() == Chat::Secret)
+    {
+        if (auto user = m_storageManager->getUser(userId))
+        {
+            m_chatInfo->setUser(user);
+        }
+    }
+}
+
+void MessageModel::handleBasicGroupUpdate(qlonglong groupId)
+{
+    if (!m_chat || m_chat->typeId() != groupId)
+        return;
+
+    if (m_chat->type() == Chat::BasicGroup)
+    {
+        if (auto group = m_storageManager->getBasicGroup(groupId))
+        {
+            m_chatInfo->setBasicGroup(group);
+        }
+    }
+}
+
+void MessageModel::handleSupergroupUpdate(qlonglong groupId)
+{
+    if (!m_chat || m_chat->typeId() != groupId)
+        return;
+
+    if (m_chat->type() == Chat::Supergroup)
+    {
+        if (auto group = m_storageManager->getSupergroup(groupId))
+        {
+            m_chatInfo->setSupergroup(group);
+        }
+    }
+}
+
 void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message)
 {
     if (!m_chat || m_chat->id() != message->chat_id_)
         return;
 
+    const auto messageId = message->id_;
+
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    m_messages.emplace(message->id_, std::make_unique<Message>(message.get()));
+    m_messages.emplace(messageId, std::make_unique<Message>(std::move(message)));
     endInsertRows();
 
     emit countChanged();
@@ -644,12 +458,12 @@ void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, t
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    // if (auto it = m_messages.find(messageId); it != m_messages.end())
-    // {
-    //     it->second->content_ = std::move(newContent);
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
+    {
+        it->second->setContent(std::move(newContent));
 
-    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
-    // }
+        itemChanged(std::ranges::distance(m_messages.begin(), it));
+    }
 }
 
 void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
@@ -657,43 +471,15 @@ void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, in
     if (!m_chat || chatId != m_chat->id())
         return;
 
-    // if (auto it = m_messages.find(messageId); it != m_messages.end())
-    // {
-    //     it->second->edit_date_ = editDate;
-    //     it->second->reply_markup_ = std::move(replyMarkup);
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
+    {
+        it->second->setEditDate(editDate);
 
-    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
-    // }
+        itemChanged(std::ranges::distance(m_messages.begin(), it));
+    }
 }
 
-void MessageModel::handleMessageIsPinned(qlonglong chatId, qlonglong messageId, bool isPinned)
-{
-    if (!m_chat || chatId != m_chat->id())
-        return;
-
-    // if (auto it = m_messages.find(messageId); it != m_messages.end())
-    // {
-    //     it->second->is_pinned_ = isPinned;
-
-    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
-    // }
-}
-
-void MessageModel::handleMessageInteractionInfo(qlonglong chatId, qlonglong messageId,
-                                                td::td_api::object_ptr<td::td_api::messageInteractionInfo> &&interactionInfo)
-{
-    if (!m_chat || chatId != m_chat->id())
-        return;
-
-    // if (auto it = m_messages.find(messageId); it != m_messages.end())
-    // {
-    //     it->second->interaction_info_ = std::move(interactionInfo);
-
-    //     itemChanged(std::ranges::distance(m_messages.begin(), it));
-    // }
-}
-
-void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool /*isPermanent*/, bool /*fromCache*/)
+void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache)
 {
     if (!m_chat || chatId != m_chat->id())
         return;
@@ -736,13 +522,6 @@ void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMembe
 
 void MessageModel::handleMessages(std::vector<std::unique_ptr<Message>> &&messages, bool previous)
 {
-    if (messages.empty())
-    {
-        m_loading = false;
-        emit loadingChanged();
-        return;
-    }
-
     const auto messageCount = static_cast<int>(messages.size());
 
     qDebug() << "handleMessages called. Number of messages received:" << messageCount;
@@ -787,9 +566,204 @@ void MessageModel::loadMessages() noexcept
     getChatHistory(fromMessageId, offset, limit);
 }
 
-void MessageModel::itemChanged(int64_t index)
+void MessageModel::itemChanged(size_t index)
 {
     QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
 
     emit dataChanged(modelIndex, modelIndex);
+}
+
+ChatInfo::ChatInfo(Chat *chat, QObject *parent)
+    : QObject(parent)
+    , m_chat(chat)
+    , m_storageManager(&StorageManager::instance())
+{
+    initializeMembers();
+    updateStatus();
+}
+
+QString ChatInfo::title() const noexcept
+{
+    const auto title = m_chat->title();
+    return !title.isEmpty() ? title : tr("HiddenName");
+}
+
+QString ChatInfo::status() const noexcept
+{
+    return m_status;
+}
+
+void ChatInfo::setOnlineCount(int onlineCount)
+{
+    if (m_onlineCount != onlineCount)
+    {
+        m_onlineCount = onlineCount;
+        updateStatus();
+    }
+}
+
+void ChatInfo::setUser(std::shared_ptr<User> user)
+{
+    m_user = user;
+    updateStatus();
+}
+
+void ChatInfo::setBasicGroup(std::shared_ptr<BasicGroup> group)
+{
+    m_basicGroup = group;
+    updateStatus();
+}
+
+void ChatInfo::setSupergroup(std::shared_ptr<Supergroup> group)
+{
+    m_supergroup = group;
+    updateStatus();
+}
+
+void ChatInfo::initializeMembers()
+{
+    const auto chatType = m_chat->type();
+    const auto chatTypeId = m_chat->typeId();
+
+    if (chatType == Chat::Private || chatType == Chat::Secret)
+    {
+        m_user = m_storageManager->getUser(chatTypeId);
+    }
+
+    if (chatType == Chat::BasicGroup)
+    {
+        m_basicGroup = m_storageManager->getBasicGroup(chatTypeId);
+    }
+
+    if (chatType == Chat::Supergroup || chatType == Chat::Channel)
+    {
+        m_supergroup = m_storageManager->getSupergroup(chatTypeId);
+    }
+}
+
+void ChatInfo::updateStatus()
+{
+    QString newStatus;
+
+    if (m_basicGroup)
+    {
+        if (m_basicGroup->status() == BasicGroup::Status::Banned)
+            newStatus = QObject::tr("YouWereKicked");
+        else
+            newStatus = formatStatus(m_basicGroup->memberCount(), "Members", "OnlineCount");
+    }
+    else if (m_supergroup)
+    {
+        if (!m_supergroup->isChannel() && m_supergroup->status() == Supergroup::Status::Banned)
+        {
+            newStatus = QObject::tr("YouWereKicked");
+        }
+        else
+        {
+            int count = getMemberCountWithFallback();
+            newStatus = (count <= 0)
+                            ? (m_supergroup->hasLocation() ? QObject::tr("MegaLocation")
+                                                           : (m_supergroup->usernames().isEmpty() ? QObject::tr("MegaPrivate") : QObject::tr("MegaPublic")))
+                            : formatStatus(count, "Members", "OnlineCount");
+        }
+    }
+    else if (m_user)
+    {
+        if (isServiceNotification())
+        {
+            newStatus = QObject::tr("ServiceNotifications");
+        }
+        else if (m_user->isSupport())
+        {
+            newStatus = QObject::tr("SupportStatus");
+        }
+        else if (m_user->type() == User::Type::Bot)
+        {
+            newStatus = QObject::tr("Bot");
+        }
+        else
+        {
+            newStatus = formatUserStatus();
+        }
+    }
+
+    if (m_status != newStatus)
+    {
+        m_status = newStatus;
+        emit infoChanged();
+    }
+}
+
+int ChatInfo::getMemberCountWithFallback() const
+{
+    int count = m_supergroup->memberCount();
+    if (count == 0)
+    {
+        if (const auto fullInfo = m_storageManager->getSupergroupFullInfo(m_supergroup->id()))
+        {
+            count = fullInfo->memberCount();
+        }
+    }
+
+    return count;
+}
+
+QString ChatInfo::formatStatus(int memberCount, const char *memberKey, const char *onlineKey) const
+{
+    const auto memberString = Locale::instance().formatPluralString(memberKey, memberCount);
+    if (memberCount <= 1)
+        return memberString;
+
+    if (m_onlineCount > 1)
+    {
+        return memberString + ", " + Locale::instance().formatPluralString(onlineKey, m_onlineCount);
+    }
+
+    return memberString;
+}
+
+bool ChatInfo::isServiceNotification() const
+{
+    return std::ranges::contains(ServiceNotificationsUserIds, m_user->id());
+}
+
+QString ChatInfo::formatUserStatus() const
+{
+    switch (m_user->status())
+    {
+        case User::Status::Empty:
+            return QObject::tr("ALongTimeAgo");
+        case User::Status::LastMonth:
+            return QObject::tr("WithinAMonth");
+        case User::Status::LastWeek:
+            return QObject::tr("WithinAWeek");
+        case User::Status::Offline:
+            return formatOfflineStatus();
+        case User::Status::Online:
+            return QObject::tr("Online");
+        case User::Status::Recently:
+            return QObject::tr("Lately");
+        default:
+            return {};
+    }
+}
+
+QString ChatInfo::formatOfflineStatus() const
+{
+    const auto wasOnline = m_user->wasOnline();
+    if (wasOnline.isNull())
+        return QObject::tr("Invisible");
+
+    const auto currentDate = QDate::currentDate();
+    if (currentDate == wasOnline.date())
+    {
+        return QObject::tr("LastSeenFormatted").arg(QObject::tr("TodayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
+    }
+    else if (wasOnline.date().daysTo(currentDate) < 2)
+    {
+        return QObject::tr("LastSeenFormatted").arg(QObject::tr("YesterdayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
+    }
+
+    return QObject::tr("LastSeenDateFormatted")
+        .arg(QObject::tr("formatDateAtTime").arg(wasOnline.toString(QObject::tr("formatterYear"))).arg(wasOnline.toString(QObject::tr("formatterDay12H"))));
 }

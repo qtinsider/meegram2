@@ -1,122 +1,61 @@
 #pragma once
 
+#include <td/telegram/td_api.h>
+
+#include <QObject>
 #include <QVariant>
 
 class UserFullInfo : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(QVariantMap personalPhoto READ personalPhoto WRITE setPersonalPhoto NOTIFY personalPhotoChanged)
-    Q_PROPERTY(QVariantMap photo READ photo WRITE setPhoto NOTIFY photoChanged)
-    Q_PROPERTY(QVariantMap publicPhoto READ publicPhoto WRITE setPublicPhoto NOTIFY publicPhotoChanged)
-    Q_PROPERTY(QVariantMap blockList READ blockList WRITE setBlockList NOTIFY blockListChanged)
-    Q_PROPERTY(bool canBeCalled READ canBeCalled WRITE setCanBeCalled NOTIFY canBeCalledChanged)
-    Q_PROPERTY(bool supportsVideoCalls READ supportsVideoCalls WRITE setSupportsVideoCalls NOTIFY supportsVideoCallsChanged)
-    Q_PROPERTY(bool hasPrivateCalls READ hasPrivateCalls WRITE setHasPrivateCalls NOTIFY hasPrivateCallsChanged)
-    Q_PROPERTY(bool hasPrivateForwards READ hasPrivateForwards WRITE setHasPrivateForwards NOTIFY hasPrivateForwardsChanged)
-    Q_PROPERTY(bool hasRestrictedVoiceAndVideoNoteMessages READ hasRestrictedVoiceAndVideoNoteMessages WRITE
-                   setHasRestrictedVoiceAndVideoNoteMessages NOTIFY hasRestrictedVoiceAndVideoNoteMessagesChanged)
-    Q_PROPERTY(bool hasPostedToProfileStories READ hasPostedToProfileStories WRITE setHasPostedToProfileStories NOTIFY
-                   hasPostedToProfileStoriesChanged)
-    Q_PROPERTY(bool hasSponsoredMessagesEnabled READ hasSponsoredMessagesEnabled WRITE setHasSponsoredMessagesEnabled NOTIFY
-                   hasSponsoredMessagesEnabledChanged)
-    Q_PROPERTY(bool needPhoneNumberPrivacyException READ needPhoneNumberPrivacyException WRITE setNeedPhoneNumberPrivacyException NOTIFY
-                   needPhoneNumberPrivacyExceptionChanged)
-    Q_PROPERTY(bool setChatBackground READ setChatBackground WRITE setSetChatBackground NOTIFY setChatBackgroundChanged)
-    Q_PROPERTY(QVariantMap bio READ bio WRITE setBio NOTIFY bioChanged)
-    Q_PROPERTY(QVariantMap birthdate READ birthdate WRITE setBirthdate NOTIFY birthdateChanged)
-    Q_PROPERTY(qlonglong personalChatId READ personalChatId WRITE setPersonalChatId NOTIFY personalChatIdChanged)
-    Q_PROPERTY(QVariantList premiumGiftOptions READ premiumGiftOptions WRITE setPremiumGiftOptions NOTIFY premiumGiftOptionsChanged)
-    Q_PROPERTY(int groupInCommonCount READ groupInCommonCount WRITE setGroupInCommonCount NOTIFY groupInCommonCountChanged)
-    Q_PROPERTY(QVariantMap businessInfo READ businessInfo WRITE setBusinessInfo NOTIFY businessInfoChanged)
-    Q_PROPERTY(QVariantMap botInfo READ botInfo WRITE setBotInfo NOTIFY botInfoChanged)
+    Q_PROPERTY(QVariantMap personalPhoto READ personalPhoto NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap photo READ photo NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap publicPhoto READ publicPhoto NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap blockList READ blockList NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool canBeCalled READ canBeCalled NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool supportsVideoCalls READ supportsVideoCalls NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool hasPrivateCalls READ hasPrivateCalls NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool hasPrivateForwards READ hasPrivateForwards NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool hasRestrictedVoiceAndVideoNoteMessages READ hasRestrictedVoiceAndVideoNoteMessages NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool hasPostedToProfileStories READ hasPostedToProfileStories NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool hasSponsoredMessagesEnabled READ hasSponsoredMessagesEnabled NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool needPhoneNumberPrivacyException READ needPhoneNumberPrivacyException NOTIFY userFullInfoChanged)
+    Q_PROPERTY(bool setChatBackground READ setChatBackground NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap bio READ bio NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap birthdate READ birthdate NOTIFY userFullInfoChanged)
+    Q_PROPERTY(qlonglong personalChatId READ personalChatId NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantList premiumGiftOptions READ premiumGiftOptions NOTIFY userFullInfoChanged)
+    Q_PROPERTY(int groupInCommonCount READ groupInCommonCount NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap businessInfo READ businessInfo NOTIFY userFullInfoChanged)
+    Q_PROPERTY(QVariantMap botInfo READ botInfo NOTIFY userFullInfoChanged)
 
 public:
-    explicit UserFullInfo(QObject *parent = nullptr);
+    explicit UserFullInfo(td::td_api::object_ptr<td::td_api::userFullInfo> userFullInfo, QObject *parent = nullptr);
 
     QVariantMap personalPhoto() const;
-    void setPersonalPhoto(const QVariantMap &personalPhoto);
-
     QVariantMap photo() const;
-    void setPhoto(const QVariantMap &photo);
-
     QVariantMap publicPhoto() const;
-    void setPublicPhoto(const QVariantMap &publicPhoto);
-
     QVariantMap blockList() const;
-    void setBlockList(const QVariantMap &blockList);
-
     bool canBeCalled() const;
-    void setCanBeCalled(bool canBeCalled);
-
     bool supportsVideoCalls() const;
-    void setSupportsVideoCalls(bool supportsVideoCalls);
-
     bool hasPrivateCalls() const;
-    void setHasPrivateCalls(bool hasPrivateCalls);
-
     bool hasPrivateForwards() const;
-    void setHasPrivateForwards(bool hasPrivateForwards);
-
     bool hasRestrictedVoiceAndVideoNoteMessages() const;
-    void setHasRestrictedVoiceAndVideoNoteMessages(bool hasRestrictedVoiceAndVideoNoteMessages);
-
     bool hasPostedToProfileStories() const;
-    void setHasPostedToProfileStories(bool hasPostedToProfileStories);
-
     bool hasSponsoredMessagesEnabled() const;
-    void setHasSponsoredMessagesEnabled(bool hasSponsoredMessagesEnabled);
-
     bool needPhoneNumberPrivacyException() const;
-    void setNeedPhoneNumberPrivacyException(bool needPhoneNumberPrivacyException);
-
     bool setChatBackground() const;
-    void setSetChatBackground(bool setChatBackground);
-
     QVariantMap bio() const;
-    void setBio(const QVariantMap &bio);
-
     QVariantMap birthdate() const;
-    void setBirthdate(const QVariantMap &birthdate);
-
     qlonglong personalChatId() const;
-    void setPersonalChatId(qlonglong personalChatId);
-
     QVariantList premiumGiftOptions() const;
-    void setPremiumGiftOptions(const QVariantList &premiumGiftOptions);
-
     int groupInCommonCount() const;
-    void setGroupInCommonCount(int groupInCommonCount);
-
     QVariantMap businessInfo() const;
-    void setBusinessInfo(const QVariantMap &businessInfo);
-
     QVariantMap botInfo() const;
-    void setBotInfo(const QVariantMap &botInfo);
-
-    void setFromVariantMap(const QVariantMap &map);
 
 signals:
-    void personalPhotoChanged();
-    void photoChanged();
-    void publicPhotoChanged();
-    void blockListChanged();
-    void canBeCalledChanged();
-    void supportsVideoCallsChanged();
-    void hasPrivateCallsChanged();
-    void hasPrivateForwardsChanged();
-    void hasRestrictedVoiceAndVideoNoteMessagesChanged();
-    void hasPostedToProfileStoriesChanged();
-    void hasSponsoredMessagesEnabledChanged();
-    void needPhoneNumberPrivacyExceptionChanged();
-    void setChatBackgroundChanged();
-    void bioChanged();
-    void birthdateChanged();
-    void personalChatIdChanged();
-    void premiumGiftOptionsChanged();
-    void groupInCommonCountChanged();
-    void businessInfoChanged();
-    void botInfoChanged();
+    void userFullInfoChanged();
 
 private:
     QVariantMap m_personalPhoto;

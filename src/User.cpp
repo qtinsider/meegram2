@@ -1,27 +1,40 @@
 #include "User.hpp"
 
-User::User(QObject *parent)
+User::User(td::td_api::object_ptr<td::td_api::user> userFullInfo, QObject *parent)
     : QObject(parent)
-    , m_id(0)
-    , m_accentColorId(0)
-    , m_backgroundCustomEmojiId(0)
-    , m_profileAccentColorId(0)
-    , m_profileBackgroundCustomEmojiId(0)
-    , m_isContact(false)
-    , m_isMutualContact(false)
-    , m_isCloseFriend(false)
-    , m_isVerified(false)
-    , m_isPremium(false)
-    , m_isSupport(false)
-    , m_isScam(false)
-    , m_isFake(false)
-    , m_hasActiveStories(false)
-    , m_hasUnreadActiveStories(false)
-    , m_restrictsNewChats(false)
-    , m_haveAccess(true)
-    ,  // Assuming default accessible
-    m_addedToAttachmentMenu(false)
+    , m_id(userFullInfo->id_)
+    , m_firstName(QString::fromStdString(userFullInfo->first_name_))
+    , m_lastName(QString::fromStdString(userFullInfo->last_name_))
+    , m_phoneNumber(QString::fromStdString(userFullInfo->phone_number_))
+    , m_accentColorId(userFullInfo->accent_color_id_)
+    , m_backgroundCustomEmojiId(userFullInfo->background_custom_emoji_id_)
+    , m_profileAccentColorId(userFullInfo->profile_accent_color_id_)
+    , m_profileBackgroundCustomEmojiId(userFullInfo->profile_background_custom_emoji_id_)
+    , m_isContact(userFullInfo->is_contact_)
+    , m_isMutualContact(userFullInfo->is_mutual_contact_)
+    , m_isCloseFriend(userFullInfo->is_close_friend_)
+    , m_isVerified(userFullInfo->is_verified_)
+    , m_isPremium(userFullInfo->is_premium_)
+    , m_isSupport(userFullInfo->is_support_)
+    , m_restrictionReason(QString::fromStdString(userFullInfo->restriction_reason_))
+    , m_isScam(userFullInfo->is_scam_)
+    , m_isFake(userFullInfo->is_fake_)
+    , m_hasActiveStories(userFullInfo->has_active_stories_)
+    , m_hasUnreadActiveStories(userFullInfo->has_unread_active_stories_)
+    , m_restrictsNewChats(userFullInfo->restricts_new_chats_)
+    , m_haveAccess(userFullInfo->have_access_)
+    , m_addedToAttachmentMenu(userFullInfo->added_to_attachment_menu_)
+    , m_type(determineType(userFullInfo->type_))
 {
+    if (userFullInfo->usernames_)
+    {
+        for (const auto &activeUsername : userFullInfo->usernames_->active_usernames_)
+        {
+            m_activeUsernames.append(QString::fromStdString(activeUsername));
+        }
+    }
+
+    setStatus(std::move(userFullInfo->status_));
 }
 
 qlonglong User::id() const
@@ -49,7 +62,7 @@ QString User::phoneNumber() const
     return m_phoneNumber;
 }
 
-QVariantMap User::status() const
+User::Status User::status() const
 {
     return m_status;
 }
@@ -149,7 +162,7 @@ bool User::haveAccess() const
     return m_haveAccess;
 }
 
-QVariantMap User::type() const
+User::Type User::type() const
 {
     return m_type;
 }
@@ -164,286 +177,72 @@ bool User::addedToAttachmentMenu() const
     return m_addedToAttachmentMenu;
 }
 
-void User::setId(qlonglong id)
+QDateTime User::wasOnline() const
 {
-    if (m_id != id)
-    {
-        m_id = id;
-        emit idChanged();
-    }
+    return m_wasOnline;
 }
 
-void User::setFirstName(const QString &firstName)
+QStringList User::activeUsernames() const
 {
-    if (m_firstName != firstName)
-    {
-        m_firstName = firstName;
-        emit firstNameChanged();
-    }
+    return m_activeUsernames;
 }
 
-void User::setLastName(const QString &lastName)
+void User::setStatus(td::td_api::object_ptr<td::td_api::UserStatus> status)
 {
-    if (m_lastName != lastName)
+    if (!status)
     {
-        m_lastName = lastName;
-        emit lastNameChanged();
+        m_status = Status::Empty;
+        emit userInfoChanged();
+        return;
     }
+
+    switch (status->get_id())
+    {
+        case td::td_api::userStatusEmpty::ID:
+            m_status = Status::Empty;
+            break;
+        case td::td_api::userStatusOnline::ID:
+            m_status = Status::Online;
+            break;
+        case td::td_api::userStatusOffline::ID: {
+            const auto *offlineStatus = static_cast<const td::td_api::userStatusOffline *>(status.get());
+            m_wasOnline = QDateTime::fromMSecsSinceEpoch(static_cast<int64_t>(offlineStatus->was_online_) * 1000);
+            m_status = Status::Offline;
+            break;
+        }
+        case td::td_api::userStatusRecently::ID:
+            m_status = Status::Recently;
+            break;
+        case td::td_api::userStatusLastWeek::ID:
+            m_status = Status::LastWeek;
+            break;
+        case td::td_api::userStatusLastMonth::ID:
+            m_status = Status::LastMonth;
+            break;
+        default:
+            m_status = Status::Empty;
+            break;
+    }
+
+    emit userInfoChanged();
 }
 
-void User::setUsernames(const QVariantMap &usernames)
+User::Type User::determineType(const td::td_api::object_ptr<td::td_api::UserType> &type) const
 {
-    if (m_usernames != usernames)
-    {
-        m_usernames = usernames;
-        emit usernamesChanged();
-    }
-}
+    if (!type)
+        return Type::Unknown;
 
-void User::setPhoneNumber(const QString &phoneNumber)
-{
-    if (m_phoneNumber != phoneNumber)
+    switch (type->get_id())
     {
-        m_phoneNumber = phoneNumber;
-        emit phoneNumberChanged();
+        case td::td_api::userTypeBot::ID:
+            return Type::Bot;
+        case td::td_api::userTypeDeleted::ID:
+            return Type::Deleted;
+        case td::td_api::userTypeRegular::ID:
+            return Type::Regular;
+        case td::td_api::userTypeUnknown::ID:
+            return Type::Unknown;
+        default:
+            return Type::Unknown;
     }
-}
-
-void User::setStatus(const QVariantMap &status)
-{
-    if (m_status != status)
-    {
-        m_status = status;
-        emit statusChanged();
-    }
-}
-
-void User::setProfilePhoto(const QVariantMap &profilePhoto)
-{
-    if (m_profilePhoto != profilePhoto)
-    {
-        m_profilePhoto = profilePhoto;
-        emit profilePhotoChanged();
-    }
-}
-
-void User::setAccentColorId(int accentColorId)
-{
-    if (m_accentColorId != accentColorId)
-    {
-        m_accentColorId = accentColorId;
-        emit accentColorIdChanged();
-    }
-}
-
-void User::setBackgroundCustomEmojiId(qlonglong backgroundCustomEmojiId)
-{
-    if (m_backgroundCustomEmojiId != backgroundCustomEmojiId)
-    {
-        m_backgroundCustomEmojiId = backgroundCustomEmojiId;
-        emit backgroundCustomEmojiIdChanged();
-    }
-}
-
-void User::setProfileAccentColorId(int profileAccentColorId)
-{
-    if (m_profileAccentColorId != profileAccentColorId)
-    {
-        m_profileAccentColorId = profileAccentColorId;
-        emit profileAccentColorIdChanged();
-    }
-}
-
-void User::setProfileBackgroundCustomEmojiId(qlonglong profileBackgroundCustomEmojiId)
-{
-    if (m_profileBackgroundCustomEmojiId != profileBackgroundCustomEmojiId)
-    {
-        m_profileBackgroundCustomEmojiId = profileBackgroundCustomEmojiId;
-        emit profileBackgroundCustomEmojiIdChanged();
-    }
-}
-
-void User::setEmojiStatus(const QVariantMap &emojiStatus)
-{
-    if (m_emojiStatus != emojiStatus)
-    {
-        m_emojiStatus = emojiStatus;
-        emit emojiStatusChanged();
-    }
-}
-
-void User::setIsContact(bool isContact)
-{
-    if (m_isContact != isContact)
-    {
-        m_isContact = isContact;
-        emit isContactChanged();
-    }
-}
-
-void User::setIsMutualContact(bool isMutualContact)
-{
-    if (m_isMutualContact != isMutualContact)
-    {
-        m_isMutualContact = isMutualContact;
-        emit isMutualContactChanged();
-    }
-}
-
-void User::setIsCloseFriend(bool isCloseFriend)
-{
-    if (m_isCloseFriend != isCloseFriend)
-    {
-        m_isCloseFriend = isCloseFriend;
-        emit isCloseFriendChanged();
-    }
-}
-
-void User::setIsVerified(bool isVerified)
-{
-    if (m_isVerified != isVerified)
-    {
-        m_isVerified = isVerified;
-        emit isVerifiedChanged();
-    }
-}
-
-void User::setIsPremium(bool isPremium)
-{
-    if (m_isPremium != isPremium)
-    {
-        m_isPremium = isPremium;
-        emit isPremiumChanged();
-    }
-}
-
-void User::setIsSupport(bool isSupport)
-{
-    if (m_isSupport != isSupport)
-    {
-        m_isSupport = isSupport;
-        emit isSupportChanged();
-    }
-}
-
-void User::setRestrictionReason(const QString &restrictionReason)
-{
-    if (m_restrictionReason != restrictionReason)
-    {
-        m_restrictionReason = restrictionReason;
-        emit restrictionReasonChanged();
-    }
-}
-
-void User::setIsScam(bool isScam)
-{
-    if (m_isScam != isScam)
-    {
-        m_isScam = isScam;
-        emit isScamChanged();
-    }
-}
-
-void User::setIsFake(bool isFake)
-{
-    if (m_isFake != isFake)
-    {
-        m_isFake = isFake;
-        emit isFakeChanged();
-    }
-}
-
-void User::setHasActiveStories(bool hasActiveStories)
-{
-    if (m_hasActiveStories != hasActiveStories)
-    {
-        m_hasActiveStories = hasActiveStories;
-        emit hasActiveStoriesChanged();
-    }
-}
-
-void User::setHasUnreadActiveStories(bool hasUnreadActiveStories)
-{
-    if (m_hasUnreadActiveStories != hasUnreadActiveStories)
-    {
-        m_hasUnreadActiveStories = hasUnreadActiveStories;
-        emit hasUnreadActiveStoriesChanged();
-    }
-}
-
-void User::setRestrictsNewChats(bool restrictsNewChats)
-{
-    if (m_restrictsNewChats != restrictsNewChats)
-    {
-        m_restrictsNewChats = restrictsNewChats;
-        emit restrictsNewChatsChanged();
-    }
-}
-
-void User::setHaveAccess(bool haveAccess)
-{
-    if (m_haveAccess != haveAccess)
-    {
-        m_haveAccess = haveAccess;
-        emit haveAccessChanged();
-    }
-}
-
-void User::setType(const QVariantMap &type)
-{
-    if (m_type != type)
-    {
-        m_type = type;
-        emit typeChanged();
-    }
-}
-
-void User::setLanguageCode(const QString &languageCode)
-{
-    if (m_languageCode != languageCode)
-    {
-        m_languageCode = languageCode;
-        emit languageCodeChanged();
-    }
-}
-
-void User::setAddedToAttachmentMenu(bool addedToAttachmentMenu)
-{
-    if (m_addedToAttachmentMenu != addedToAttachmentMenu)
-    {
-        m_addedToAttachmentMenu = addedToAttachmentMenu;
-        emit addedToAttachmentMenuChanged();
-    }
-}
-
-void User::setFromVariantMap(const QVariantMap &map)
-{
-    m_id = map.value("id").toLongLong();
-    m_firstName = map.value("first_name").toString();
-    m_lastName = map.value("last_name").toString();
-    m_usernames = map.value("usernames").toMap();
-    m_phoneNumber = map.value("phone_number").toString();
-    m_status = map.value("status").toMap();
-    m_profilePhoto = map.value("profile_photo").toMap();
-    m_accentColorId = map.value("accent_color_id").toInt();
-    m_backgroundCustomEmojiId = map.value("background_custom_emoji_id").toLongLong();
-    m_profileAccentColorId = map.value("profile_accent_color_id").toInt();
-    m_profileBackgroundCustomEmojiId = map.value("profile_background_custom_emoji_id").toLongLong();
-    m_emojiStatus = map.value("emoji_status").toMap();
-    m_isContact = map.value("is_contact").toBool();
-    m_isMutualContact = map.value("is_mutual_contact").toBool();
-    m_isCloseFriend = map.value("is_close_friend").toBool();
-    m_isVerified = map.value("is_verified").toBool();
-    m_isPremium = map.value("is_premium").toBool();
-    m_isSupport = map.value("is_support").toBool();
-    m_restrictionReason = map.value("restriction_reason").toString();
-    m_isScam = map.value("is_scam").toBool();
-    m_isFake = map.value("is_fake").toBool();
-    m_hasActiveStories = map.value("has_active_stories").toBool();
-    m_hasUnreadActiveStories = map.value("has_unread_active_stories").toBool();
-    m_restrictsNewChats = map.value("restricts_new_chats").toBool();
-    m_haveAccess = map.value("have_access").toBool();
-    m_type = map.value("type").toMap();
-    m_languageCode = map.value("language_code").toString();
-    m_addedToAttachmentMenu = map.value("added_to_attachment_menu").toBool();
 }

@@ -1,8 +1,26 @@
 #include "MessageContent.hpp"
 
-MessageText::MessageText(QObject *parent)
+MessageText::MessageText(td::td_api::object_ptr<td::td_api::messageText> content, QObject *parent)
     : QObject(parent)
 {
+    m_text = QString::fromStdString(content->text_->text_);
+
+    if (content->web_page_)
+    {
+        m_webPage = QString::fromStdString(content->web_page_->url_);
+    }
+    else
+    {
+        m_webPage.clear();
+    }
+    if (content->link_preview_options_)
+    {
+        m_linkPreviewOptions = QString::fromStdString(content->link_preview_options_->url_);
+    }
+    else
+    {
+        m_linkPreviewOptions.clear();
+    }
 }
 
 QString MessageText::text() const
@@ -20,38 +38,13 @@ QString MessageText::linkPreviewOptions() const
     return m_linkPreviewOptions;
 }
 
-void MessageText::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto textContent = td::td_api::move_object_as<td::td_api::messageText>(content))
-    {
-        m_text = QString::fromStdString(textContent->text_->text_);
-
-        if (textContent->web_page_)
-        {
-            m_webPage = QString::fromStdString(textContent->web_page_->url_);
-        }
-        else
-        {
-            m_webPage.clear();
-        }
-        if (textContent->link_preview_options_)
-        {
-            // m_linkPreviewOptions = QString::fromStdString(textContent->link_preview_options_->title_);
-        }
-        else
-        {
-            m_linkPreviewOptions.clear();
-        }
-        emit textChanged();
-    }
-}
-
-MessageAnimation::MessageAnimation(QObject *parent)
+MessageAnimation::MessageAnimation(td::td_api::object_ptr<td::td_api::messageAnimation> content, QObject *parent)
     : QObject(parent)
-    , m_showCaptionAboveMedia(false)
-    , m_hasSpoiler(false)
-    , m_isSecret(false)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);  // Extract caption text
+    m_showCaptionAboveMedia = content->show_caption_above_media_;
+    m_hasSpoiler = content->has_spoiler_;
+    m_isSecret = content->is_secret_;
 }
 
 QString MessageAnimation::caption() const
@@ -74,22 +67,18 @@ bool MessageAnimation::isSecret() const
     return m_isSecret;
 }
 
-void MessageAnimation::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto animationContent = td::td_api::move_object_as<td::td_api::messageAnimation>(content))
-    {
-        m_caption = QString::fromStdString(animationContent->caption_->text_);  // Extract caption text
-        m_showCaptionAboveMedia = animationContent->show_caption_above_media_;
-        m_hasSpoiler = animationContent->has_spoiler_;
-        m_isSecret = animationContent->is_secret_;
-
-        emit animationChanged();
-    }
-}
-
-MessageAudio::MessageAudio(QObject *parent)
+MessageAudio::MessageAudio(td::td_api::object_ptr<td::td_api::messageAudio> content, QObject *parent)
     : QObject(parent)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);
+
+    if (content->audio_)
+    {
+        m_duration = content->audio_->duration_;
+        m_title = QString::fromStdString(content->audio_->title_);
+        m_performer = QString::fromStdString(content->audio_->performer_);
+        m_fileName = QString::fromStdString(content->audio_->file_name_);
+    }
 }
 
 QString MessageAudio::caption() const
@@ -117,26 +106,11 @@ QString MessageAudio::fileName() const
     return m_fileName;
 }
 
-void MessageAudio::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto audioContent = td::td_api::move_object_as<td::td_api::messageAudio>(content))
-    {
-        m_caption = QString::fromStdString(audioContent->caption_->text_);
-
-        if (audioContent->audio_)
-        {
-            m_duration = audioContent->audio_->duration_;
-            m_title  = QString::fromStdString(audioContent->audio_->title_);
-            m_performer = QString::fromStdString(audioContent->audio_->performer_);
-            m_fileName = QString::fromStdString(audioContent->audio_->file_name_);
-        }
-        emit audioChanged();
-    }
-}
-
-MessageDocument::MessageDocument(QObject *parent)
+MessageDocument::MessageDocument(td::td_api::object_ptr<td::td_api::messageDocument> content, QObject *parent)
     : QObject(parent)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);
+    m_fileName = QString::fromStdString(content->document_->file_name_);
 }
 
 QString MessageDocument::caption() const
@@ -144,21 +118,18 @@ QString MessageDocument::caption() const
     return m_caption;
 }
 
-void MessageDocument::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
+QString MessageDocument::fileName() const
 {
-    if (auto documentContent = td::td_api::move_object_as<td::td_api::messageDocument>(content))
-    {
-        m_caption = QString::fromStdString(documentContent->caption_->text_);
-        emit documentChanged();
-    }
+    return m_fileName;
 }
 
-MessagePhoto::MessagePhoto(QObject *parent)
+MessagePhoto::MessagePhoto(td::td_api::object_ptr<td::td_api::messagePhoto> content, QObject *parent)
     : QObject(parent)
-    , m_showCaptionAboveMedia(false)
-    , m_hasSpoiler(false)
-    , m_isSecret(false)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);
+    m_showCaptionAboveMedia = content->show_caption_above_media_;
+    m_hasSpoiler = content->has_spoiler_;
+    m_isSecret = content->is_secret_;
 }
 
 QString MessagePhoto::caption() const
@@ -181,44 +152,24 @@ bool MessagePhoto::isSecret() const
     return m_isSecret;
 }
 
-void MessagePhoto::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto photoContent = td::td_api::move_object_as<td::td_api::messagePhoto>(content))
-    {
-        m_caption = QString::fromStdString(photoContent->caption_->text_);
-        m_showCaptionAboveMedia = photoContent->show_caption_above_media_;
-        m_hasSpoiler = photoContent->has_spoiler_;
-        m_isSecret = photoContent->is_secret_;
-        emit photoChanged();
-    }
-}
-
-MessageSticker::MessageSticker(QObject *parent)
+MessageSticker::MessageSticker(td::td_api::object_ptr<td::td_api::messageSticker> content, QObject *parent)
     : QObject(parent)
-    , m_isPremium(false)
 {
+    m_emoji = QString::fromStdString(content->sticker_->emoji_);
 }
 
-bool MessageSticker::isPremium() const
+QString MessageSticker::emoji() const
 {
-    return m_isPremium;
+    return m_emoji;
 }
 
-void MessageSticker::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto stickerContent = td::td_api::move_object_as<td::td_api::messageSticker>(content))
-    {
-        m_isPremium = stickerContent->is_premium_;
-        emit stickerChanged();
-    }
-}
-
-MessageVideo::MessageVideo(QObject *parent)
+MessageVideo::MessageVideo(td::td_api::object_ptr<td::td_api::messageVideo> content, QObject *parent)
     : QObject(parent)
-    , m_showCaptionAboveMedia(false)
-    , m_hasSpoiler(false)
-    , m_isSecret(false)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);
+    m_showCaptionAboveMedia = content->show_caption_above_media_;
+    m_hasSpoiler = content->has_spoiler_;
+    m_isSecret = content->is_secret_;
 }
 
 QString MessageVideo::caption() const
@@ -241,23 +192,11 @@ bool MessageVideo::isSecret() const
     return m_isSecret;
 }
 
-void MessageVideo::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto videoContent = td::td_api::move_object_as<td::td_api::messageVideo>(content))
-    {
-        m_caption = QString::fromStdString(videoContent->caption_->text_);
-        m_showCaptionAboveMedia = videoContent->show_caption_above_media_;
-        m_hasSpoiler = videoContent->has_spoiler_;
-        m_isSecret = videoContent->is_secret_;
-        emit videoChanged();
-    }
-}
-
-MessageVideoNote::MessageVideoNote(QObject *parent)
+MessageVideoNote::MessageVideoNote(td::td_api::object_ptr<td::td_api::messageVideoNote> content, QObject *parent)
     : QObject(parent)
-    , m_isViewed(false)
-    , m_isSecret(false)
 {
+    m_isViewed = content->is_viewed_;
+    m_isSecret = content->is_secret_;
 }
 
 bool MessageVideoNote::isViewed() const
@@ -270,20 +209,11 @@ bool MessageVideoNote::isSecret() const
     return m_isSecret;
 }
 
-void MessageVideoNote::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto videoNoteContent = td::td_api::move_object_as<td::td_api::messageVideoNote>(content))
-    {
-        m_isViewed = videoNoteContent->is_viewed_;
-        m_isSecret = videoNoteContent->is_secret_;
-        emit videoNoteChanged();
-    }
-}
-
-MessageVoiceNote::MessageVoiceNote(QObject *parent)
+MessageVoiceNote::MessageVoiceNote(td::td_api::object_ptr<td::td_api::messageVoiceNote> content, QObject *parent)
     : QObject(parent)
-    , m_isListened(false)
 {
+    m_caption = QString::fromStdString(content->caption_->text_);
+    m_isListened = content->is_listened_;
 }
 
 QString MessageVoiceNote::caption() const
@@ -296,23 +226,14 @@ bool MessageVoiceNote::isListened() const
     return m_isListened;
 }
 
-void MessageVoiceNote::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto voiceNoteContent = td::td_api::move_object_as<td::td_api::messageVoiceNote>(content))
-    {
-        m_caption = QString::fromStdString(voiceNoteContent->caption_->text_);
-        m_isListened = voiceNoteContent->is_listened_;
-        emit voiceNoteChanged();
-    }
-}
-
-MessageLocation::MessageLocation(QObject *parent)
+MessageLocation::MessageLocation(td::td_api::object_ptr<td::td_api::messageLocation> content, QObject *parent)
     : QObject(parent)
-    , m_livePeriod(0)
-    , m_expiresIn(0)
-    , m_heading(0)
-    , m_proximityAlertRadius(0)
 {
+    // m_location = QString::fromStdString(content->location_->address_);
+    m_livePeriod = content->live_period_;
+    m_expiresIn = content->expires_in_;
+    m_heading = content->heading_;
+    m_proximityAlertRadius = content->proximity_alert_radius_;
 }
 
 QString MessageLocation::location() const
@@ -340,22 +261,10 @@ int MessageLocation::proximityAlertRadius() const
     return m_proximityAlertRadius;
 }
 
-void MessageLocation::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto locationContent = td::td_api::move_object_as<td::td_api::messageLocation>(content))
-    {
-        // m_location = QString::fromStdString(locationContent->location_->address_);
-        m_livePeriod = locationContent->live_period_;
-        m_expiresIn = locationContent->expires_in_;
-        m_heading = locationContent->heading_;
-        m_proximityAlertRadius = locationContent->proximity_alert_radius_;
-        emit locationChanged();
-    }
-}
-
-MessageVenue::MessageVenue(QObject *parent)
+MessageVenue::MessageVenue(td::td_api::object_ptr<td::td_api::messageVenue> content, QObject *parent)
     : QObject(parent)
 {
+    m_venue = QString::fromStdString(content->venue_->title_);
 }
 
 QString MessageVenue::venue() const
@@ -363,18 +272,10 @@ QString MessageVenue::venue() const
     return m_venue;
 }
 
-void MessageVenue::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto venueContent = td::td_api::move_object_as<td::td_api::messageVenue>(content))
-    {
-        m_venue = QString::fromStdString(venueContent->venue_->title_);
-        emit venueChanged();
-    }
-}
-
-MessageContact::MessageContact(QObject *parent)
+MessageContact::MessageContact(td::td_api::object_ptr<td::td_api::messageContact> content, QObject *parent)
     : QObject(parent)
 {
+    m_contact = QString::fromStdString(content->contact_->phone_number_);
 }
 
 QString MessageContact::contact() const
@@ -382,23 +283,10 @@ QString MessageContact::contact() const
     return m_contact;
 }
 
-void MessageContact::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto contactContent = td::td_api::move_object_as<td::td_api::messageContact>(content))
-    {
-        m_contact = QString::fromStdString(contactContent->contact_->phone_number_);
-        emit contactChanged();
-    }
-}
-
-MessageAnimatedEmoji::MessageAnimatedEmoji(QObject *parent)
+MessageAnimatedEmoji::MessageAnimatedEmoji(td::td_api::object_ptr<td::td_api::messageAnimatedEmoji> content, QObject *parent)
     : QObject(parent)
 {
-}
-
-QString MessageAnimatedEmoji::animatedEmoji() const
-{
-    return m_animatedEmoji;
+    m_emoji = QString::fromStdString(content->emoji_);
 }
 
 QString MessageAnimatedEmoji::emoji() const
@@ -406,42 +294,31 @@ QString MessageAnimatedEmoji::emoji() const
     return m_emoji;
 }
 
-void MessageAnimatedEmoji::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto animatedEmojiContent = td::td_api::move_object_as<td::td_api::messageAnimatedEmoji>(content))
-    {
-        // m_animatedEmoji = QString::fromStdString(animatedEmojiContent->animated_emoji_->animation_->file_name_);
-        m_emoji = QString::fromStdString(animatedEmojiContent->emoji_);
-        emit animatedEmojiChanged();
-    }
-}
-
-MessagePoll::MessagePoll(QObject *parent)
+MessagePoll::MessagePoll(td::td_api::object_ptr<td::td_api::messagePoll> content, QObject *parent)
     : QObject(parent)
 {
+    m_question = QString::fromStdString(content->poll_->question_->text_);
 }
 
-QString MessagePoll::poll() const
+QString MessagePoll::question() const
 {
-    return m_poll;
+    return m_question;
 }
 
-void MessagePoll::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto pollContent = td::td_api::move_object_as<td::td_api::messagePoll>(content))
-    {
-        // m_poll = QString::fromStdString(pollContent->poll_->question_);
-        emit pollChanged();
-    }
-}
-
-MessageInvoice::MessageInvoice(QObject *parent)
+MessageInvoice::MessageInvoice(td::td_api::object_ptr<td::td_api::messageInvoice> content, QObject *parent)
     : QObject(parent)
-    , m_totalAmount(0)
-    , m_isTest(false)
-    , m_needShippingAddress(false)
-    , m_receiptMessageId(0)
 {
+    // m_productInfo = QString::fromStdString(content->product_info_->description_);
+    m_currency = QString::fromStdString(content->currency_);
+    m_totalAmount = content->total_amount_;
+    m_startParameter = QString::fromStdString(content->start_parameter_);
+    m_isTest = content->is_test_;
+    m_needShippingAddress = content->need_shipping_address_;
+    m_receiptMessageId = content->receipt_message_id_;
+    if (content->extended_media_)
+    {
+        // m_extendedMedia = QString::fromStdString(content->extended_media_->type_);
+    }
 }
 
 QString MessageInvoice::productInfo() const
@@ -484,34 +361,33 @@ QString MessageInvoice::extendedMedia() const
     return m_extendedMedia;
 }
 
-void MessageInvoice::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
-{
-    if (auto invoiceContent = td::td_api::move_object_as<td::td_api::messageInvoice>(content))
-    {
-        // m_productInfo = QString::fromStdString(invoiceContent->product_info_->description_);
-        m_currency = QString::fromStdString(invoiceContent->currency_);
-        m_totalAmount = invoiceContent->total_amount_;
-        m_startParameter = QString::fromStdString(invoiceContent->start_parameter_);
-        m_isTest = invoiceContent->is_test_;
-        m_needShippingAddress = invoiceContent->need_shipping_address_;
-        m_receiptMessageId = invoiceContent->receipt_message_id_;
-        if (invoiceContent->extended_media_)
-        {
-            // m_extendedMedia = QString::fromStdString(invoiceContent->extended_media_->type_);
-        }
-        else
-        {
-            m_extendedMedia.clear();
-        }
-        emit invoiceChanged();
-    }
-}
-
-MessageCall::MessageCall(QObject *parent)
+MessageCall::MessageCall(td::td_api::object_ptr<td::td_api::messageCall> content, QObject *parent)
     : QObject(parent)
-    , m_isVideo(false)
-    , m_duration(0)
 {
+    m_isVideo = content->is_video_;
+
+    if (content->discard_reason_->get_id() == td::td_api::callDiscardReasonEmpty::ID)
+    {
+        m_discardReason = DiscardReason::Empty;
+    }
+    else if (content->discard_reason_->get_id() == td::td_api::callDiscardReasonMissed::ID)
+    {
+        m_discardReason = DiscardReason::Missed;
+    }
+    else if (content->discard_reason_->get_id() == td::td_api::callDiscardReasonDeclined::ID)
+    {
+        m_discardReason = DiscardReason::Declined;
+    }
+    else if (content->discard_reason_->get_id() == td::td_api::callDiscardReasonDisconnected::ID)
+    {
+        m_discardReason = DiscardReason::Disconnected;
+    }
+    else if (content->discard_reason_->get_id() == td::td_api::callDiscardReasonHungUp::ID)
+    {
+        m_discardReason = DiscardReason::HungUp;
+    }
+
+    m_duration = content->duration_;
 }
 
 bool MessageCall::isVideo() const
@@ -519,7 +395,7 @@ bool MessageCall::isVideo() const
     return m_isVideo;
 }
 
-QString MessageCall::discardReason() const
+MessageCall::DiscardReason MessageCall::discardReason() const
 {
     return m_discardReason;
 }
@@ -529,13 +405,240 @@ int MessageCall::duration() const
     return m_duration;
 }
 
-void MessageCall::handleContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
+MessageService::MessageService(td::td_api::object_ptr<td::td_api::MessageContent> content, QObject *parent)
+    : QObject(parent)
 {
-    if (auto callContent = td::td_api::move_object_as<td::td_api::messageCall>(content))
+    switch (content->get_id())
     {
-        m_isVideo = callContent->is_video_;
-        // m_discardReason = QString::fromStdString(callContent->discard_reason_->description_);
-        m_duration = callContent->duration_;
-        emit callChanged();
+        case td::td_api::messageExpiredPhoto::ID:
+            break;
+        case td::td_api::messageExpiredVideo::ID:
+            break;
+        case td::td_api::messageBasicGroupChatCreate::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageBasicGroupChatCreate>(content);
+            m_groupTitle = QString::fromStdString(message->title_);
+            m_addedMembers.clear();
+            for (const auto &member : message->member_user_ids_)
+            {
+                m_addedMembers << member;
+            }
+            break;
+        }
+        case td::td_api::messageSupergroupChatCreate::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageSupergroupChatCreate>(content);
+            m_groupTitle = QString::fromStdString(message->title_);
+            break;
+        }
+        case td::td_api::messageChatChangeTitle::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatChangeTitle>(content);
+            m_groupTitle = QString::fromStdString(message->title_);
+            break;
+        }
+        case td::td_api::messageChatChangePhoto::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatChangePhoto>(content);
+            // m_groupPhoto = QString::fromStdString(message->photo_->sizes_[0]->photo_->file_name_);
+            break;
+        }
+        case td::td_api::messageChatDeletePhoto::ID: {
+            m_groupPhoto.clear();
+            break;
+        }
+        case td::td_api::messageChatAddMembers::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatAddMembers>(content);
+            m_addedMembers.clear();
+            for (auto member : message->member_user_ids_)
+            {
+                m_addedMembers << member;
+            }
+            break;
+        }
+        case td::td_api::messageChatJoinByLink::ID: {
+            break;
+        }
+        case td::td_api::messageChatJoinByRequest::ID: {
+            break;
+        }
+        case td::td_api::messageChatDeleteMember::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatDeleteMember>(content);
+            m_removedMember = message->user_id_;
+            break;
+        }
+        case td::td_api::messageChatUpgradeTo::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatUpgradeTo>(content);
+            m_upgradedToSupergroup = message->supergroup_id_;
+            break;
+        }
+        case td::td_api::messageChatUpgradeFrom::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatUpgradeFrom>(content);
+            m_groupTitle = QString::fromStdString(message->title_);
+            m_upgradedFromGroup = message->basic_group_id_;
+            break;
+        }
+        case td::td_api::messagePinMessage::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messagePinMessage>(content);
+            m_pinnedMessage = message->message_id_;
+            break;
+        }
+        case td::td_api::messageScreenshotTaken::ID: {
+            break;
+        }
+        case td::td_api::messageChatSetBackground::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatSetBackground>(content);
+            // m_background = QString::fromStdString(message->background_->file_->file_name_);
+            break;
+        }
+        case td::td_api::messageChatSetTheme::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatSetTheme>(content);
+            m_theme = QString::fromStdString(message->theme_name_);
+            break;
+        }
+        case td::td_api::messageChatSetMessageAutoDeleteTime::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageChatSetMessageAutoDeleteTime>(content);
+            m_autoDeleteTime = message->message_auto_delete_time_;
+            m_fromUserId = message->from_user_id_;
+            break;
+        }
+        case td::td_api::messageChatBoost::ID: {
+            break;
+        }
+        case td::td_api::messageForumTopicCreated::ID: {
+            break;
+        }
+        case td::td_api::messageForumTopicEdited::ID: {
+            break;
+        }
+        case td::td_api::messageForumTopicIsClosedToggled::ID: {
+            break;
+        }
+        case td::td_api::messageForumTopicIsHiddenToggled::ID: {
+            break;
+        }
+        case td::td_api::messageSuggestProfilePhoto::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageSuggestProfilePhoto>(content);
+            // m_profilePhotoSuggestion = QString::fromStdString(message->suggested_photo_->sizes_[0]->photo_->file_name_);
+            break;
+        }
+        case td::td_api::messageCustomServiceAction::ID: {
+            auto message = td::td_api::move_object_as<td::td_api::messageCustomServiceAction>(content);
+            m_customAction = QString::fromStdString(message->text_);
+            break;
+        }
+        case td::td_api::messageContactRegistered::ID: {
+            break;
+        }
+        case td::td_api::messageInviteVideoChatParticipants::ID: {
+            break;
+        }
+        case td::td_api::messageVideoChatScheduled::ID: {
+            break;
+        }
+        case td::td_api::messageVideoChatStarted::ID: {
+            break;
+        }
+        case td::td_api::messageVideoChatEnded::ID: {
+            break;
+        }
+        case td::td_api::messageGiftedPremium::ID: {
+            break;
+        }
+        case td::td_api::messagePremiumGiftCode::ID: {
+            break;
+        }
+        case td::td_api::messagePaymentSuccessful::ID: {
+            break;
+        }
+        case td::td_api::messagePaymentSuccessfulBot::ID: {
+            break;
+        }
+        case td::td_api::messageUsersShared::ID: {
+            break;
+        }
+        case td::td_api::messageChatShared::ID: {
+            break;
+        }
+        case td::td_api::messageBotWriteAccessAllowed::ID: {
+            break;
+        }
+        case td::td_api::messageWebAppDataSent::ID: {
+            break;
+        }
+        case td::td_api::messageWebAppDataReceived::ID: {
+            break;
+        }
+        case td::td_api::messagePassportDataSent::ID: {
+            break;
+        }
+        case td::td_api::messagePassportDataReceived::ID: {
+            break;
+        }
+        case td::td_api::messageProximityAlertTriggered::ID: {
+            break;
+        }
+        case td::td_api::messageUnsupported::ID: {
+            break;
+        }
+        default: {
+            break;
+        }
     }
+}
+
+QString MessageService::groupTitle() const
+{
+    return m_groupTitle;
+}
+
+QString MessageService::groupPhoto() const
+{
+    return m_groupPhoto;
+}
+
+QList<qlonglong> MessageService::addedMembers() const
+{
+    return m_addedMembers;
+}
+
+qlonglong MessageService::removedMember() const
+{
+    return m_removedMember;
+}
+
+qlonglong MessageService::upgradedToSupergroup() const
+{
+    return m_upgradedToSupergroup;
+}
+
+qlonglong MessageService::upgradedFromGroup() const
+{
+    return m_upgradedFromGroup;
+}
+
+qlonglong MessageService::pinnedMessage() const
+{
+    return m_pinnedMessage;
+}
+
+QString MessageService::background() const
+{
+    return m_background;
+}
+
+QString MessageService::theme() const
+{
+    return m_theme;
+}
+
+int MessageService::autoDeleteTime() const
+{
+    return m_autoDeleteTime;
+}
+
+QString MessageService::customAction() const
+{
+    return m_customAction;
+}
+
+QString MessageService::profilePhotoSuggestion() const
+{
+    return m_profilePhotoSuggestion;
 }

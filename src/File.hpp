@@ -4,8 +4,9 @@
 
 #include <QVariant>
 
+#include <memory>
+
 class Client;
-class StorageManager;
 
 class File : public QObject
 {
@@ -30,8 +31,7 @@ class File : public QObject
     Q_PROPERTY(bool isUploadingCompleted READ isUploadingCompleted NOTIFY fileChanged)
 
 public:
-    explicit File(QObject *parent = nullptr);
-    explicit File(td::td_api::file *file, QObject *parent = nullptr);
+    explicit File(td::td_api::object_ptr<td::td_api::file> file, QObject *parent = nullptr);
 
     int id() const;
 
@@ -55,19 +55,35 @@ public:
     Q_INVOKABLE void cancelDownloadFile();
     Q_INVOKABLE void cancelUploadFile();
 
-    void setFile(td::td_api::file *file);
+    void setFile(td::td_api::object_ptr<td::td_api::file> file);
 
 signals:
     void fileChanged();
 
-private slots:
-    void onItemChanged(int fileId, td::td_api::Object *object);
-
 private:
-    Client *m_client{};
-    StorageManager *m_storageManager{};
+    void updateFileProperties();
 
-    td::td_api::file *m_file{};
+    int m_id;
+
+    int m_size;
+    int m_expectedSize;
+
+    QString m_localPath;
+
+    bool m_canBeDownloaded;
+    bool m_isDownloadingActive;
+    bool m_isDownloadingCompleted;
+
+    QString m_remoteId;
+    QString m_remoteUniqueId;
+
+    qlonglong m_uploadedSize;
+    bool m_isUploadingActive;
+    bool m_isUploadingCompleted;
+
+    std::shared_ptr<Client> m_client;
+
+    td::td_api::object_ptr<td::td_api::file> m_file;
 };
 
 // This allows us to store File * as a QVariant

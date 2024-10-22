@@ -12,6 +12,7 @@
 #include "ChatFolderModel.hpp"
 #include "ChatModel.hpp"
 #include "ChatPhotoProvider.hpp"
+#include "ChatPosition.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
 #include "CountryModel.hpp"
@@ -28,8 +29,8 @@
 #include "Settings.hpp"
 #include "SortFilterProxyModel.hpp"
 #include "StorageManager.hpp"
-#include "TdApi.hpp"
 #include "TextFormatter.hpp"
+#include "Utils.hpp"
 
 Q_DECL_EXPORT int main(int argc, char *argv[])
 {
@@ -47,15 +48,14 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qRegisterMetaType<qlonglong>("qlonglong");
 
-    qRegisterMetaType<TdApi::AuthorizationState>("TdApi::AuthorizationState");
-    qRegisterMetaType<TdApi::ChatList>("TdApi::ChatList");
+    qRegisterMetaType<QList<qlonglong>>("QList<qlonglong>");
+
+    qRegisterMetaType<ChatList::Type>("ChatList::Type");
 
     qRegisterMetaType<QModelIndex>("QModelIndex");
 
     qmlRegisterType<Authorization>("MyComponent", 1, 0, "Authorization");
-    qmlRegisterType<Chat>("MyComponent", 1, 0, "Chat");
-    qmlRegisterType<File>("MyComponent", 1, 0, "File");
-    qmlRegisterType<Message>("MyComponent", 1, 0, "Message");
+    qmlRegisterType<ChatList>("MyComponent", 1, 0, "ChatList");
 
     qmlRegisterType<ChatModel>("MyComponent", 1, 0, "ChatModel");
     qmlRegisterType<ChatFolderModel>("MyComponent", 1, 0, "ChatFolderModel");
@@ -68,19 +68,24 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qmlRegisterType<SortFilterProxyModel>("MyComponent", 1, 0, "SortFilterProxyModel");
     qmlRegisterType<TextFormatter>("MyComponent", 1, 0, "TextFormatter");
 
-    qmlRegisterUncreatableType<TdApi>("MyComponent", 1, 0, "TdApi", "TdApi should not be created in QML");
+    qmlRegisterUncreatableType<Chat>("MyComponent", 1, 0, "Chat", "");
+    qmlRegisterUncreatableType<ChatInfo>("MyComponent", 1, 0, "ChatInfo", "");
+    qmlRegisterUncreatableType<ChatPosition>("MyComponent", 1, 0, "ChatPosition", "");
+    qmlRegisterUncreatableType<File>("MyComponent", 1, 0, "File", "");
+    qmlRegisterUncreatableType<Message>("MyComponent", 1, 0, "Message", "");
 
     QDeclarativeView viewer;
     new DBusAdaptor(&app, &viewer);
 
     Application application;
+    Utils utils;
 
     Translator translator;
     app.installTranslator(&translator);
 
     viewer.rootContext()->setContextProperty("app", &application);
-    viewer.rootContext()->setContextProperty("client", StorageManager::instance().client());
     viewer.rootContext()->setContextProperty("settings", &Settings::instance());
+    viewer.rootContext()->setContextProperty("utils", &utils);
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);
 

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "TdApi.hpp"
-
 #include <td/telegram/td_api.h>
 
 #include <QObject>
 
 #include <array>
+#include <memory>
 
+class Chat;
 class Client;
 class Locale;
 class Settings;
@@ -27,6 +27,8 @@ public:
 
     const QString &connectionStateString() const noexcept;
 
+    Q_INVOKABLE Chat *getChat(qlonglong chatId) const noexcept;
+
 signals:
     void authorizedChanged();
     void connectionStateChanged();
@@ -44,6 +46,8 @@ private slots:
 
     void loadLanguagePack() noexcept;
 
+    void retranslateUi() noexcept;
+
 private:
     void setParameters() noexcept;
 
@@ -52,7 +56,8 @@ private:
     void handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState);
     void handleConnectionState(const td::td_api::ConnectionState &connectionState);
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
+
     Locale *m_locale{};
     Settings *m_settings{};
     StorageManager *m_storageManager{};

@@ -12,17 +12,22 @@
 #include <td/telegram/td_api.h>
 
 #include <algorithm>
+#include <ranges>
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_client(StorageManager::instance().client())
     , m_locale(&Locale::instance())
     , m_storageManager(&StorageManager::instance())
+    , m_list(std::make_unique<ChatList>(this))
 {
     connect(&m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
     connect(&m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
 
-    connect(this, SIGNAL(chatListChanged()), this, SLOT(refresh()));
+    connect(this, SIGNAL(listChanged()), this, SLOT(refresh()));
+
+    connect(m_storageManager, SIGNAL(chatUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+    connect(m_storageManager, SIGNAL(chatPositionUpdated(qlonglong)), this, SLOT(handleChatPosition(qlonglong)));
 
     m_sortTimer.setInterval(500);
     m_sortTimer.setSingleShot(true);
@@ -69,35 +74,38 @@ void ChatModel::fetchMore(const QModelIndex &parent)
 
 QVariant ChatModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
-        return {};
+    if (!index.isValid() || index.row() >= static_cast<int>(m_chats.size()))
+        return QVariant();
 
-    const auto &chat = m_chats.at(index.row());
+    auto chatPtr = m_chats.at(index.row()).lock();
+
+    if (!chatPtr)
+    {
+        return QVariant();
+    }
 
     switch (role)
     {
         case IdRole:
-            return QVariant::fromValue(chat->id());
+            return QVariant::fromValue(chatPtr->id());
         case TypeRole:
-            return chat->type();
+            return chatPtr->type();
         case TitleRole:
-            return chat->title();
+            return chatPtr->title();
         case PhotoRole:
-            return QVariant::fromValue(chat->photo());
+            return QVariant::fromValue(chatPtr->photo());
         case LastMessage:
-            return QVariant::fromValue(chat->lastMessage());
+            return QVariant::fromValue(chatPtr->lastMessage());
         case IsPinnedRole:
-            return chat->isPinned();
+            return getChatPosition(chatPtr.get(), m_list.get())->isPinned();
         case UnreadCountRole:
-            return chat->unreadCount();
+            return chatPtr->unreadCount();
         case UnreadMentionCountRole:
-            return chat->unreadMentionCount();
+            return chatPtr->unreadMentionCount();
         case IsMutedRole:
-            return chat->isMuted();
-        case ChatRole:
-            return QVariant::fromValue(chat.get());
+            return chatPtr->isMuted();
         default:
-            return {};
+            return QVariant();
     }
 }
 
@@ -114,7 +122,6 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[UnreadCountRole] = "unreadCount";
     roles[UnreadMentionCountRole] = "unreadMentionCount";
     roles[IsMutedRole] = "isMuted";
-    roles[ChatRole] = "selectedChat";
 
     return roles;
 }
@@ -129,44 +136,37 @@ bool ChatModel::loading() const
     return m_loading;
 }
 
-TdApi::ChatList ChatModel::chatList() const
+ChatList *ChatModel::list() const
 {
-    return m_chatList.type;
+    return m_list.get();
 }
 
-void ChatModel::setChatList(TdApi::ChatList value)
+void ChatModel::setList(ChatList *value)
 {
-    if (m_chatList.type != value)
+    if (m_list.get() == value)
     {
-        m_chatList.type = value;
-        emit chatListChanged();
+        return;
     }
-}
 
-int ChatModel::chatFolderId() const
-{
-    return m_chatList.folderId;
-}
-
-void ChatModel::setChatFolderId(int value)
-{
-    if (m_chatList.type == TdApi::ChatListFolder && m_chatList.folderId != value)
+    if (m_list)
     {
-        m_chatList.folderId = value;
-        emit chatListChanged();
+        disconnect(m_list.get(), SIGNAL(listChanged()), this, SIGNAL(listChanged()));
     }
-}
 
-Chat *ChatModel::get(int index) const
-{
-    // Assuming ChatRole returns a Chat* stored in QVariant
-    return data(createIndex(index, 0), ChatRole).value<Chat *>();
+    m_list.reset(value);
+
+    if (m_list)
+    {
+        connect(m_list.get(), SIGNAL(listChanged()), this, SIGNAL(listChanged()));
+    }
+
+    emit listChanged();
 }
 
 void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
 {
     auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
-    request->chat_list_ = Utils::toChatList(m_chatList);
+    request->chat_list_ = Utils::toChatList(m_list);
     request->chat_id_ = chatId;
     request->is_pinned_ = isPinned;
 
@@ -188,9 +188,6 @@ void ChatModel::populate()
 {
     m_chats.clear();
 
-    ChatListComparator comparator;
-    auto targetChatList = Utils::toChatList(m_chatList);
-
     const auto &chatIds = m_storageManager->getChatIds();
 
     m_chats.reserve(chatIds.size());  // Reserve memory to avoid multiple reallocations
@@ -199,14 +196,9 @@ void ChatModel::populate()
     {
         const auto chat = m_storageManager->getChat(id);
 
-        if (std::ranges::any_of(chat->positions_, [&](const auto &position) { return comparator(position->list_, targetChatList); }))
+        if (std::ranges::any_of(chat->positions(), [&](const auto &position) { return *position->list() == *m_list; }))
         {
-            auto newChat = std::make_unique<Chat>(id, m_chatList);
-
-            connect(newChat.get(), SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
-            connect(newChat.get(), SIGNAL(chatPositionUpdated(qlonglong)), this, SLOT(handleChatPosition(qlonglong)));
-
-            m_chats.emplace_back(std::move(newChat));
+            m_chats.emplace_back(std::move(chat));
         }
     }
 
@@ -242,16 +234,28 @@ void ChatModel::sortChats()
 {
     emit layoutAboutToBeChanged();
 
-    std::ranges::sort(m_chats, std::ranges::greater{}, &Chat::getOrder);
+    std::ranges::sort(m_chats, std::greater{}, [&](auto &&chatPtr) {
+        if (auto chat = chatPtr.lock())
+        {
+            if (auto pos = getChatPosition(chat.get(), m_list.get()))
+            {
+                return pos->order();
+            }
+        }
+        return std::numeric_limits<qlonglong>::min();
+    });
 
     emit layoutChanged();
 }
 
 void ChatModel::handleChatItem(qlonglong chatId)
 {
-    if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
+    auto chats = m_chats | std::views::transform([](const auto &chat) { return chat.lock(); });
+
+    auto it = std::ranges::find_if(chats, [chatId](const auto &chat) { return chat && chat->id() == chatId; });
+    if (it != chats.end())
     {
-        auto index = std::distance(m_chats.begin(), it);
+        auto index = std::distance(chats.begin(), it);
         QModelIndex modelIndex = createIndex(static_cast<int>(index), 0);
         emit dataChanged(modelIndex, modelIndex);
     }
@@ -259,7 +263,10 @@ void ChatModel::handleChatItem(qlonglong chatId)
 
 void ChatModel::handleChatPosition(qlonglong chatId)
 {
-    if (auto it = std::ranges::find(m_chats, chatId, &Chat::id); it != m_chats.end())
+    auto chats = m_chats | std::views::transform([](const auto &chat) { return chat.lock(); });
+
+    auto it = std::ranges::find_if(chats, [chatId](const auto &chat) { return chat && chat->id() == chatId; });
+    if (it != chats.end())
     {
         // emit delayed event
         if (not m_sortTimer.isActive())
@@ -269,16 +276,28 @@ void ChatModel::handleChatPosition(qlonglong chatId)
     }
 }
 
+ChatPosition *ChatModel::getChatPosition(Chat *chat, ChatList *list) const
+{
+    const auto &positions = chat->positions();
+
+    if (auto it = std::ranges::find_if(positions, [&](const auto &position) { return *position->list() == *list; }); it != positions.end())
+    {
+        return it->get();
+    }
+
+    return nullptr;
+}
+
 void ChatModel::loadChats()
 {
     auto request = td::td_api::make_object<td::td_api::loadChats>();
-    request->chat_list_ = Utils::toChatList(m_chatList);
+    request->chat_list_ = Utils::toChatList(m_list);
     request->limit_ = ChatSliceLimit;
 
     m_client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::error::ID)
         {
-            if (td::move_tl_object_as<td::td_api::error>(response)->code_ == 404)
+            if (td::td_api::move_object_as<td::td_api::error>(response)->code_ == 404)
             {
                 m_loading = false;
                 m_loadingTimer.stop();

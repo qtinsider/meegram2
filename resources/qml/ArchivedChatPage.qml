@@ -52,7 +52,8 @@ Page {
 
     ChatModel {
         id: myChatModel
-        chatList: TdApi.ChatListArchive
+
+        list: ChatList { type: ChatList.Archive }
 
         onLoadingChanged: {
             if (!loading)

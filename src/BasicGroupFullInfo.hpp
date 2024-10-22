@@ -1,58 +1,36 @@
 #pragma once
 
+#include <td/telegram/td_api.h>
+
+#include <QObject>
 #include <QVariant>
 
 class BasicGroupFullInfo : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(QVariantMap photo READ photo WRITE setPhoto NOTIFY photoChanged)
-    Q_PROPERTY(QString description READ description WRITE setDescription NOTIFY descriptionChanged)
-    Q_PROPERTY(qlonglong creatorUserId READ creatorUserId WRITE setCreatorUserId NOTIFY creatorUserIdChanged)
-    Q_PROPERTY(QVariantList members READ members WRITE setMembers NOTIFY membersChanged)
-    Q_PROPERTY(bool canHideMembers READ canHideMembers WRITE setCanHideMembers NOTIFY canHideMembersChanged)
-    Q_PROPERTY(bool canToggleAggressiveAntiSpam READ canToggleAggressiveAntiSpam WRITE setCanToggleAggressiveAntiSpam NOTIFY
-                   canToggleAggressiveAntiSpamChanged)
-    Q_PROPERTY(QVariantMap inviteLink READ inviteLink WRITE setInviteLink NOTIFY inviteLinkChanged)
-    Q_PROPERTY(QVariantList botCommands READ botCommands WRITE setBotCommands NOTIFY botCommandsChanged)
+    Q_PROPERTY(QVariantMap photo READ photo NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(QString description READ description NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(qlonglong creatorUserId READ creatorUserId NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(QVariantList members READ members NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(bool canHideMembers READ canHideMembers NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(bool canToggleAggressiveAntiSpam READ canToggleAggressiveAntiSpam NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(QVariantMap inviteLink READ inviteLink NOTIFY basicGroupFullInfoChanged)
+    Q_PROPERTY(QVariantList botCommands READ botCommands NOTIFY basicGroupFullInfoChanged)
 
 public:
-    explicit BasicGroupFullInfo(QObject *parent = nullptr);
+    explicit BasicGroupFullInfo(td::td_api::object_ptr<td::td_api::basicGroupFullInfo> groupInfo, QObject *parent = nullptr);
 
     QVariantMap photo() const;
-    void setPhoto(const QVariantMap &photo);
-
     QString description() const;
-    void setDescription(const QString &description);
-
     qlonglong creatorUserId() const;
-    void setCreatorUserId(qlonglong creatorUserId);
-
     QVariantList members() const;
-    void setMembers(const QVariantList &members);
-
     bool canHideMembers() const;
-    void setCanHideMembers(bool canHideMembers);
-
     bool canToggleAggressiveAntiSpam() const;
-    void setCanToggleAggressiveAntiSpam(bool canToggleAggressiveAntiSpam);
-
     QVariantMap inviteLink() const;
-    void setInviteLink(const QVariantMap &inviteLink);
-
     QVariantList botCommands() const;
-    void setBotCommands(const QVariantList &botCommands);
-
-    void setFromVariantMap(const QVariantMap &map);
 
 signals:
-    void photoChanged();
-    void descriptionChanged();
-    void creatorUserIdChanged();
-    void membersChanged();
-    void canHideMembersChanged();
-    void canToggleAggressiveAntiSpamChanged();
-    void inviteLinkChanged();
-    void botCommandsChanged();
+    void basicGroupFullInfoChanged();
 
 private:
     QVariantMap m_photo;

@@ -120,27 +120,32 @@ Page {
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {
-                myChatModel.chatList = TdApi.ChatListMain;
+                chatList.type = ChatList.Main;
             } else {
-                myChatModel.chatList = TdApi.ChatListFolder;
-                myChatModel.chatFolderId = model.get(selectedIndex).id;
+                chatList.type = ChatList.Folder;
+                chatList.folderId = model.get(selectedIndex).id;
             }
         }
     }
 
     ChatFolderModel {
         id: mychatFolderModel
-        localeString: qsTr("FilterAllChats")
+        // localeString: qsTr("FilterAllChats")
     }
 
     ChatModel {
         id: myChatModel
-        chatList: TdApi.ChatListMain
+        list: chatList
 
         onLoadingChanged: {
             if (!loading)
                 populateTimer.restart()
         }
+    }
+
+    ChatList {
+        id: chatList
+        type: ChatList.Main
     }
 
     ContextMenu {
@@ -192,5 +197,5 @@ Page {
         }
     }
 
-    Component.onCompleted: myChatModel.refresh()
+    Component.onCompleted: { myChatModel.refresh() }
 }

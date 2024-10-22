@@ -2,9 +2,7 @@
 
 #include "StorageManager.hpp"
 
-#include <QDebug>
-#include <QStringList>
-#include <algorithm>
+#include <ranges>
 
 ChatFolderModel::ChatFolderModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -15,37 +13,10 @@ ChatFolderModel::ChatFolderModel(QObject *parent)
 
     setRoleNames(roles);
 
-    m_chatFolders = StorageManager::instance().chatFolders();
-    setLocaleString(m_localeString);  // Assuming `m_localeString` is still valid here
-}
+    auto newFolders = StorageManager::instance().chatFolders();
 
-const QString &ChatFolderModel::localeString() const
-{
-    return m_localeString;
-}
-
-void ChatFolderModel::setLocaleString(const QString &value)
-{
-    auto folder = td::td_api::make_object<td::td_api::chatFolderInfo>();
-    folder->id_ = 0;
-    folder->title_ = value.toStdString();
-
-    auto it = std::ranges::find_if(m_chatFolders, [](const auto &folder) { return folder->id_ == 0; });
-
-    if (it != m_chatFolders.end())
-    {
-        // Delete the old pointer to prevent memory leak
-        delete *it;
-        // Replace the existing folder with id 0
-        *it = folder.release();
-    }
-    else
-    {
-        // Insert the new folder at the beginning
-        m_chatFolders.emplace(m_chatFolders.begin(), folder.release());
-    }
-
-    emit countChanged();
+    m_chatFolders =
+        newFolders | std::ranges::views::transform([](const auto &folder) { return std::weak_ptr<ChatFolderInfo>(folder); }) | std::ranges::to<std::vector>();
 }
 
 int ChatFolderModel::rowCount(const QModelIndex &index) const
@@ -56,16 +27,22 @@ int ChatFolderModel::rowCount(const QModelIndex &index) const
 
 QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || index.row() >= static_cast<int>(m_chatFolders.size()))
         return QVariant();
 
-    const auto &chatFolder = m_chatFolders.at(index.row());
+    auto folderPtr = m_chatFolders.at(index.row()).lock();
+
+    if (!folderPtr)
+    {
+        return QVariant();
+    }
+
     switch (role)
     {
         case IdRole:
-            return chatFolder->id_;
+            return folderPtr->id();
         case TitleRole:
-            return QString::fromStdString(chatFolder->title_);
+            return folderPtr->title();
         default:
             return QVariant();
     }
@@ -83,9 +60,4 @@ QVariant ChatFolderModel::get(int index) const noexcept
 int ChatFolderModel::count() const noexcept
 {
     return m_chatFolders.size();
-}
-
-void ChatFolderModel::retranslateUi()
-{
-
 }

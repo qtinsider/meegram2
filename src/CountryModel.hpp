@@ -18,7 +18,7 @@ class CountryModel : public QAbstractListModel
 
     Q_PROPERTY(QString phoneNumberPrefix READ phoneNumberPrefix WRITE setPhoneNumberPrefix NOTIFY phoneNumberPrefixChanged)
 
-    Q_PROPERTY(QString countryCallingCode READ countryCallingCode NOTIFY countryCallingCodeChanged)
+    Q_PROPERTY(QString callingCode READ callingCode NOTIFY callingCodeChanged)
     Q_PROPERTY(QString formattedPhoneNumber READ formattedPhoneNumber NOTIFY formattedPhoneNumberChanged)
 
 public:
@@ -46,7 +46,7 @@ public:
     QString phoneNumberPrefix() const noexcept;
     void setPhoneNumberPrefix(const QString &value) noexcept;
 
-    QString countryCallingCode() const noexcept;
+    QString callingCode() const noexcept;
     QString formattedPhoneNumber() const noexcept;
 
 signals:
@@ -56,7 +56,7 @@ signals:
 
     void phoneNumberPrefixChanged();
 
-    void countryCallingCodeChanged();
+    void callingCodeChanged();
     void formattedPhoneNumberChanged();
 
 private slots:
@@ -75,9 +75,9 @@ private:
     int m_selectedIndex{-1};
 
     QString m_phoneNumberPrefix;
-    QString m_countryCallingCode, m_formattedPhoneNumber;
+    QString m_callingCode, m_formattedPhoneNumber;
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
 
     std::vector<std::unique_ptr<CountryInfo>> m_countries;
 };

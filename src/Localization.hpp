@@ -18,6 +18,8 @@ public:
     Locale(const Locale &) = delete;
     Locale &operator=(const Locale &) = delete;
 
+    QString translate(const char *key, int plural) const;
+
     QString getString(const QString &key) const;
     QString formatPluralString(const QString &key, int plural) const;
     QString formatCallDuration(int duration) const;
@@ -41,22 +43,10 @@ private:
     std::unordered_map<QString, std::unique_ptr<PluralRules>> m_allRules;
 };
 
-class Translator : public QTranslator {
+class Translator : public QTranslator
+{
 public:
-    Translator(QObject *parent = nullptr) : QTranslator(parent) {}
+    Translator(QObject *parent = nullptr);
 
-    QString translate(const char *context, const char *sourceText, const char *disambiguation) const override
-    {
-        Q_UNUSED(context);
-        Q_UNUSED(disambiguation);
-
-        // if (n >= 0)
-        // {
-        //     return formatPluralString(sourceText, n);
-        // }
-        // Plural logic that never saw the light of day... 😢
-
-        return Locale::instance().getString(sourceText);
-    }
+    QString translate(const char *context, const char *sourceText, const char *disambiguation) const override;
 };
-

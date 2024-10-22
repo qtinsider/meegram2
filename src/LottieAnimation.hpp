@@ -34,8 +34,9 @@ public slots:
 signals:
     void sourceChanged();
     void statusChanged();
-    void finished();
     void loopChanged();
+
+    void finished();
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;

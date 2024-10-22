@@ -7,6 +7,7 @@ Page {
     id: root
 
     property alias chat: myMessageModel.chat
+    property alias chatInfo: myMessageModel.chatInfo
 
     property int replyMessageId: 0
     property int editMessageId: 0
@@ -89,7 +90,7 @@ Page {
                     width: parent.width
 
                     Label {
-                        text: chat.title
+                        text: chatInfo.title
                         font.bold: true
                         width: parent.width
                         horizontalAlignment: Text.AlignRight
@@ -97,7 +98,7 @@ Page {
                     }
 
                     Label {
-                        text: myMessageModel.chatSubtitle
+                        text: chatInfo.status
                         font { weight: Font.Light; pixelSize: 20 }
                         width: parent.width
                         horizontalAlignment: Text.AlignRight
@@ -135,7 +136,7 @@ Page {
 
                                 content: FormattedText {
                                     id: messageText
-                                    formattedText: model.isServiceMessage ? model.serviceMessage.trim() : model.content
+                                    formattedText: model.isService ? model.serviceMessage.trim() : model.content
                                     color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
                                     width: isPortrait ? 380 : 754
                                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere

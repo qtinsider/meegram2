@@ -79,7 +79,7 @@ void LanguagePackInfoModel::loadLocalizationData() noexcept
     m_client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::localizationTargetInfo::ID)
         {
-            auto localizationInfo = td::move_tl_object_as<td::td_api::localizationTargetInfo>(response);
+            auto localizationInfo = td::td_api::move_object_as<td::td_api::localizationTargetInfo>(response);
             if (!localizationInfo)
             {
                 qDebug() << "Failed to retrieve localization info";

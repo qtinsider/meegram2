@@ -1,10 +1,16 @@
 #pragma once
 
+#include "BasicGroup.hpp"
+#include "BasicGroupFullInfo.hpp"
+#include "Chat.hpp"
 #include "Client.hpp"
+#include "File.hpp"
+#include "Supergroup.hpp"
+#include "SupergroupFullInfo.hpp"
+#include "User.hpp"
+#include "UserFullInfo.hpp"
 
 #include <td/telegram/td_api.h>
-
-#include <QVariant>
 
 #include <memory>
 #include <unordered_map>
@@ -19,34 +25,36 @@ public:
     StorageManager(const StorageManager &) = delete;
     StorageManager &operator=(const StorageManager &) = delete;
 
-    [[nodiscard]] Client *client() const noexcept;
+    [[nodiscard]] std::shared_ptr<Client> client() const noexcept;
 
-    [[nodiscard]] std::vector<int64_t> getChatIds() const noexcept;
+    [[nodiscard]] std::vector<qlonglong> getChatIds() const noexcept;
 
-    [[nodiscard]] td::td_api::basicGroup *getBasicGroup(qlonglong groupId) noexcept;
-    [[nodiscard]] td::td_api::basicGroupFullInfo *getBasicGroupFullInfo(qlonglong groupId) noexcept;
-    [[nodiscard]] td::td_api::chat *getChat(qlonglong chatId) noexcept;
-    [[nodiscard]] td::td_api::file *getFile(int fileId) noexcept;
+    [[nodiscard]] std::shared_ptr<BasicGroup> getBasicGroup(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<BasicGroupFullInfo> getBasicGroupFullInfo(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<Chat> getChat(qlonglong chatId) const noexcept;
+    [[nodiscard]] std::shared_ptr<File> getFile(int fileId) const noexcept;
+    [[nodiscard]] std::shared_ptr<Supergroup> getSupergroup(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<SupergroupFullInfo> getSupergroupFullInfo(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<User> getUser(qlonglong userId) const noexcept;
+    [[nodiscard]] std::shared_ptr<UserFullInfo> getUserFullInfo(qlonglong userId) const noexcept;
+
+    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders() const noexcept;
+
     [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
-    [[nodiscard]] td::td_api::supergroup *getSupergroup(qlonglong groupId) noexcept;
-    [[nodiscard]] td::td_api::supergroupFullInfo *getSupergroupFullInfo(qlonglong groupId) noexcept;
-    [[nodiscard]] td::td_api::user *getUser(qlonglong userId) noexcept;
-    [[nodiscard]] td::td_api::userFullInfo *getUserFullInfo(qlonglong userId) noexcept;
-
-    [[nodiscard]] const std::vector<const td::td_api::chatFolderInfo *> &chatFolders() const noexcept;
 
     [[nodiscard]] qlonglong myId() const noexcept;
 
 signals:
-    void basicGroupUpdated(qlonglong groupId, td::td_api::Object *object);
-    void basicGroupFullInfoUpdated(qlonglong groupId, td::td_api::Object *object);
-    void chatsUpdated(td::td_api::Object *object);
-    void fileUpdated(int fileId, td::td_api::Object *object);
-    void supergroupUpdated(qlonglong groupId, td::td_api::Object *object);
-    void supergroupFullInfoUpdated(qlonglong groupId, td::td_api::Object *object);
-    void usersUpdated(qlonglong userId, td::td_api::Object *object);
-    void userFullInfoUpdated(qlonglong userId, td::td_api::Object *object);
-    void chatFoldersUpdated(td::td_api::Object *object);
+    void basicGroupUpdated(qlonglong groupId);
+    void basicGroupFullInfoUpdated(qlonglong groupId);
+    void chatUpdated(qlonglong chatId);
+    void chatPositionUpdated(qlonglong chatId);
+    void fileUpdated(int fileId);
+    void supergroupUpdated(qlonglong groupId);
+    void supergroupFullInfoUpdated(qlonglong groupId);
+    void userUpdated(qlonglong userId);
+    void userFullInfoUpdated(qlonglong userId);
+    void chatFoldersUpdated();
 
 private slots:
     void handleResult(td::td_api::Object *object);
@@ -54,30 +62,18 @@ private slots:
 private:
     StorageManager();
 
-    template <typename MapType, typename KeyType>
-    constexpr auto getPointer(MapType &map, const KeyType &key) noexcept -> typename MapType::mapped_type::element_type *
-    {
-        if (auto it = map.find(key); it != map.end())
-        {
-            return it->second.get();
-        }
-        return nullptr;
-    }
-
-    void setChatPositions(qlonglong chatId, std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> &&positions) noexcept;
-
     QVariantMap m_options;
 
-    std::unique_ptr<Client> m_client;
+    std::shared_ptr<Client> m_client;
 
-    std::vector<const td::td_api::chatFolderInfo *> m_chatFolders;
+    std::vector<std::shared_ptr<ChatFolderInfo>> m_chatFolders;
 
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroup>> m_basicGroup;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::basicGroupFullInfo>> m_basicGroupFullInfo;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::chat>> m_chats;
-    std::unordered_map<int32_t, td::td_api::object_ptr<td::td_api::file>> m_files;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::supergroup>> m_supergroup;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::supergroupFullInfo>> m_supergroupFullInfo;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::user>> m_users;
-    std::unordered_map<int64_t, td::td_api::object_ptr<td::td_api::userFullInfo>> m_userFullInfo;
+    std::unordered_map<qlonglong, std::shared_ptr<BasicGroup>> m_basicGroup;
+    std::unordered_map<qlonglong, std::shared_ptr<BasicGroupFullInfo>> m_basicGroupFullInfo;
+    std::unordered_map<qlonglong, std::shared_ptr<Chat>> m_chats;
+    std::unordered_map<int, std::shared_ptr<File>> m_files;
+    std::unordered_map<qlonglong, std::shared_ptr<Supergroup>> m_supergroup;
+    std::unordered_map<qlonglong, std::shared_ptr<SupergroupFullInfo>> m_supergroupFullInfo;
+    std::unordered_map<qlonglong, std::shared_ptr<User>> m_users;
+    std::unordered_map<qlonglong, std::shared_ptr<UserFullInfo>> m_userFullInfo;
 };

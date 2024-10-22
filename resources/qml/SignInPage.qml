@@ -67,7 +67,7 @@ Item {
 
             onTextChanged: {
                 countryModel.phoneNumberPrefix = text
-                phoneNumberField.text = countryModel.countryCallingCode + countryModel.formattedPhoneNumber
+                phoneNumberField.text = countryModel.callingCode + countryModel.formattedPhoneNumber
 
                 var match = text.match(/(\d)(?!.*\d)/);
                 var lastDigitPosition = match ? text.lastIndexOf(match[0]) : -1;
@@ -119,7 +119,7 @@ Item {
     QueryDialog {
         id: dialog
         titleText: qsTr("ConfirmCorrectNumber")
-        message: "+" + countryModel.countryCallingCode + " " + countryModel.formattedPhoneNumber
+        message: "+" + countryModel.callingCode + " " + countryModel.formattedPhoneNumber
         acceptButtonText: qsTr("OK")
         rejectButtonText: qsTr("Edit")
 

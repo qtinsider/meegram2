@@ -45,7 +45,7 @@ std::optional<std::string> loadFileContent(const QString &path)
         return std::nullopt;
     }
 
-    if (isTgsFile || (checkBuffer[0] == 0x1F && checkBuffer[1] == 0x8B))
+    if (isTgsFile || (static_cast<unsigned char>(checkBuffer[0]) == 0x1F && static_cast<unsigned char>(checkBuffer[1]) == 0x8B))
     {
         std::string result;
         result.reserve(byteArray.size());  // Reserve initial space

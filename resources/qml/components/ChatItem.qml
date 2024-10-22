@@ -51,7 +51,7 @@ Item {
             font.pixelSize: 26
             color: mouseArea.pressed ? "#797979" : "#282828"
             elide: Text.ElideRight
-            text: model.title
+            text: utils.getChatTitle(model.id, true)
         }
 
         Label {
@@ -89,7 +89,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             font.weight: Font.Light
             font.pixelSize: 22
-            color: mouseArea.pressed ? "#797979" : "#505050"
+            color: model.lastMessage.isService ? theme.selectionColor : mouseArea.pressed ? "#797979" : "#505050"
             elide: Text.ElideRight
             text: model.lastMessage.content
         }
@@ -166,7 +166,7 @@ Item {
     Ripple {
         id: mouseArea
         anchors.fill: parent
-        onClicked: appWindow.openChat(model.selectedChat)
+        onClicked: appWindow.openChat(model.id)
         onPressAndHold: root.pressAndHold()
     }
 }
