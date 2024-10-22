@@ -19,9 +19,9 @@ class Authorization : public QObject
 public:
     explicit Authorization(QObject *parent = nullptr);
 
+    [[nodiscard]] QString state() const noexcept;
     [[nodiscard]] QVariant content() const noexcept;
 
-    [[nodiscard]] QString state() const noexcept;
     void setState(const QString &value) noexcept;
 
     Q_INVOKABLE void checkCode(const QString &code) noexcept;
@@ -33,8 +33,6 @@ public:
     Q_INVOKABLE void resendCode() noexcept;
     Q_INVOKABLE void destroy() noexcept;
     Q_INVOKABLE void deleteAccount(const QString &reason) noexcept;
-
-    Q_INVOKABLE QString formatTime(int totalSeconds) const noexcept;
 
 signals:
     void error(int code, const QString &message);
@@ -58,7 +56,7 @@ private:
     QString m_state;
     QVariant m_content;
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
 
     std::function<void(td::td_api::object_ptr<td::td_api::Object>)> m_responseCallback;
 };

@@ -77,7 +77,7 @@ private:
     QString m_phoneNumberPrefix;
     QString m_countryCallingCode, m_formattedPhoneNumber;
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
 
     std::vector<std::unique_ptr<CountryInfo>> m_countries;
 };

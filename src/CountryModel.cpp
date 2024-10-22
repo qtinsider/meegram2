@@ -118,13 +118,13 @@ void CountryModel::updatePhoneInfoFromPrefix()
 
     if (info->get_id() == td::td_api::error::ID)
     {
-        qDebug() << "Error:" << QString::fromStdString(td::move_tl_object_as<td::td_api::error>(info)->message_);
+        qDebug() << "Error:" << QString::fromStdString(td::td_api::move_object_as<td::td_api::error>(info)->message_);
         return;  // Early exit on error
     }
 
     QString countryCode;
 
-    const auto phoneInfo = td::move_tl_object_as<td::td_api::phoneNumberInfo>(info);
+    const auto phoneInfo = td::td_api::move_object_as<td::td_api::phoneNumberInfo>(info);
 
     const auto countryCallingCode = QString::fromStdString(phoneInfo->country_calling_code_);
     const auto formattedPhoneNumber = QString::fromStdString(phoneInfo->formatted_phone_number_);
@@ -164,7 +164,7 @@ void CountryModel::fetchAndLoadCountries() noexcept
         {
             beginResetModel();
 
-            auto countries = std::move(td::move_tl_object_as<td::td_api::countries>(response)->countries_);
+            auto countries = std::move(td::td_api::move_object_as<td::td_api::countries>(response)->countries_);
 
             // Clear existing countries before loading new data
             m_countries.clear();

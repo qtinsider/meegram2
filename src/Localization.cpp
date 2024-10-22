@@ -161,12 +161,12 @@ void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languageP
     {
         if (string->value_->get_id() == td::td_api::languagePackStringValueOrdinary::ID)
         {
-            auto ordinaryValue = td::move_tl_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
+            auto ordinaryValue = td::td_api::move_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
             m_languagePack.emplace(QString::fromStdString(string->key_), QString::fromStdString(ordinaryValue->value_));
         }
         else if (string->value_->get_id() == td::td_api::languagePackStringValuePluralized::ID)
         {
-            auto pluralizedValue = td::move_tl_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
+            auto pluralizedValue = td::td_api::move_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
             const auto keyBase = QString::fromStdString(string->key_);
             if (!pluralizedValue->zero_value_.empty())
             {

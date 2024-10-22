@@ -1,12 +1,11 @@
 #pragma once
 
-#include "TdApi.hpp"
-
 #include <td/telegram/td_api.h>
 
 #include <QObject>
 
 #include <array>
+#include <memory>
 
 class Client;
 class Locale;
@@ -43,6 +42,7 @@ private slots:
     void handleResult(td::td_api::Object *object);
 
     void loadLanguagePack() noexcept;
+    void retranslateUi() noexcept;
 
 private:
     void setParameters() noexcept;
@@ -52,7 +52,8 @@ private:
     void handleAuthorizationState(const td::td_api::AuthorizationState &authorizationState);
     void handleConnectionState(const td::td_api::ConnectionState &connectionState);
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
+
     Locale *m_locale{};
     Settings *m_settings{};
     StorageManager *m_storageManager{};

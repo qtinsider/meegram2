@@ -52,7 +52,8 @@ Page {
 
     ChatModel {
         id: myChatModel
-        chatList: TdApi.ChatListArchive
+
+        list: ChatList { type: ChatList.Archive }
 
         onLoadingChanged: {
             if (!loading)
@@ -92,6 +93,4 @@ Page {
         repeat: false
         onTriggered: myChatModel.populate()
     }
-
-    Component.onCompleted: { myChatModel.refresh() }
 }

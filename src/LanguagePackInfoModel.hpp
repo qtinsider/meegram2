@@ -4,6 +4,8 @@
 
 #include <QAbstractListModel>
 
+#include <memory>
+
 class Client;
 
 class LanguagePackInfoModel : public QAbstractListModel
@@ -37,7 +39,7 @@ signals:
 private:
     void loadLocalizationData() noexcept;
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
 
     std::vector<td::td_api::object_ptr<td::td_api::languagePackInfo>> m_languagePackInfo;
 };

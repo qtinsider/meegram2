@@ -4,6 +4,8 @@
 
 #include <QVariant>
 
+#include <memory>
+
 class Client;
 
 class NotificationManager : public QObject
@@ -28,5 +30,5 @@ private:
 private:
     NotificationManager();
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
 };

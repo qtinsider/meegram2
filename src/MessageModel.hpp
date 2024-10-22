@@ -129,7 +129,8 @@ private:
 
     void itemChanged(int64_t index);
 
-    Client *m_client{};
+    std::shared_ptr<Client> m_client;
+
     StorageManager *m_storageManager{};
 
     Chat *m_chat{};

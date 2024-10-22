@@ -10,22 +10,22 @@ Authorization::Authorization(QObject *parent)
     m_responseCallback = [this](auto response) {
         if (response->get_id() == td::td_api::error::ID)
         {
-            auto result = td::move_tl_object_as<td::td_api::error>(response);
+            auto result = td::td_api::move_object_as<td::td_api::error>(response);
             emit error(result->code_, QString::fromStdString(result->message_));
         }
     };
 
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
-}
-
-QVariant Authorization::content() const noexcept
-{
-    return m_content;
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
 QString Authorization::state() const noexcept
 {
     return m_state;
+}
+
+QVariant Authorization::content() const noexcept
+{
+    return m_content;
 }
 
 void Authorization::setState(const QString &value) noexcept
@@ -92,11 +92,6 @@ void Authorization::deleteAccount(const QString &reason) noexcept
     m_client->send(std::move(request), m_responseCallback);
 }
 
-QString Authorization::formatTime(int totalSeconds) const noexcept
-{
-    return Utils::formatTime(totalSeconds);
-}
-
 void Authorization::handleResult(td::td_api::Object *object)
 {
     switch (object->get_id())
@@ -108,7 +103,7 @@ void Authorization::handleResult(td::td_api::Object *object)
             switch (authorizationState->get_id())
             {
                 case td::td_api::authorizationStateWaitPhoneNumber::ID:
-                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));                    
+                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));
                     // setState("phone_number");
                     break;
                 case td::td_api::authorizationStateWaitCode::ID:
@@ -159,7 +154,6 @@ void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authoriza
 {
     if (!authorizationState || !authorizationState->code_info_)
         return;
-
 
     const auto &codeInfo = *authorizationState->code_info_;
 

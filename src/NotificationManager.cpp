@@ -5,7 +5,7 @@
 NotificationManager::NotificationManager()
     : m_client(StorageManager::instance().client())
 {
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 }
 
 NotificationManager &NotificationManager::instance()

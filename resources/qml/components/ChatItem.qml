@@ -51,7 +51,7 @@ Item {
             font.pixelSize: 26
             color: mouseArea.pressed ? "#797979" : "#282828"
             elide: Text.ElideRight
-            text: model.title
+            text: utils.getChatTitle(model.id, true)
         }
 
         Label {

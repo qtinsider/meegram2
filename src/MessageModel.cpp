@@ -44,73 +44,73 @@ QString getBasicGroupStatus(const td::td_api::basicGroup *basicGroup, int online
 
 QString getChannelStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
 {
-    if (!supergroup->is_channel_)
-    {
+    // if (!supergroup->is_channel_)
+    // {
         return {};
-    }
+    // }
 
-    auto count = supergroup->member_count_;
-    if (count == 0)
-    {
-        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
-    }
+    // auto count = supergroup->member_count_;
+    // if (count == 0)
+    // {
+    //     count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
+    // }
 
-    if (count <= 0)
-    {
-        return supergroup->usernames_ ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
-    }
+    // if (count <= 0)
+    // {
+    //     return supergroup->usernames_ ? QObject::tr("ChannelPublic") : QObject::tr("ChannelPrivate");
+    // }
 
-    const auto subscriberString = Locale::instance().formatPluralString("Subscribers", count);
-    if (count <= 1)
-    {
-        return subscriberString;
-    }
+    // const auto subscriberString = Locale::instance().formatPluralString("Subscribers", count);
+    // if (count <= 1)
+    // {
+    //     return subscriberString;
+    // }
 
-    if (onlineCount > 1)
-    {
-        return subscriberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
-    }
+    // if (onlineCount > 1)
+    // {
+    //     return subscriberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
+    // }
 
-    return subscriberString;
+    // return subscriberString;
 }
 
 QString getSupergroupStatus(const td::td_api::supergroup *supergroup, int onlineCount, StorageManager *store) noexcept
 {
-    const auto hasLocation = supergroup->has_location_;
-    auto count = supergroup->member_count_;
-    const auto statusId = supergroup->status_->get_id();
+    // const auto hasLocation = supergroup->has_location_;
+    // auto count = supergroup->member_count_;
+    // const auto statusId = supergroup->status_->get_id();
 
-    if (statusId == td::td_api::chatMemberStatusBanned::ID)
-    {
+    // if (statusId == td::td_api::chatMemberStatusBanned::ID)
+    // {
         return QObject::tr("YouWereKicked");
-    }
+    // }
 
-    if (count == 0)
-    {
-        count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
-    }
+    // if (count == 0)
+    // {
+    //     count = store->getSupergroupFullInfo(supergroup->id_)->member_count_;
+    // }
 
-    if (count <= 0)
-    {
-        if (hasLocation)
-        {
-            return QObject::tr("MegaLocation");
-        }
-        return supergroup->usernames_ ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
-    }
+    // if (count <= 0)
+    // {
+    //     if (hasLocation)
+    //     {
+    //         return QObject::tr("MegaLocation");
+    //     }
+    //     return supergroup->usernames_ ? QObject::tr("MegaPublic") : QObject::tr("MegaPrivate");
+    // }
 
-    const auto memberString = Locale::instance().formatPluralString("Members", count);
-    if (count <= 1)
-    {
-        return memberString;
-    }
+    // const auto memberString = Locale::instance().formatPluralString("Members", count);
+    // if (count <= 1)
+    // {
+    //     return memberString;
+    // }
 
-    if (onlineCount > 1)
-    {
-        return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
-    }
+    // if (onlineCount > 1)
+    // {
+    //     return memberString + ", " + Locale::instance().formatPluralString("OnlineCount", onlineCount);
+    // }
 
-    return memberString;
+    // return memberString;
 }
 
 QString getUserStatus(const td::td_api::user *user) noexcept
@@ -180,7 +180,7 @@ MessageModel::MessageModel(QObject *parent)
 {
     qDebug() << "MessageModel initialized.";
 
-    connect(m_client, SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
     setRoleNames(roleNames());
 }
@@ -364,26 +364,26 @@ QString MessageModel::getChatSubtitle() const noexcept
     if (!m_chat)
         return {};
 
-    const auto chatTypeId = m_chat->getTypeId();
-    const auto &chatTypeString = m_chat->type();
+    // const auto chatTypeId = m_chat->getTypeId();
+    // const auto &chatTypeString = m_chat->type();
 
-    if (chatTypeString == "private" || chatTypeString == "secret")
-    {
-        return getUserStatus(m_storageManager->getUser(chatTypeId));
-    }
+    // if (chatTypeString == "private" || chatTypeString == "secret")
+    // {
+    //     return getUserStatus(m_storageManager->getUser(chatTypeId));
+    // }
 
-    if (chatTypeString == "basicGroup")
-    {
-        return getBasicGroupStatus(m_storageManager->getBasicGroup(chatTypeId), m_onlineCount);
-    }
+    // if (chatTypeString == "basicGroup")
+    // {
+    //     return getBasicGroupStatus(m_storageManager->getBasicGroup(chatTypeId), m_onlineCount);
+    // }
 
-    if (chatTypeString == "supergroup" || chatTypeString == "channel")
-    {
-        const auto &supergroup = m_storageManager->getSupergroup(chatTypeId);
+    // if (chatTypeString == "supergroup" || chatTypeString == "channel")
+    // {
+    //     const auto &supergroup = m_storageManager->getSupergroup(chatTypeId);
 
-        return (chatTypeString == "channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
-                                             : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
-    }
+    //     return (chatTypeString == "channel") ? getChannelStatus(supergroup, m_onlineCount, m_storageManager)
+    //                                          : getSupergroupStatus(supergroup, m_onlineCount, m_storageManager);
+    // }
 
     return {};
 }
@@ -400,16 +400,16 @@ void MessageModel::setChat(Chat *value) noexcept
 
     if (m_chat)
     {
-        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
-        disconnect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+        disconnect(m_chat, SIGNAL(chatChanged()), this, SIGNAL(chatChanged()));
+        disconnect(m_chat, SIGNAL(chatChanged()), this, SLOT(handleChatItem(qlonglong)));
     }
 
     m_chat = value;
 
     if (m_chat)
     {
-        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SIGNAL(chatChanged()));
-        connect(m_chat, SIGNAL(chatItemUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
+        connect(m_chat, SIGNAL(chatChanged()), this, SIGNAL(chatChanged()));
+        connect(m_chat, SIGNAL(chatChanged()), this, SLOT(handleChatItem(qlonglong)));
     }
 
     emit chatChanged();
@@ -474,7 +474,7 @@ void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit
     m_client->send(std::move(request), [this, previous](auto &&response) {
         if (response->get_id() == td::td_api::messages::ID)
         {
-            auto message = td::move_tl_object_as<td::td_api::messages>(response);
+            auto message = td::td_api::move_object_as<td::td_api::messages>(response);
             if (!message)
                 return;
 
@@ -490,7 +490,7 @@ void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit
             {
                 if (msg)
                 {
-                    newMessages.emplace_back(std::make_unique<Message>(msg.get()));
+                    newMessages.emplace_back(std::make_unique<Message>(std::move(msg)));
                 }
             }
 
@@ -624,7 +624,7 @@ void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> 
         return;
 
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
-    m_messages.emplace(message->id_, std::make_unique<Message>(message.get()));
+    m_messages.emplace(message->id_, std::make_unique<Message>(std::move(message)));
     endInsertRows();
 
     emit countChanged();
