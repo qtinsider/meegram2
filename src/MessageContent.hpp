@@ -3,6 +3,7 @@
 #include <td/telegram/td_api.h>
 
 #include <QDebug>
+#include <QMetaType>
 
 class MessageContent
 {
@@ -16,24 +17,18 @@ public:
 class MessageText : public QObject, public MessageContent
 {
     Q_OBJECT
-    Q_PROPERTY(QString text READ text NOTIFY textChanged)
-    Q_PROPERTY(QString webPage READ webPage NOTIFY textChanged)
-    Q_PROPERTY(QString linkPreviewOptions READ linkPreviewOptions NOTIFY textChanged)
+    Q_PROPERTY(QString text READ text CONSTANT)
+    Q_PROPERTY(QString formattedText READ formattedText CONSTANT)
 
 public:
     explicit MessageText(td::td_api::object_ptr<td::td_api::messageText> content, QObject *parent = nullptr);
 
     QString text() const;
-    QString webPage() const;
-    QString linkPreviewOptions() const;
-
-signals:
-    void textChanged();
+    QString formattedText() const;
 
 private:
     QString m_text;
-    QString m_webPage;
-    QString m_linkPreviewOptions;
+    QString m_formattedText;
 };
 
 class MessageAnimation : public QObject, public MessageContent
@@ -358,9 +353,9 @@ private:
 class MessageCall : public QObject, public MessageContent
 {
     Q_OBJECT
-    Q_PROPERTY(bool isVideo READ isVideo NOTIFY callChanged)
-    Q_PROPERTY(DiscardReason discardReason READ discardReason NOTIFY callChanged)
-    Q_PROPERTY(int duration READ duration NOTIFY callChanged)
+    Q_PROPERTY(bool isVideo READ isVideo CONSTANT)
+    Q_PROPERTY(DiscardReason discardReason READ discardReason CONSTANT)
+    Q_PROPERTY(int duration READ duration CONSTANT)
 
 public:
     explicit MessageCall(td::td_api::object_ptr<td::td_api::messageCall> content, QObject *parent = nullptr);
@@ -370,9 +365,6 @@ public:
     bool isVideo() const;
     DiscardReason discardReason() const;
     int duration() const;
-
-signals:
-    void callChanged();
 
 private:
     bool m_isVideo;
@@ -428,3 +420,22 @@ private:
     QString m_profilePhotoSuggestion;
     qlonglong m_fromUserId;
 };
+
+// Declare metatypes for each message content class
+Q_DECLARE_METATYPE(MessageText *)
+Q_DECLARE_METATYPE(MessageAnimation *)
+Q_DECLARE_METATYPE(MessageAudio *)
+Q_DECLARE_METATYPE(MessageDocument *)
+Q_DECLARE_METATYPE(MessagePhoto *)
+Q_DECLARE_METATYPE(MessageSticker *)
+Q_DECLARE_METATYPE(MessageVideo *)
+Q_DECLARE_METATYPE(MessageVideoNote *)
+Q_DECLARE_METATYPE(MessageVoiceNote *)
+Q_DECLARE_METATYPE(MessageLocation *)
+Q_DECLARE_METATYPE(MessageVenue *)
+Q_DECLARE_METATYPE(MessageContact *)
+Q_DECLARE_METATYPE(MessageAnimatedEmoji *)
+Q_DECLARE_METATYPE(MessagePoll *)
+Q_DECLARE_METATYPE(MessageInvoice *)
+Q_DECLARE_METATYPE(MessageCall *)
+Q_DECLARE_METATYPE(MessageService *)

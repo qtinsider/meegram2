@@ -83,11 +83,6 @@ int Chat::unreadMentionCount() const noexcept
     return m_unreadMentionCount;
 }
 
-qlonglong Chat::typeId() const noexcept
-{
-    return m_typeId;
-}
-
 int Chat::muteFor() const noexcept
 {
     return m_muteFor;
@@ -96,6 +91,11 @@ int Chat::muteFor() const noexcept
 bool Chat::isMuted() const noexcept
 {
     return m_muteFor > 0;
+}
+
+qlonglong Chat::typeId() const noexcept
+{
+    return m_typeId;
 }
 
 std::vector<std::unique_ptr<ChatPosition>> &Chat::positions() noexcept
@@ -138,7 +138,7 @@ void Chat::setPositions(std::vector<td::td_api::object_ptr<td::td_api::chatPosit
 {
     if (positions.empty())
     {
-        // m_positions.clear();
+        m_positions.clear();
         emit chatChanged();
         return;
     }

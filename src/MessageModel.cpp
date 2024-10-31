@@ -74,47 +74,64 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
             return date.toString(QObject::tr("formatterDay12H"));
         }
         case ContentRole: {
-            // const auto *content = message->content_.get();
-
-            // if (content->get_id() == td::td_api::messageText::ID)
-            // {
-            //     // Cast to const td::td_api::messageText*
-            //     const auto *formattedText = static_cast<const td::td_api::messageText *>(content);
-            //     // Access text_ safely
-            //     const auto *text = formattedText->text_.get();
-            //     // Cast const pointer to void* safely
-            //     return QVariant::fromValue(const_cast<void *>(static_cast<const void *>(text)));
-            // }
-
-            return QVariant();
+            auto content = message->content();
+            switch (message->contentType())
+            {
+                case td::td_api::messageText::ID:
+                    return QVariant::fromValue(static_cast<MessageText *>(content));
+                case td::td_api::messageAnimation::ID:
+                    return QVariant::fromValue(static_cast<MessageAnimation *>(content));
+                case td::td_api::messageAudio::ID:
+                    return QVariant::fromValue(static_cast<MessageAudio *>(content));
+                case td::td_api::messageDocument::ID:
+                    return QVariant::fromValue(static_cast<MessageDocument *>(content));
+                case td::td_api::messagePhoto::ID:
+                    return QVariant::fromValue(static_cast<MessagePhoto *>(content));
+                case td::td_api::messageSticker::ID:
+                    return QVariant::fromValue(static_cast<MessageSticker *>(content));
+                case td::td_api::messageVideo::ID:
+                    return QVariant::fromValue(static_cast<MessageVideo *>(content));
+                case td::td_api::messageVideoNote::ID:
+                    return QVariant::fromValue(static_cast<MessageVideoNote *>(content));
+                case td::td_api::messageVoiceNote::ID:
+                    return QVariant::fromValue(static_cast<MessageVoiceNote *>(content));
+                case td::td_api::messageLocation::ID:
+                    return QVariant::fromValue(static_cast<MessageLocation *>(content));
+                case td::td_api::messageVenue::ID:
+                    return QVariant::fromValue(static_cast<MessageVenue *>(content));
+                case td::td_api::messageContact::ID:
+                    return QVariant::fromValue(static_cast<MessageContact *>(content));
+                case td::td_api::messageAnimatedEmoji::ID:
+                    return QVariant::fromValue(static_cast<MessageAnimatedEmoji *>(content));
+                case td::td_api::messagePoll::ID:
+                    return QVariant::fromValue(static_cast<MessagePoll *>(content));
+                case td::td_api::messageCall::ID:
+                    return QVariant::fromValue(static_cast<MessageCall *>(content));
+                default:
+                    return QVariant::fromValue(static_cast<MessageService *>(content));
+            }
         }
-
         case ContentTypeRole: {
-            // if (const auto *content = message->content_.get(); content->get_id() == td::td_api::messageText::ID)
-            // {
-            //     return "text";
-            // }
-
-            return QVariant();
+            return message->contentTypeString();
         }
-        case IsServiceMessageRole: {
+        case IsServiceRole: {
             return message->isService();
         }
         case SectionRole: {
-            const auto date = message->date();
-            const auto days = date.daysTo(QDateTime::currentDateTime());
+            const auto days = message->date().daysTo(QDateTime::currentDateTime());
 
-            if (days == 0)
-                return QObject::tr("Today");
-            else if (days < 2)
-                return QObject::tr("Yesterday");
-
-            return date.toString(QObject::tr("chatFullDate"));
-        }
-        case ServiceMessageRole: {
-            return message->getServiceMessageContent();
+            switch (days)
+            {
+                case 0:
+                    return QObject::tr("MessageScheduleToday");
+                case 1:
+                    return QObject::tr("Yesterday");
+                default:
+                    return message->date().toString(QObject::tr("chatFullDate"));
+            }
         }
     }
+
     return QVariant();
 }
 
@@ -125,15 +142,13 @@ QHash<int, QByteArray> MessageModel::roleNames() const noexcept
     roles[SenderRole] = "sender";
     roles[ChatIdRole] = "chatId";
     roles[IsOutgoingRole] = "isOutgoing";
-    roles[IsPinnedRole] = "isPinned";
     roles[DateRole] = "date";
     roles[EditDateRole] = "editDate";
     roles[ContentRole] = "content";
     // Custom
     roles[ContentTypeRole] = "contentType";
-    roles[IsServiceMessageRole] = "isServiceMessage";
+    roles[IsServiceRole] = "isService";
     roles[SectionRole] = "section";
-    roles[ServiceMessageRole] = "serviceMessage";
     return roles;
 }
 
@@ -373,10 +388,6 @@ void MessageModel::handleResult(td::td_api::Object *object)
         *object,
         detail::Overloaded{
             [this](td::td_api::updateNewMessage &value) { handleNewMessage(std::move(value.message_)); },
-            [this](td::td_api::updateMessageSendSucceeded &value) { handleMessageSendSucceeded(std::move(value.message_), value.old_message_id_); },
-            [this](td::td_api::updateMessageSendFailed &value) {
-                handleMessageSendFailed(std::move(value.message_), value.old_message_id_, std::move(value.error_));
-            },
             [this](td::td_api::updateMessageContent &value) { handleMessageContent(value.chat_id_, value.message_id_, std::move(value.new_content_)); },
             [this](td::td_api::updateMessageEdited &value) {
                 handleMessageEdited(value.chat_id_, value.message_id_, value.edit_date_, std::move(value.reply_markup_));
@@ -442,15 +453,6 @@ void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> 
     endInsertRows();
 
     emit countChanged();
-}
-
-void MessageModel::handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId)
-{
-}
-
-void MessageModel::handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
-                                           td::td_api::object_ptr<td::td_api::error> &&error)
-{
 }
 
 void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent)

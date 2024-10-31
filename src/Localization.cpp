@@ -56,7 +56,7 @@ QString Locale::translate(const char *key, int plural) const
     return getString(key);
 }
 
-QString Locale::getString(const QString &key) const
+QString Locale::getString(const char *key) const
 {
     if (!m_languagePack.contains(key))
     {
@@ -109,10 +109,10 @@ QString Locale::getString(const QString &key) const
     return QString::fromStdString(result);
 }
 
-QString Locale::formatPluralString(const QString &key, int plural) const
+QString Locale::formatPluralString(const char *key, int plural) const
 {
-    const auto pluralKey = key + stringForQuantity(m_currentPluralRules->quantityForNumber(plural));
-    return getString(pluralKey).arg(plural);
+    const auto pluralKey = QString(key) + stringForQuantity(m_currentPluralRules->quantityForNumber(plural));
+    return getString(pluralKey.toUtf8().constData()).arg(plural);
 }
 
 QString Locale::formatCallDuration(int duration) const
@@ -136,27 +136,51 @@ QString Locale::formatCallDuration(int duration) const
     return formatPluralString("CallDurationSeconds", std::floor(duration));
 }
 
-QString Locale::formatTtl(int ttl) const
+QString Locale::formatTtl(int ttl, bool shorter) const
 {
-    if (ttl < 60)
+    if (shorter)
     {
-        return formatPluralString("TTLStringSeconds", std::floor(ttl));
-    }
-    if (ttl < 60 * 60)
-    {
-        return formatPluralString("TTLStringMinutes", std::floor(ttl / 60));
-    }
-    if (ttl < 24 * 60 * 60)
-    {
-        return formatPluralString("TTLStringHours", std::floor(ttl / 60 / 60));
+        return (ttl < 60) ? QString("%1s").arg(ttl) : QString("%1m").arg(ttl / 60);
     }
 
-    const auto days = ttl / 60 / 60 / 24;
-    if (ttl % 7 == 0)
+    constexpr int minute = 60;
+    constexpr int hour = 60 * minute;
+    constexpr int day = 24 * hour;
+    constexpr int week = 7 * day;
+    constexpr int month = 31 * day;
+    constexpr int year = 365 * day;
+
+    if (ttl < minute)
     {
-        return formatPluralString("TTLStringWeeks", std::floor(days / 7));
+        return formatPluralString("Seconds", ttl);
     }
-    return formatPluralString("TTLStringWeeks", std::floor(days / 7)) + formatPluralString("TTLStringDays", std::floor(days % 7));
+    if (ttl < hour)
+    {
+        return formatPluralString("Minutes", ttl / minute);
+    }
+    if (ttl < day)
+    {
+        return formatPluralString("Hours", ttl / hour);
+    }
+    if (ttl < week)
+    {
+        return formatPluralString("Days", ttl / day);
+    }
+    if (ttl < month)
+    {
+        int days = ttl / day;
+        int weeks = days / 7;
+        int remainingDays = days % 7;
+
+        return remainingDays == 0 ? formatPluralString("Weeks", weeks)
+                                  : QString("%1 %2").arg(formatPluralString("Weeks", weeks)).arg(formatPluralString("Days", remainingDays));
+    }
+    if (ttl < year)
+    {
+        return formatPluralString("Months", ttl / month);
+    }
+
+    return formatPluralString("Years", ttl / year);
 }
 
 void Locale::setLanguagePlural(const QString &value)

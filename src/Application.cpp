@@ -377,8 +377,6 @@ void Application::handleAuthorizationState(const td::td_api::AuthorizationState 
 {
     if (authorizationState.get_id() == td::td_api::authorizationStateReady::ID)
     {
-        m_client->send(td::td_api::make_object<td::td_api::loadChats>(), {});
-
         m_isAuthorized = true;
         emit authorizedChanged();
     }

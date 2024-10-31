@@ -103,7 +103,6 @@ void Authorization::handleResult(td::td_api::Object *object)
             switch (authorizationState->get_id())
             {
                 case td::td_api::authorizationStateWaitPhoneNumber::ID:
-                    handleAuthorizationStateWaitPhoneNumber(static_cast<const td::td_api::authorizationStateWaitPhoneNumber *>(authorizationState));
                     // setState("phone_number");
                     break;
                 case td::td_api::authorizationStateWaitCode::ID:
@@ -124,7 +123,6 @@ void Authorization::handleResult(td::td_api::Object *object)
                     setState("registration");
                     break;
                 case td::td_api::authorizationStateReady::ID:
-                    handleAuthorizationStateReady(static_cast<const td::td_api::authorizationStateReady *>(authorizationState));
                     setState("ready");
                     break;
                 case td::td_api::authorizationStateClosing::ID:
@@ -144,10 +142,6 @@ void Authorization::handleResult(td::td_api::Object *object)
         default:
             break;
     }
-}
-
-void Authorization::handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *)
-{
 }
 
 void Authorization::handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *authorizationState)
@@ -212,10 +206,6 @@ void Authorization::handleAuthorizationStateWaitRegistration(const td::td_api::a
     m_content = std::move(content);
 
     emit contentChanged();
-}
-
-void Authorization::handleAuthorizationStateReady(const td::td_api::authorizationStateReady *)
-{
 }
 
 QVariantMap Authorization::getCodeTypeMap(const td::td_api::AuthenticationCodeType &type)

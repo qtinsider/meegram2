@@ -11,7 +11,7 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: model.isServiceMessage ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 28 : 30);
+    height: model.isService ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 28 : 30);
     width: parent.width
 
     BorderImage {
@@ -19,9 +19,9 @@ Item {
         width: Math.max(childrenWidth, messageDate.paintedWidth + (model.isOutgoing ? 28 : 0),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: model.isServiceMessage ? (parent.width - width) / 2 : model.isOutgoing ? 10 : parent.width - width - 10
+            leftMargin: model.isService ? (parent.width - width) / 2 : model.isOutgoing ? 10 : parent.width - width - 10
             top: parent.top
-            topMargin: model.isServiceMessage ? 2 : model.isOutgoing ? 8 : 1
+            topMargin: model.isService ? 2 : model.isOutgoing ? 8 : 1
         }
 
         source: internal.getBubbleImage();
@@ -59,7 +59,7 @@ Item {
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
         horizontalAlignment: Text.AlignRight
-        visible: text !== "" && !isServiceMessage
+        visible: text !== "" && !isService
     }
 
     Item {
@@ -68,7 +68,7 @@ Item {
         height: contentItem.children[0].height
         anchors {
             top: parent.top
-            topMargin: model.isServiceMessage ? 15 : senderLabel.text === "" ? 16 : 46
+            topMargin: model.isService ? 15 : senderLabel.text === "" ? 16 : 46
         }
     }
 
@@ -86,8 +86,8 @@ Item {
         color: model.isOutgoing ? "black" : "white"
         font.pixelSize: 16
         font.weight: Font.Light
-        horizontalAlignment: model.isServiceMessage ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
-        visible: !model.isServiceMessage
+        horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
+        visible: !model.isService
     }
 
     QtObject {
@@ -95,7 +95,7 @@ Item {
 
         function getBubbleImage() {
             var imageSrc = "qrc:/images/";
-            if (model.isServiceMessage) {
+            if (model.isService) {
                 imageSrc += "notification"
             } else {
                 imageSrc += model.isOutgoing ? "outgoing" : "incoming"

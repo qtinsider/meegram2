@@ -7,6 +7,8 @@ import "components"
 Page {
     id: root
 
+    property variant chatPosition: null
+
     orientationLock: PageOrientation.LockPortrait
 
     TopBar {
@@ -27,20 +29,45 @@ Page {
 
         delegate: ChatItem {
             onPressAndHold: {
-                listView.currentIndex = index
-                contextMenu.open()
+                var chat = app.getChat(model.id)
+                chatPosition = myChatModel.getChatPosition(chat, chatList);
+                contextMenu.open();
             }
         }
 
         model: myChatModel
     }
 
-    Label {
+    Column {
         anchors.centerIn: listView
-        font.pixelSize: 60
-        color: "gray"
-        text: qsTr("NoChats")
+        anchors.margins: UiConstants.DefaultMargin * 2
+        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
+
+        width: parent.width
+
         visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
+
+        LottieAnimation {
+            id: lottieAnimation
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 160
+            height: 160
+            source: "qrc:/tgs/Folders_2.tgs"
+            onStatusChanged: {
+                if (status === LottieAnimation.Ready)
+                    lottieAnimation.play();
+            }
+        }
+
+        Label {
+            text: qsTr("FilterNoChatsToDisplay")
+            wrapMode: Text.WordWrap
+            color: "gray"
+            font.pixelSize: 42
+            horizontalAlignment: Text.AlignHCenter
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width
+        }
     }
 
     BusyIndicator {
@@ -66,12 +93,13 @@ Page {
 
         MenuLayout {
             MenuItem {
-                // text: myChatModel.isPinned(listView.currentIndex)
-                //       ? qsTr("UnpinFromTop")
-                //       : qsTr("PinToTop")
-                // onClicked: {
-                //     myChatModel.toggleChatIsPinned(listView.currentIndex)
-                // }
+                text: chatPosition && chatPosition.isPinned
+                      ? qsTr("UnpinFromTop")
+                      : qsTr("PinToTop")
+                onClicked: {
+                    if (chatPosition)
+                        myChatModel.toggleChatIsPinned(chatPosition.id, !chatPosition.isPinned)
+                }
             }
         }
     }

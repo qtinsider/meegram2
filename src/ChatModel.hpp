@@ -52,7 +52,6 @@ public:
     void setList(ChatList *value);
 
     Q_INVOKABLE void toggleChatIsPinned(qlonglong chatId, bool isPinned);
-    Q_INVOKABLE void toggleChatNotificationSettings(qlonglong chatId, bool isMuted);
 
     Q_INVOKABLE ChatPosition *getChatPosition(Chat *chat, ChatList *list) const;
 

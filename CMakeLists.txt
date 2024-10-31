@@ -35,9 +35,7 @@ set(SRC_FILES
     src/ChatPosition.cpp
     src/Client.cpp
     src/CountryModel.cpp
-    src/DBusAdaptor.cpp
     src/File.cpp
-    src/IconProvider.cpp
     src/LanguagePackInfoModel.cpp
     src/Localization.cpp
     src/LottieAnimation.cpp
@@ -45,15 +43,12 @@ set(SRC_FILES
     src/Message.cpp
     src/MessageContent.cpp
     src/MessageModel.cpp
-    src/NotificationManager.cpp
     src/PluralRules.cpp
     src/QrCodeItem.cpp
     src/Settings.cpp
-    src/SortFilterProxyModel.cpp
     src/StorageManager.cpp
     src/SupergroupFullInfo.cpp
     src/Supergroup.cpp
-    src/TextFormatter.cpp
     src/User.cpp
     src/UserFullInfo.cpp
     src/Utils.cpp
@@ -72,25 +67,19 @@ set(HEADER_FILES
     src/Client.hpp
     src/Common.hpp
     src/CountryModel.hpp
-    src/DBusAdaptor.hpp
     src/File.hpp
-    src/IconProvider.hpp
     src/LanguagePackInfoModel.hpp
     src/Localization.hpp
     src/LottieAnimation.hpp
     src/Message.hpp
     src/MessageContent.hpp
     src/MessageModel.hpp
-    src/NotificationManager.hpp
     src/PluralRules.hpp
     src/QrCodeItem.hpp
-    # src/Serialize.hpp
     src/Settings.hpp
-    src/SortFilterProxyModel.hpp
     src/StorageManager.hpp
     src/Supergroup.hpp
     src/SupergroupFullInfo.hpp
-    src/TextFormatter.hpp
     src/User.hpp
     src/UserFullInfo.hpp
     src/Utils.hpp
@@ -98,7 +87,6 @@ set(HEADER_FILES
 
 set(QRC_FILES
     resources/fonts.qrc
-    resources/icons.qrc
     resources/i18n.qrc
     resources/images.qrc
     resources/qml.qrc

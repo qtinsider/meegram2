@@ -9,7 +9,7 @@ Page {
 
     orientationLock: PageOrientation.LockPortrait
 
-    property variant currentChat: null
+    property variant chatPosition: null
 
     TopBar {
         id: header
@@ -59,7 +59,8 @@ Page {
 
         delegate: ChatItem {
             onPressAndHold: {
-                currentChat = myChatModel.get(index);
+                var chat = app.getChat(model.id)
+                chatPosition = myChatModel.getChatPosition(chat, chatList);
                 contextMenu.open();
             }
         }
@@ -86,11 +87,6 @@ Page {
             onStatusChanged: {
                 if (status === LottieAnimation.Ready)
                     lottieAnimation.play();
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                onClicked: lottieAnimation.play();
             }
         }
 
@@ -130,7 +126,6 @@ Page {
 
     ChatFolderModel {
         id: mychatFolderModel
-        // localeString: qsTr("FilterAllChats")
     }
 
     ChatModel {
@@ -153,22 +148,12 @@ Page {
 
         MenuLayout {
             MenuItem {
-                text: currentChat && currentChat.isPinned
+                text: chatPosition && chatPosition.isPinned
                       ? qsTr("UnpinFromTop")
                       : qsTr("PinToTop")
                 onClicked: {
-                    if (currentChat)
-                        myChatModel.toggleChatIsPinned(currentChat.id, !currentChat.isPinned)
-                }
-            }
-
-            MenuItem {
-                text: currentChat && currentChat.isMuted
-                      ? qsTr("ChatsUnmute")
-                      : qsTr("ChatsMute")
-                onClicked: {
-                    if (currentChat)
-                        myChatModel.toggleChatNotificationSettings(currentChat.id, !currentChat.isMuted)
+                    if (chatPosition)
+                        myChatModel.toggleChatIsPinned(chatPosition.id, !chatPosition.isPinned)
                 }
             }
         }

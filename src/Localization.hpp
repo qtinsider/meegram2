@@ -18,12 +18,12 @@ public:
     Locale(const Locale &) = delete;
     Locale &operator=(const Locale &) = delete;
 
-    QString translate(const char *key, int plural) const;
+    QString translate(const char *key, int plural = -1) const;
 
-    QString getString(const QString &key) const;
-    QString formatPluralString(const QString &key, int plural) const;
+    QString getString(const char *key) const;
+    QString formatPluralString(const char *key, int plural) const;
     QString formatCallDuration(int duration) const;
-    QString formatTtl(int ttl) const;
+    QString formatTtl(int ttl, bool shorter = false) const;
 
     void setLanguagePlural(const QString &value);
     void setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> value);

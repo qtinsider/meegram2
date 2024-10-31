@@ -44,12 +44,10 @@ private slots:
     void handleResult(td::td_api::Object *object);
 
 private:
-    void handleAuthorizationStateWaitPhoneNumber(const td::td_api::authorizationStateWaitPhoneNumber *state);
     void handleAuthorizationStateWaitCode(const td::td_api::authorizationStateWaitCode *state);
     void handleAuthorizationStateWaitOtherDeviceConfirmation(const td::td_api::authorizationStateWaitOtherDeviceConfirmation *state);
     void handleAuthorizationStateWaitPassword(const td::td_api::authorizationStateWaitPassword *state);
     void handleAuthorizationStateWaitRegistration(const td::td_api::authorizationStateWaitRegistration *state);
-    void handleAuthorizationStateReady(const td::td_api::authorizationStateReady *state);
 
     static QVariantMap getCodeTypeMap(const td::td_api::AuthenticationCodeType &type);
 

@@ -126,7 +126,7 @@ Page {
                         id: loader
                         width: listView.width
                         // height: childrenRect.height
-                        sourceComponent: model.isServiceMessage ? textMessageComponent : deleglateChooser.get(model.contentType)
+                        sourceComponent: model.isService ? textMessageComponent  : deleglateChooser.get(model.contentType)
 
                         Component {
                             id: textMessageComponent
@@ -134,18 +134,19 @@ Page {
                             MessageBubble {
                                 childrenWidth: messageText.paintedWidth
 
-                                content: FormattedText {
+                                content: Label {
                                     id: messageText
-                                    formattedText: model.isService ? model.serviceMessage.trim() : model.content
-                                    color: model.isServiceMessage ? "gray" : model.isOutgoing ? "black" : "white"
+                                    text: model.content.formattedText
+                                    textFormat: Text.RichText
+                                    color: model.isService ? "gray" : model.isOutgoing ? "black" : "white"
                                     width: isPortrait ? 380 : 754
                                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                     anchors {
                                         left: parent.left
-                                        leftMargin: model.isServiceMessage ? 50 : model.isOutgoing ? 20 : 80
+                                        leftMargin: model.isService ? 50 : model.isOutgoing ? 20 : 80
                                     }
-                                    font.pixelSize: model.isServiceMessage ? 18 : 23
-                                    horizontalAlignment: model.isServiceMessage ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
+                                    font.pixelSize: model.isService ? 18 : 23
+                                    horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
                                     onLinkActivated: Qt.openUrlExternally(link)
                                 }
                             }
@@ -180,7 +181,7 @@ Page {
                             id: deleglateChooser
                             function get(contentType) {
                                 switch (contentType) {
-                                case "text":
+                                case "messageText":
                                     return textMessageComponent;
                                 default:
                                     return notSupportedMessageComponent;
@@ -207,34 +208,6 @@ Page {
                     property: "section"
                 }
 
-                function reverseItems() {
-                    var children = listView.contentItem.children;
-                    var yPosition = 0;
-
-                    for (var i = children.length - 1; i >= 0; i--) {
-                        var item = children[i];
-                        item.y = yPosition;       // Set the item's y position
-                        yPosition += item.height; // Accumulate the height for the next item
-                    }
-                }
-
-                onAtYBeginningChanged: {
-                    // if (atYBeginning)
-                    //     myMessageModel.loadHistory()
-                }
-
-                onContentYChanged: {
-                    // reverseItems();
-                    // Adjust scrolling to show the bottom-most item
-                    // listView.contentY = listView.contentHeight - listView.height;
-                }
-
-                onContentHeightChanged: {
-                    // reverseItems();
-                    // Adjust scrolling to show the bottom-most item
-                    // listView.contentY = listView.contentHeight - listView.height;
-                }
-
                 Connections {
                     target: inputContext
                     onSoftwareInputPanelVisibleChanged: {
@@ -245,11 +218,6 @@ Page {
                 }
 
                 ScrollDecorator { flickableItem: listView }
-
-                Component.onCompleted: {
-                    // reverseItems();  // Initial reverse layout on startup
-                    // listView.contentY = listView.contentHeight - listView.height;  // Ensure the view starts at the bottom
-                }
             }
 
             Column {

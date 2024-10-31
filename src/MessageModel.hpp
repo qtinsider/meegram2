@@ -39,15 +39,13 @@ public:
         SenderRole,
         ChatIdRole,
         IsOutgoingRole,
-        IsPinnedRole,
         DateRole,
         EditDateRole,
         ContentRole,
         // Custom role
         ContentTypeRole,
-        IsServiceMessageRole,
-        SectionRole,
-        ServiceMessageRole,
+        IsServiceRole,
+        SectionRole
     };
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
@@ -102,9 +100,6 @@ private slots:
 
 private:
     void handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message);
-    void handleMessageSendSucceeded(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId);
-    void handleMessageSendFailed(td::td_api::object_ptr<td::td_api::message> &&message, qlonglong oldMessageId,
-                                 td::td_api::object_ptr<td::td_api::error> &&error);
     void handleMessageContent(qlonglong chatId, qlonglong messageId, td::td_api::object_ptr<td::td_api::MessageContent> &&newContent);
     void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup);
     void handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache);

@@ -23,13 +23,6 @@ class File : public QObject
     Q_PROPERTY(bool isDownloadingActive READ isDownloadingActive NOTIFY fileChanged)
     Q_PROPERTY(bool isDownloadingCompleted READ isDownloadingCompleted NOTIFY fileChanged)
 
-    Q_PROPERTY(QString remoteId READ remoteId NOTIFY fileChanged)
-    Q_PROPERTY(QString remoteUniqueId READ remoteUniqueId NOTIFY fileChanged)
-
-    Q_PROPERTY(qlonglong uploadedSize READ uploadedSize NOTIFY fileChanged)
-    Q_PROPERTY(bool isUploadingActive READ isUploadingActive NOTIFY fileChanged)
-    Q_PROPERTY(bool isUploadingCompleted READ isUploadingCompleted NOTIFY fileChanged)
-
 public:
     explicit File(td::td_api::object_ptr<td::td_api::file> file, QObject *parent = nullptr);
 
@@ -44,16 +37,7 @@ public:
     bool isDownloadingActive() const;
     bool isDownloadingCompleted() const;
 
-    QString remoteId() const;
-    QString remoteUniqueId() const;
-
-    qlonglong uploadedSize() const;
-    bool isUploadingActive() const;
-    bool isUploadingCompleted() const;
-
     Q_INVOKABLE void downloadFile();
-    Q_INVOKABLE void cancelDownloadFile();
-    Q_INVOKABLE void cancelUploadFile();
 
     void setFile(td::td_api::object_ptr<td::td_api::file> file);
 
@@ -73,13 +57,6 @@ private:
     bool m_canBeDownloaded;
     bool m_isDownloadingActive;
     bool m_isDownloadingCompleted;
-
-    QString m_remoteId;
-    QString m_remoteUniqueId;
-
-    qlonglong m_uploadedSize;
-    bool m_isUploadingActive;
-    bool m_isUploadingCompleted;
 
     std::shared_ptr<Client> m_client;
 

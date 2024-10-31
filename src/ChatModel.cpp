@@ -173,28 +173,22 @@ void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
     m_client->send(std::move(request));
 }
 
-void ChatModel::toggleChatNotificationSettings(qlonglong chatId, bool isMuted)
-{
-    const auto muteFor = isMuted ? MutedValueMin : MutedValueMax;
-
-    auto notificationSettings = td::td_api::make_object<td::td_api::chatNotificationSettings>();
-    notificationSettings->use_default_mute_for_ = false;
-    notificationSettings->mute_for_ = muteFor;
-
-    m_client->send(td::td_api::make_object<td::td_api::setChatNotificationSettings>(chatId, std::move(notificationSettings)));
-}
-
 void ChatModel::populate()
 {
     m_chats.clear();
 
     const auto &chatIds = m_storageManager->getChatIds();
 
-    m_chats.reserve(chatIds.size());  // Reserve memory to avoid multiple reallocations
+    m_chats.reserve(chatIds.size());
 
     for (const auto &id : chatIds)
     {
         const auto chat = m_storageManager->getChat(id);
+
+        if (!chat)
+        {
+            continue;
+        }
 
         if (std::ranges::any_of(chat->positions(), [&](const auto &position) { return *position->list() == *m_list; }))
         {

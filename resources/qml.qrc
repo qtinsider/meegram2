@@ -4,7 +4,6 @@
         <file>qml/components/ChatItem.qml</file>
         <file>qml/components/CountryPickerDialog.qml</file>
         <file>qml/components/DrillDownDelegate.qml</file>
-        <file>qml/components/FormattedText.qml</file>
         <file>qml/components/Icons.qml</file>
         <file>qml/components/ListDelegate.qml</file>
         <file>qml/components/ListItem.qml</file>
@@ -20,7 +19,6 @@
         <file>qml/ChatsPage.qml</file>
         <file>qml/CodeEnterPage.qml</file>
         <file>qml/Constants.js</file>
-        <file>qml/ContactInfoPage.qml</file>
         <file>qml/LanguageSettingsPage.qml</file>
         <file>qml/MainPage.qml</file>
         <file>qml/main.qml</file>
@@ -29,6 +27,5 @@
         <file>qml/SettingsPage.qml</file>
         <file>qml/SignInPage.qml</file>
         <file>qml/SignUpPage.qml</file>
-        <file>qml/UIStyles.qml</file>
     </qresource>
 </RCC>

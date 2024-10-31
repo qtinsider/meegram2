@@ -1,7 +1,6 @@
 #include "Message.hpp"
 
 #include "Localization.hpp"
-#include "MessageContent.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
 
@@ -9,6 +8,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace {
@@ -49,31 +50,6 @@ QString getAudioTitle(const MessageAudio *audio) noexcept
     const auto track = title.isEmpty() ? QObject::tr("AudioUnknownTitle") : title;
 
     return artist + " - " + track;
-}
-
-QString formatCallDuration(int duration) noexcept
-{
-    if (duration >= 3600)
-    {
-        auto hours = std::floor(duration / 3600);
-        auto minutes = std::floor((duration % 3600) / 60);
-
-        QString result = QObject::tr("CallDurationHours", "", hours);
-        if (minutes > 0)
-        {
-            result += ", " + QObject::tr("CallDurationMinutes", "", minutes);
-        }
-
-        return result;
-    }
-
-    if (duration >= 60)
-    {
-        auto minutes = std::floor(duration / 60);
-        return QObject::tr("CallDurationMinutes", "", minutes);
-    }
-
-    return QObject::tr("CallDurationSeconds", "", duration);
 }
 }  // namespace
 
@@ -242,11 +218,15 @@ QString Message::getServiceMessageContent() const
             return m_isOutgoing ? tr("ActionTakeScreenshootYou") : tr("ActionTakeScreenshoot").replace("un1", author);
         }
         case td::td_api::messageChatSetMessageAutoDeleteTime::ID: {
-            const auto ttlString = getTTLString(message->autoDeleteTime());
-            return message->autoDeleteTime() <= 0
-                       ? (m_isOutgoing ? tr("ActionTTLYouDisabled") : tr("ActionTTLDisabled").arg(getUserName(m_senderId)))
-                       : (m_isOutgoing ? tr("ActionTTLYouChanged").arg(ttlString) : tr("ActionTTLChanged").arg(getUserName(m_senderId), ttlString));
+            const auto autoDeleteTime = message->autoDeleteTime();
+            const auto ttlString = Locale::instance().formatTtl(autoDeleteTime);
+
+            QString actionKey = m_isOutgoing ? (autoDeleteTime <= 0 ? tr("ActionTTLYouDisabled") : tr("ActionTTLYouChanged").arg(ttlString))
+                                             : (autoDeleteTime <= 0 ? tr("ActionTTLDisabled") : tr("ActionTTLChanged").arg(ttlString));
+
+            return actionKey.replace("un1", author);
         }
+
         case td::td_api::messageCustomServiceAction::ID: {
             return message->customAction();
         }
@@ -254,7 +234,7 @@ QString Message::getServiceMessageContent() const
             return tr("NotificationContactJoined").arg(getUserName(m_senderId));
         }
         default: {
-            return tr("UnsupportedAttachment");
+            return tr("UnsupportedMedia");
         }
     }
 }
@@ -321,6 +301,84 @@ Message::SenderType Message::senderType() const noexcept
 int Message::contentType() const
 {
     return m_contentType;
+}
+
+QString Message::contentTypeString() const
+{
+    static const std::unordered_map<int32_t, std::string_view> messageTypeMap = {
+        {td::td_api::messageText::ID, "messageText"},
+        {td::td_api::messageAudio::ID, "messageAudio"},
+        {td::td_api::messageDocument::ID, "messageDocument"},
+        {td::td_api::messagePhoto::ID, "messagePhoto"},
+        {td::td_api::messageSticker::ID, "messageSticker"},
+        {td::td_api::messageVideo::ID, "messageVideo"},
+        {td::td_api::messageVideoNote::ID, "messageVideoNote"},
+        {td::td_api::messageVoiceNote::ID, "messageVoiceNote"},
+        {td::td_api::messageExpiredPhoto::ID, "messageExpiredPhoto"},
+        {td::td_api::messageExpiredVideo::ID, "messageExpiredVideo"},
+        {td::td_api::messageExpiredVideoNote::ID, "messageExpiredVideoNote"},
+        {td::td_api::messageExpiredVoiceNote::ID, "messageExpiredVoiceNote"},
+        {td::td_api::messageLocation::ID, "messageLocation"},
+        {td::td_api::messageVenue::ID, "messageVenue"},
+        {td::td_api::messageContact::ID, "messageContact"},
+        {td::td_api::messageAnimatedEmoji::ID, "messageAnimatedEmoji"},
+        {td::td_api::messageDice::ID, "messageDice"},
+        {td::td_api::messageGame::ID, "messageGame"},
+        {td::td_api::messagePoll::ID, "messagePoll"},
+        {td::td_api::messageStory::ID, "messageStory"},
+        {td::td_api::messageInvoice::ID, "messageInvoice"},
+        {td::td_api::messageCall::ID, "messageCall"},
+        {td::td_api::messageVideoChatScheduled::ID, "messageVideoChatScheduled"},
+        {td::td_api::messageVideoChatStarted::ID, "messageVideoChatStarted"},
+        {td::td_api::messageVideoChatEnded::ID, "messageVideoChatEnded"},
+        {td::td_api::messageInviteVideoChatParticipants::ID, "messageInviteVideoChatParticipants"},
+        {td::td_api::messageBasicGroupChatCreate::ID, "messageBasicGroupChatCreate"},
+        {td::td_api::messageSupergroupChatCreate::ID, "messageSupergroupChatCreate"},
+        {td::td_api::messageChatChangeTitle::ID, "messageChatChangeTitle"},
+        {td::td_api::messageChatChangePhoto::ID, "messageChatChangePhoto"},
+        {td::td_api::messageChatDeletePhoto::ID, "messageChatDeletePhoto"},
+        {td::td_api::messageChatAddMembers::ID, "messageChatAddMembers"},
+        {td::td_api::messageChatJoinByLink::ID, "messageChatJoinByLink"},
+        {td::td_api::messageChatJoinByRequest::ID, "messageChatJoinByRequest"},
+        {td::td_api::messageChatDeleteMember::ID, "messageChatDeleteMember"},
+        {td::td_api::messageChatUpgradeTo::ID, "messageChatUpgradeTo"},
+        {td::td_api::messageChatUpgradeFrom::ID, "messageChatUpgradeFrom"},
+        {td::td_api::messagePinMessage::ID, "messagePinMessage"},
+        {td::td_api::messageScreenshotTaken::ID, "messageScreenshotTaken"},
+        {td::td_api::messageChatSetBackground::ID, "messageChatSetBackground"},
+        {td::td_api::messageChatSetTheme::ID, "messageChatSetTheme"},
+        {td::td_api::messageChatSetMessageAutoDeleteTime::ID, "messageChatSetMessageAutoDeleteTime"},
+        {td::td_api::messageChatBoost::ID, "messageChatBoost"},
+        {td::td_api::messageForumTopicCreated::ID, "messageForumTopicCreated"},
+        {td::td_api::messageForumTopicEdited::ID, "messageForumTopicEdited"},
+        {td::td_api::messageForumTopicIsClosedToggled::ID, "messageForumTopicIsClosedToggled"},
+        {td::td_api::messageForumTopicIsHiddenToggled::ID, "messageForumTopicIsHiddenToggled"},
+        {td::td_api::messageSuggestProfilePhoto::ID, "messageSuggestProfilePhoto"},
+        {td::td_api::messageCustomServiceAction::ID, "messageCustomServiceAction"},
+        {td::td_api::messageGameScore::ID, "messageGameScore"},
+        {td::td_api::messagePaymentSuccessful::ID, "messagePaymentSuccessful"},
+        {td::td_api::messagePaymentSuccessfulBot::ID, "messagePaymentSuccessfulBot"},
+        {td::td_api::messageGiftedPremium::ID, "messageGiftedPremium"},
+        {td::td_api::messagePremiumGiftCode::ID, "messagePremiumGiftCode"},
+        {td::td_api::messageContactRegistered::ID, "messageContactRegistered"},
+        {td::td_api::messageUsersShared::ID, "messageUsersShared"},
+        {td::td_api::messageChatShared::ID, "messageChatShared"},
+        {td::td_api::messageBotWriteAccessAllowed::ID, "messageBotWriteAccessAllowed"},
+        {td::td_api::messageWebAppDataSent::ID, "messageWebAppDataSent"},
+        {td::td_api::messageWebAppDataReceived::ID, "messageWebAppDataReceived"},
+        {td::td_api::messagePassportDataSent::ID, "messagePassportDataSent"},
+        {td::td_api::messagePassportDataReceived::ID, "messagePassportDataReceived"},
+        {td::td_api::messageProximityAlertTriggered::ID, "messageProximityAlertTriggered"},
+        {td::td_api::messageUnsupported::ID, "messageUnsupported"}};
+
+    if (auto it = messageTypeMap.find(m_contentType); it != messageTypeMap.end())
+    {
+        return QString::fromStdString(std::string(it->second));
+    }
+    else
+    {
+        return QLatin1String("messageUnsupported");
+    }
 }
 
 QString Message::getTitle() const noexcept
@@ -439,7 +497,9 @@ QString Message::getContent() const noexcept
 
             if (call->duration() > 0)
             {
-                return tr("CallMessageWithDuration").arg(text).arg(formatCallDuration(call->duration()));
+                const auto callDuration = Locale::instance().formatCallDuration(call->duration());
+
+                return tr("CallMessageWithDuration").arg(text).arg(callDuration);
             }
 
             return text;
@@ -632,28 +692,4 @@ QString Message::getUserName(qlonglong userId) const noexcept
     }
 
     return QString();
-}
-
-QString Message::getTTLString(int ttl) const noexcept
-{
-    if (ttl < 60)
-    {
-        return tr("TTLStringSeconds", "", std::floor(ttl));
-    }
-    if (ttl < 60 * 60)
-    {
-        return tr("TTLStringMinutes", "", std::floor(ttl / 60));
-    }
-    if (ttl < 24 * 60 * 60)
-    {
-        return tr("TTLStringHours", "", std::floor(ttl / 60 / 60));
-    }
-
-    auto days = ttl / 60 / 60 / 24;
-    if (ttl % 7 == 0)
-    {
-        return tr("TTLStringWeeks", "", std::floor(days / 7));
-    }
-
-    return tr("TTLStringWeeks", "", std::floor(days / 7)) + tr("TTLStringDays", "", std::floor(days % 7));
 }

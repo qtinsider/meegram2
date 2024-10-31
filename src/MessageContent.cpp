@@ -1,26 +1,12 @@
 #include "MessageContent.hpp"
 
+#include "Utils.hpp"
+
 MessageText::MessageText(td::td_api::object_ptr<td::td_api::messageText> content, QObject *parent)
     : QObject(parent)
 {
     m_text = QString::fromStdString(content->text_->text_);
-
-    if (content->web_page_)
-    {
-        m_webPage = QString::fromStdString(content->web_page_->url_);
-    }
-    else
-    {
-        m_webPage.clear();
-    }
-    if (content->link_preview_options_)
-    {
-        m_linkPreviewOptions = QString::fromStdString(content->link_preview_options_->url_);
-    }
-    else
-    {
-        m_linkPreviewOptions.clear();
-    }
+    m_formattedText = Utils::formattedText(content->text_);
 }
 
 QString MessageText::text() const
@@ -28,14 +14,9 @@ QString MessageText::text() const
     return m_text;
 }
 
-QString MessageText::webPage() const
+QString MessageText::formattedText() const
 {
-    return m_webPage;
-}
-
-QString MessageText::linkPreviewOptions() const
-{
-    return m_linkPreviewOptions;
+    return m_formattedText;
 }
 
 MessageAnimation::MessageAnimation(td::td_api::object_ptr<td::td_api::messageAnimation> content, QObject *parent)

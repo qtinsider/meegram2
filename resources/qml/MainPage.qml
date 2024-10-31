@@ -79,7 +79,7 @@ Page {
         }
         ToolIcon {
             anchors.right: parent.right
-            iconSource: "image://icon/info2?black"
+            iconSource: "qrc:/images/help-icon.png"
             onClicked: aboutDialog.open()
         }
     }

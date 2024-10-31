@@ -123,7 +123,7 @@ Item {
             repeat: true
             onTriggered: {
                 timeout = timeout - 1000;
-                codeTimeText.text = authorization.formatTime(timeout / 1000);
+                codeTimeText.text = utils.formatTime(timeout / 1000);
                 if (timeout === 0) {
                     codeExpireTimer.stop()
                     codeTextRow.visible = false;

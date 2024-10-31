@@ -22,6 +22,7 @@ class Message : public QObject
     Q_PROPERTY(QDateTime editDate READ editDate NOTIFY messageChanged)
 
     Q_PROPERTY(QString content READ getContent NOTIFY messageChanged)
+    Q_PROPERTY(QString contentType READ contentTypeString NOTIFY messageChanged)
     Q_PROPERTY(bool isService READ isService NOTIFY messageChanged)
     Q_PROPERTY(SenderType senderType READ senderType NOTIFY messageChanged)
 
@@ -44,6 +45,7 @@ public:
     QString getContent() const noexcept;
 
     int contentType() const;
+    QString contentTypeString() const;
 
     bool isService() const noexcept;
     SenderType senderType() const noexcept;
@@ -60,7 +62,6 @@ private:
     QString getUserFullName(qlonglong userId) const noexcept;
     bool isMeUser(qlonglong userId) const noexcept;
     QString getUserName(qlonglong userId) const noexcept;
-    QString getTTLString(int ttl) const noexcept;
 
     qlonglong m_id;
     qlonglong m_chatId;

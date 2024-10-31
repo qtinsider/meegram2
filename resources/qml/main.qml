@@ -14,7 +14,6 @@ PageStackWindow {
     onOrientationChangeFinished: showStatusBar = isPortrait
 
     Icons { id: icons }
-    UIStyles { id: uiStyles }
     Authorization { id: authorization }
 
     InfoBanner {
