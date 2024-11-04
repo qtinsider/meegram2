@@ -523,13 +523,11 @@ QString Message::getSenderName() const noexcept
     switch (m_chat->type())
     {
         case Chat::Type::Private:
-        case Chat::Type::Secret: {
-            return QString();
-        }
-        case Chat::Type::BasicGroup:
+        case Chat::Type::Secret:
         case Chat::Type::Channel: {
             return QString();
         }
+        case Chat::Type::BasicGroup:
         case Chat::Type::Supergroup: {
             switch (m_senderType)
             {

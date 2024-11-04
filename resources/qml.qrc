@@ -5,12 +5,10 @@
         <file>qml/components/CountryPickerDialog.qml</file>
         <file>qml/components/DrillDownDelegate.qml</file>
         <file>qml/components/Icons.qml</file>
-        <file>qml/components/ListDelegate.qml</file>
         <file>qml/components/ListItem.qml</file>
         <file>qml/components/MessageBubble.qml</file>
         <file>qml/components/MyCountBubble.qml</file>
         <file>qml/components/Ripple.qml</file>
-        <file>qml/components/SettingsSwitch.qml</file>
         <file>qml/components/TopBar.qml</file>
         <file>qml/components/UIConstants.js</file>
         <file>qml/ArchivedChatPage.qml</file>
@@ -18,7 +16,6 @@
         <file>qml/ChatPage.qml</file>
         <file>qml/ChatsPage.qml</file>
         <file>qml/CodeEnterPage.qml</file>
-        <file>qml/Constants.js</file>
         <file>qml/LanguageSettingsPage.qml</file>
         <file>qml/MainPage.qml</file>
         <file>qml/main.qml</file>

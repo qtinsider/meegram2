@@ -11,17 +11,17 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: model.isService ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 28 : 30);
+    height: model.isService ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 30 : 28);
     width: parent.width
 
     BorderImage {
-        height: parent.height + (isOutgoing ? 2 : 0)
-        width: Math.max(childrenWidth, messageDate.paintedWidth + (model.isOutgoing ? 28 : 0),  senderLabel.paintedWidth) + 26
+        height: parent.height + (isOutgoing ? 0 : 2)
+        width: Math.max(childrenWidth, messageDate.paintedWidth + (model.isOutgoing ? 0 : 28),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: model.isService ? (parent.width - width) / 2 : model.isOutgoing ? 10 : parent.width - width - 10
+            leftMargin: model.isService ? (parent.width - width) / 2 : model.isOutgoing ? parent.width - width - 10 : 10
             top: parent.top
-            topMargin: model.isService ? 2 : model.isOutgoing ? 8 : 1
+            topMargin: model.isService ? 2 : model.isOutgoing ? 1 : 8
         }
 
         source: internal.getBubbleImage();
@@ -51,14 +51,17 @@ Item {
         id: senderLabel
         y: 18
         width: parent.width -100
-        anchors { left: parent.left; leftMargin: 80 }
-        color: "white"
+        anchors {
+            left: parent.left
+            leftMargin: isOutgoing ? 80 : 20
+        }
+        color: model.isOutgoing ? "white" : "black"
         text: model.sender
         font.pixelSize: 20
         font.bold: true
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
-        horizontalAlignment: Text.AlignRight
+        horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
         visible: text !== "" && !isService
     }
 
@@ -78,15 +81,15 @@ Item {
         width: parent.width -100
         anchors {
             left: parent.left
-            leftMargin: isOutgoing ? 20 : 80
+            leftMargin: isOutgoing ? 80 : 20
             top: contentItem.bottom
             topMargin: 4
         }
         text: model.date
-        color: model.isOutgoing ? "black" : "white"
+        color: model.isOutgoing ? "white" : "black"
         font.pixelSize: 16
         font.weight: Font.Light
-        horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
+        horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignRight : Text.AlignLeft
         visible: !model.isService
     }
 

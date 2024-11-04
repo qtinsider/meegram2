@@ -81,7 +81,6 @@ Page {
 
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: pageStack.push(Qt.createComponent("ChatInfoPage.qml"))
                     }
                 }
 
@@ -138,15 +137,15 @@ Page {
                                     id: messageText
                                     text: model.content.formattedText
                                     textFormat: Text.RichText
-                                    color: model.isService ? "gray" : model.isOutgoing ? "black" : "white"
+                                    color: model.isService ? "gray" : model.isOutgoing ? "white" : "black"
                                     width: isPortrait ? 380 : 754
                                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                                     anchors {
                                         left: parent.left
-                                        leftMargin: model.isService ? 50 : model.isOutgoing ? 20 : 80
+                                        leftMargin: model.isService ? 50 : model.isOutgoing ? 80 : 20
                                     }
                                     font.pixelSize: model.isService ? 18 : 23
-                                    horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignLeft : Text.AlignRight
+                                    horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignRight : Text.AlignLeft
                                     onLinkActivated: Qt.openUrlExternally(link)
                                 }
                             }
@@ -162,16 +161,16 @@ Page {
                                     id: notSupportedMessage
                                     anchors {
                                         left: parent.left
-                                        leftMargin: model.isOutgoing ? 20 : 80
+                                        leftMargin: model.isOutgoing ? 80 : 20
                                     }
                                     width: isPortrait ? 380 : 754
                                     font {
                                         bold: true
                                         pixelSize: 23
                                     }
-                                    horizontalAlignment: model.isOutgoing ? Text.AlignLeft : Text.AlignRight
+                                    horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
                                     wrapMode: Text.Wrap
-                                    color: model.isOutgoing ? "black" : "white"
+                                    color: model.isOutgoing ? "white" : "black"
                                     text: "The message is not supported on MeeGram yet"
                                 }
                             }
@@ -304,9 +303,6 @@ Page {
 
     MessageModel {
         id: myMessageModel
-        onMoreHistoriesLoaded: {
-            listView.positionViewAtIndex(modelIndex - 1, ListView.Beginning)
-        }
     }
 
     Component.onDestruction: { myMessageModel.closeChat() }
