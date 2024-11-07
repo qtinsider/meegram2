@@ -1,6 +1,7 @@
 #include "Message.hpp"
 
 #include "Localization.hpp"
+#include "MessageService.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
 
@@ -91,12 +92,6 @@ Message::Message(td::td_api::object_ptr<td::td_api::message> message, QObject *p
     m_date = QDateTime::fromMSecsSinceEpoch(static_cast<qlonglong>(m_message->date_) * 1000);
     m_editDate = QDateTime::fromMSecsSinceEpoch(static_cast<qlonglong>(m_message->edit_date_) * 1000);
 
-    m_chat = m_storageManager->getChat(m_chatId);
-    if (!m_chat)
-    {
-        qWarning() << "Chat not found for chat ID:" << m_chatId << "in message ID:" << m_id;
-    }
-
     setContent(std::move(m_message->content_));
 }
 
@@ -135,269 +130,34 @@ MessageContent *Message::content() const
     return m_content.get();
 }
 
-QString Message::getServiceMessageContent() const
-{
-    const auto author = getAuthor();
-    const bool isChannel = m_chat->type() == Chat::Type::Channel;
-    auto message = static_cast<MessageService *>(m_content.get());
-
-    switch (m_contentType)
-    {
-        case td::td_api::messageExpiredPhoto::ID: {
-            return tr("AttachPhotoExpired");
-        }
-        case td::td_api::messageExpiredVideo::ID: {
-            return tr("AttachVideoExpired");
-        }
-        case td::td_api::messageBasicGroupChatCreate::ID: {
-            return m_isOutgoing ? tr("ActionYouCreateGroup") : tr("ActionCreateGroup").replace("un1", author);
-        }
-        case td::td_api::messageSupergroupChatCreate::ID: {
-            return isChannel ? tr("ActionCreateChannel") : tr("ActionCreateMega");
-        }
-        case td::td_api::messageChatChangeTitle::ID: {
-            return isChannel
-                       ? tr("ActionChannelChangedTitle").arg(message->groupTitle())
-                       : (m_isOutgoing ? tr("ActionYouChangedTitle").arg(message->groupTitle()) : tr("ActionChangedTitle").arg(author, message->groupTitle()));
-        }
-        case td::td_api::messageChatChangePhoto::ID: {
-            return isChannel ? tr("ActionChannelChangedPhoto") : (m_isOutgoing ? tr("ActionYouChangedPhoto") : tr("ActionChangedPhoto").arg(author));
-        }
-        case td::td_api::messageChatDeletePhoto::ID: {
-            return isChannel ? tr("ActionChannelRemovedPhoto") : (m_isOutgoing ? tr("ActionYouRemovedPhoto") : tr("ActionRemovedPhoto").arg(author));
-        }
-        case td::td_api::messageChatAddMembers::ID: {
-            const bool singleMember = message->addedMembers().length() == 1;
-            if (singleMember)
-            {
-                const auto memberUserId = message->addedMembers()[0];
-                if (m_senderId == memberUserId)
-                {
-                    if (m_chat->type() == Chat::Type::Supergroup)
-                    {
-                        return isChannel ? tr("ChannelJoined")
-                                         : (isMeUser(memberUserId) ? tr("ChannelMegaJoined") : tr("ActionAddUserSelfMega").replace("un1", author));
-                    }
-                    return m_isOutgoing ? tr("ActionAddUserSelfYou") : tr("ActionAddUserSelf").replace("un1", author);
-                }
-                return m_isOutgoing ? tr("ActionYouAddUser").replace("un2", getUserName(memberUserId))
-                                    : (isMeUser(memberUserId) ? (isChannel ? tr("ChannelAddedBy").arg(author) : tr("MegaAddedBy").arg(author))
-                                                              : tr("ActionAddUser").arg(author, getUserName(memberUserId)));
-            }
-
-            QStringList userList;
-            for (const auto &userId : message->addedMembers())
-            {
-                userList << getUserName(userId);
-            }
-            const auto users = userList.join(", ");
-            return m_isOutgoing ? tr("ActionYouAddUser").arg(users) : tr("ActionAddUser").replace("un1", author).replace("un2", users);
-        }
-        case td::td_api::messageChatJoinByLink::ID: {
-            return m_isOutgoing ? tr("ActionInviteYou") : tr("ActionInviteUser").replace("un1", author);
-        }
-
-        case td::td_api::messageChatDeleteMember::ID: {
-            if (message->removedMember() == m_senderId)
-            {
-                return m_isOutgoing ? tr("ActionYouLeftUser") : tr("ActionLeftUser").replace("un1", author);
-            }
-            return m_isOutgoing ? tr("ActionYouKickUser").replace("un2", getUserName(message->removedMember()))
-                                : (isMeUser(message->removedMember())
-                                       ? tr("ActionKickUserYou").replace("un1", author)
-                                       : tr("ActionKickUser").replace("un1", author).replace("un2", getUserName(message->removedMember())));
-        }
-        case td::td_api::messageChatUpgradeTo::ID:
-        case td::td_api::messageChatUpgradeFrom::ID: {
-            return tr("ActionMigrateFromGroup");
-        }
-        case td::td_api::messagePinMessage::ID: {
-            return tr("ActionPinned").replace("un1", author);
-        }
-        case td::td_api::messageScreenshotTaken::ID: {
-            return m_isOutgoing ? tr("ActionTakeScreenshootYou") : tr("ActionTakeScreenshoot").replace("un1", author);
-        }
-        case td::td_api::messageChatSetMessageAutoDeleteTime::ID: {
-            const auto autoDeleteTime = message->autoDeleteTime();
-            const auto ttlString = Locale::instance().formatTtl(autoDeleteTime);
-
-            QString actionKey = m_isOutgoing ? (autoDeleteTime <= 0 ? tr("ActionTTLYouDisabled") : tr("ActionTTLYouChanged").arg(ttlString))
-                                             : (autoDeleteTime <= 0 ? tr("ActionTTLDisabled") : tr("ActionTTLChanged").arg(ttlString));
-
-            return actionKey.replace("un1", author);
-        }
-
-        case td::td_api::messageCustomServiceAction::ID: {
-            return message->customAction();
-        }
-        case td::td_api::messageContactRegistered::ID: {
-            return tr("NotificationContactJoined").arg(getUserName(m_senderId));
-        }
-        default: {
-            return tr("UnsupportedMedia");
-        }
-    }
-}
-
-bool Message::isService() const noexcept
-{
-    static const std::unordered_set<int> messageTypes = {
-        td::td_api::messageExpiredPhoto::ID,
-        td::td_api::messageExpiredVideo::ID,
-        td::td_api::messageBasicGroupChatCreate::ID,
-        td::td_api::messageSupergroupChatCreate::ID,
-        td::td_api::messageChatChangeTitle::ID,
-        td::td_api::messageChatChangePhoto::ID,
-        td::td_api::messageChatDeletePhoto::ID,
-        td::td_api::messageChatAddMembers::ID,
-        td::td_api::messageChatJoinByLink::ID,
-        td::td_api::messageChatJoinByRequest::ID,
-        td::td_api::messageChatDeleteMember::ID,
-        td::td_api::messageChatUpgradeTo::ID,
-        td::td_api::messageChatUpgradeFrom::ID,
-        td::td_api::messagePinMessage::ID,
-        td::td_api::messageScreenshotTaken::ID,
-        td::td_api::messageChatSetBackground::ID,
-        td::td_api::messageChatSetTheme::ID,
-        td::td_api::messageChatSetMessageAutoDeleteTime::ID,
-        td::td_api::messageChatBoost::ID,
-        td::td_api::messageForumTopicCreated::ID,
-        td::td_api::messageForumTopicEdited::ID,
-        td::td_api::messageForumTopicIsClosedToggled::ID,
-        td::td_api::messageForumTopicIsHiddenToggled::ID,
-        td::td_api::messageSuggestProfilePhoto::ID,
-        td::td_api::messageCustomServiceAction::ID,
-        td::td_api::messageContactRegistered::ID,
-        td::td_api::messageInviteVideoChatParticipants::ID,
-        td::td_api::messageVideoChatScheduled::ID,
-        td::td_api::messageVideoChatStarted::ID,
-        td::td_api::messageVideoChatEnded::ID,
-        td::td_api::messageGiftedPremium::ID,
-        td::td_api::messagePremiumGiftCode::ID,
-        td::td_api::messagePaymentSuccessful::ID,
-        td::td_api::messagePaymentSuccessfulBot::ID,
-        td::td_api::messageUsersShared::ID,
-        td::td_api::messageChatShared::ID,
-        td::td_api::messageBotWriteAccessAllowed::ID,
-        td::td_api::messageWebAppDataSent::ID,
-        td::td_api::messageWebAppDataReceived::ID,
-        td::td_api::messagePassportDataSent::ID,
-        td::td_api::messagePassportDataReceived::ID,
-        td::td_api::messageProximityAlertTriggered::ID,
-        td::td_api::messageUnsupported::ID,
-    };
-
-    if (m_message)
-        return messageTypes.contains(m_contentType);
-
-    return false;
-}
-
-Message::SenderType Message::senderType() const noexcept
-{
-    return m_senderType;
-}
-
-int Message::contentType() const
-{
-    return m_contentType;
-}
-
-QString Message::contentTypeString() const
-{
-    static const std::unordered_map<int32_t, std::string_view> messageTypeMap = {
-        {td::td_api::messageText::ID, "messageText"},
-        {td::td_api::messageAudio::ID, "messageAudio"},
-        {td::td_api::messageDocument::ID, "messageDocument"},
-        {td::td_api::messagePhoto::ID, "messagePhoto"},
-        {td::td_api::messageSticker::ID, "messageSticker"},
-        {td::td_api::messageVideo::ID, "messageVideo"},
-        {td::td_api::messageVideoNote::ID, "messageVideoNote"},
-        {td::td_api::messageVoiceNote::ID, "messageVoiceNote"},
-        {td::td_api::messageExpiredPhoto::ID, "messageExpiredPhoto"},
-        {td::td_api::messageExpiredVideo::ID, "messageExpiredVideo"},
-        {td::td_api::messageExpiredVideoNote::ID, "messageExpiredVideoNote"},
-        {td::td_api::messageExpiredVoiceNote::ID, "messageExpiredVoiceNote"},
-        {td::td_api::messageLocation::ID, "messageLocation"},
-        {td::td_api::messageVenue::ID, "messageVenue"},
-        {td::td_api::messageContact::ID, "messageContact"},
-        {td::td_api::messageAnimatedEmoji::ID, "messageAnimatedEmoji"},
-        {td::td_api::messageDice::ID, "messageDice"},
-        {td::td_api::messageGame::ID, "messageGame"},
-        {td::td_api::messagePoll::ID, "messagePoll"},
-        {td::td_api::messageStory::ID, "messageStory"},
-        {td::td_api::messageInvoice::ID, "messageInvoice"},
-        {td::td_api::messageCall::ID, "messageCall"},
-        {td::td_api::messageVideoChatScheduled::ID, "messageVideoChatScheduled"},
-        {td::td_api::messageVideoChatStarted::ID, "messageVideoChatStarted"},
-        {td::td_api::messageVideoChatEnded::ID, "messageVideoChatEnded"},
-        {td::td_api::messageInviteVideoChatParticipants::ID, "messageInviteVideoChatParticipants"},
-        {td::td_api::messageBasicGroupChatCreate::ID, "messageBasicGroupChatCreate"},
-        {td::td_api::messageSupergroupChatCreate::ID, "messageSupergroupChatCreate"},
-        {td::td_api::messageChatChangeTitle::ID, "messageChatChangeTitle"},
-        {td::td_api::messageChatChangePhoto::ID, "messageChatChangePhoto"},
-        {td::td_api::messageChatDeletePhoto::ID, "messageChatDeletePhoto"},
-        {td::td_api::messageChatAddMembers::ID, "messageChatAddMembers"},
-        {td::td_api::messageChatJoinByLink::ID, "messageChatJoinByLink"},
-        {td::td_api::messageChatJoinByRequest::ID, "messageChatJoinByRequest"},
-        {td::td_api::messageChatDeleteMember::ID, "messageChatDeleteMember"},
-        {td::td_api::messageChatUpgradeTo::ID, "messageChatUpgradeTo"},
-        {td::td_api::messageChatUpgradeFrom::ID, "messageChatUpgradeFrom"},
-        {td::td_api::messagePinMessage::ID, "messagePinMessage"},
-        {td::td_api::messageScreenshotTaken::ID, "messageScreenshotTaken"},
-        {td::td_api::messageChatSetBackground::ID, "messageChatSetBackground"},
-        {td::td_api::messageChatSetTheme::ID, "messageChatSetTheme"},
-        {td::td_api::messageChatSetMessageAutoDeleteTime::ID, "messageChatSetMessageAutoDeleteTime"},
-        {td::td_api::messageChatBoost::ID, "messageChatBoost"},
-        {td::td_api::messageForumTopicCreated::ID, "messageForumTopicCreated"},
-        {td::td_api::messageForumTopicEdited::ID, "messageForumTopicEdited"},
-        {td::td_api::messageForumTopicIsClosedToggled::ID, "messageForumTopicIsClosedToggled"},
-        {td::td_api::messageForumTopicIsHiddenToggled::ID, "messageForumTopicIsHiddenToggled"},
-        {td::td_api::messageSuggestProfilePhoto::ID, "messageSuggestProfilePhoto"},
-        {td::td_api::messageCustomServiceAction::ID, "messageCustomServiceAction"},
-        {td::td_api::messageGameScore::ID, "messageGameScore"},
-        {td::td_api::messagePaymentSuccessful::ID, "messagePaymentSuccessful"},
-        {td::td_api::messagePaymentSuccessfulBot::ID, "messagePaymentSuccessfulBot"},
-        {td::td_api::messageGiftedPremium::ID, "messageGiftedPremium"},
-        {td::td_api::messagePremiumGiftCode::ID, "messagePremiumGiftCode"},
-        {td::td_api::messageContactRegistered::ID, "messageContactRegistered"},
-        {td::td_api::messageUsersShared::ID, "messageUsersShared"},
-        {td::td_api::messageChatShared::ID, "messageChatShared"},
-        {td::td_api::messageBotWriteAccessAllowed::ID, "messageBotWriteAccessAllowed"},
-        {td::td_api::messageWebAppDataSent::ID, "messageWebAppDataSent"},
-        {td::td_api::messageWebAppDataReceived::ID, "messageWebAppDataReceived"},
-        {td::td_api::messagePassportDataSent::ID, "messagePassportDataSent"},
-        {td::td_api::messagePassportDataReceived::ID, "messagePassportDataReceived"},
-        {td::td_api::messageProximityAlertTriggered::ID, "messageProximityAlertTriggered"},
-        {td::td_api::messageUnsupported::ID, "messageUnsupported"}};
-
-    if (auto it = messageTypeMap.find(m_contentType); it != messageTypeMap.end())
-    {
-        return QString::fromStdString(std::string(it->second));
-    }
-    else
-    {
-        return QLatin1String("messageUnsupported");
-    }
-}
-
 QString Message::getTitle() const noexcept
 {
-    if (!m_chat)
-        return {};
-
-    if (senderType() == SenderType::User)
+    switch (m_senderType)
     {
-        return getUserFullName(m_senderId);
+        case SenderType::User:
+            return Utils::getUserFullName(m_senderId);
+
+        case SenderType::Chat:
+            return Utils::getChatTitle(m_senderId);
+
+        default:
+            return {};
     }
-    else if (senderType() == SenderType::Chat)
+}
+
+QString Message::getSenderName() const noexcept
+{
+    switch (m_senderType)
     {
-        const auto chatTitle = m_storageManager->getChat(m_senderId)->title();
+        case SenderType::User:
+            return Utils::getUserShortName(m_senderId);
 
-        return !chatTitle.isEmpty() ? chatTitle : tr("HiddenName");
+        case SenderType::Chat:
+            return Utils::getChatTitle(m_senderId);
+
+        default:
+            return {};
     }
-
-    return {};
 }
 
 QString Message::getContent() const noexcept
@@ -507,7 +267,7 @@ QString Message::getContent() const noexcept
         default: {
             if (isService())
             {
-                return getServiceMessageContent();
+                return getServiceContent();
             }
 
             return tr("UnsupportedAttachment");
@@ -515,40 +275,264 @@ QString Message::getContent() const noexcept
     }
 }
 
-QString Message::getSenderName() const noexcept
+QString Message::getServiceContent(bool openUser) const
 {
-    if (!m_chat)
+    if (!m_storageManager)
         return {};
 
-    switch (m_chat->type())
+    auto chat = m_storageManager->getChat(m_chatId);
+    if (!chat)
+        return {};
+
+    const auto author = getSenderAuthor(openUser);
+    const bool isChannel = chat->type() == Chat::Type::Channel;
+    auto message = static_cast<MessageService *>(m_content.get());
+
+    switch (m_contentType)
     {
-        case Chat::Type::Private:
-        case Chat::Type::Secret:
-        case Chat::Type::Channel: {
-            return QString();
+        case td::td_api::messageExpiredPhoto::ID: {
+            return tr("AttachPhotoExpired");
         }
-        case Chat::Type::BasicGroup:
-        case Chat::Type::Supergroup: {
-            switch (m_senderType)
+        case td::td_api::messageExpiredVideo::ID: {
+            return tr("AttachVideoExpired");
+        }
+        case td::td_api::messageBasicGroupChatCreate::ID: {
+            return m_isOutgoing ? tr("ActionYouCreateGroup") : tr("ActionCreateGroup").replace("un1", author);
+        }
+        case td::td_api::messageSupergroupChatCreate::ID: {
+            return isChannel ? tr("ActionCreateChannel") : tr("ActionCreateMega");
+        }
+        case td::td_api::messageChatChangeTitle::ID: {
+            return isChannel ? tr("ActionChannelChangedTitle").replace("un2", message->groupTitle())
+                             : (m_isOutgoing ? tr("ActionYouChangedTitle").replace("un2", message->groupTitle())
+                                             : tr("ActionChangedTitle").replace("un1", author).replace("un2", message->groupTitle()));
+        }
+        case td::td_api::messageChatChangePhoto::ID: {
+            return isChannel ? tr("ActionChannelChangedPhoto") : (m_isOutgoing ? tr("ActionYouChangedPhoto") : tr("ActionChangedPhoto").replace("un1", author));
+        }
+        case td::td_api::messageChatDeletePhoto::ID: {
+            return isChannel ? tr("ActionChannelRemovedPhoto") : (m_isOutgoing ? tr("ActionYouRemovedPhoto") : tr("ActionRemovedPhoto").replace("un1", author));
+        }
+        case td::td_api::messageChatAddMembers::ID: {
+            const bool singleMember = message->addedMembers().size() == 1;
+            if (singleMember)
             {
-                case SenderType::User: {
-                    if (isMeUser(m_senderId))
-                        return tr("FromYou");
+                bool ok = false;
+                const auto memberUserId = message->addedMembers().front().toLongLong(&ok);
+                if (!ok)
+                    return {};
 
-                    return getUserShortName(m_senderId);
+                if (m_senderId == memberUserId)
+                {
+                    if (chat->type() == Chat::Type::Supergroup)
+                    {
+                        return isChannel ? tr("ChannelJoined")
+                                         : (Utils::isMeUser(memberUserId) ? tr("ChannelMegaJoined") : tr("ActionAddUserSelfMega").replace("un1", author));
+                    }
+                    return m_isOutgoing ? tr("ActionAddUserSelfYou") : tr("ActionAddUserSelf").replace("un1", author);
                 }
-                case SenderType::Chat: {
-                    const auto title = m_chat->title();
-                    return !title.isEmpty() ? title : tr("HiddenName");
-                }
-                default:
-                    return QString();
+                return m_isOutgoing ? tr("ActionYouAddUser").replace("un2", Utils::getUserName(memberUserId, openUser))
+                                    : (Utils::isMeUser(memberUserId)
+                                           ? (isChannel ? tr("ChannelAddedBy").replace("un1", author) : tr("MegaAddedBy").replace("un1", author))
+                                           : tr("ActionAddUser").replace("un1", author).replace("un2", Utils::getUserName(memberUserId, openUser)));
             }
-        }
 
-        default:
-            return QString();
+            QStringList userList;
+            std::ranges::for_each(message->addedMembers(), [&](const auto &userId) {
+                bool ok = false;
+                if (auto id = userId.toLongLong(&ok); ok)
+                {
+                    userList.append(Utils::getUserName(id, openUser));
+                }
+            });
+
+            const QString users = userList.join(", ");
+            return m_isOutgoing ? tr("ActionYouAddUser").replace("un1", users) : tr("ActionAddUser").replace("un1", author).replace("un2", users);
+        }
+        case td::td_api::messageChatJoinByLink::ID: {
+            return m_isOutgoing ? tr("ActionInviteYou") : tr("ActionInviteUser").replace("un1", author);
+        }
+        case td::td_api::messageChatDeleteMember::ID: {
+            if (message->removedMember() == m_senderId)
+            {
+                return m_isOutgoing ? tr("ActionYouLeftUser") : tr("ActionLeftUser").replace("un1", author);
+            }
+            return m_isOutgoing ? tr("ActionYouKickUser").replace("un2", Utils::getUserName(message->removedMember(), openUser))
+                                : (Utils::isMeUser(message->removedMember())
+                                       ? tr("ActionKickUserYou").replace("un1", author)
+                                       : tr("ActionKickUser").replace("un1", author).replace("un2", Utils::getUserName(message->removedMember(), openUser)));
+        }
+        case td::td_api::messageChatUpgradeTo::ID:
+        case td::td_api::messageChatUpgradeFrom::ID: {
+            return tr("ActionMigrateFromGroup");
+        }
+        case td::td_api::messagePinMessage::ID: {
+            return tr("ActionPinned").replace("un1", author);
+        }
+        case td::td_api::messageScreenshotTaken::ID: {
+            return m_isOutgoing ? tr("ActionTakeScreenshootYou") : tr("ActionTakeScreenshoot").replace("un1", author);
+        }
+        case td::td_api::messageChatSetMessageAutoDeleteTime::ID: {
+            const auto autoDeleteTime = message->autoDeleteTime();
+            const auto ttlString = Locale::instance().formatTtl(autoDeleteTime);
+
+            QString actionKey = m_isOutgoing ? (autoDeleteTime <= 0 ? tr("ActionTTLYouDisabled") : tr("ActionTTLYouChanged").arg(ttlString))
+                                             : (autoDeleteTime <= 0 ? tr("ActionTTLDisabled") : tr("ActionTTLChanged").arg(ttlString));
+
+            return actionKey.replace("un1", author);
+        }
+        case td::td_api::messageCustomServiceAction::ID: {
+            return message->customAction();
+        }
+        case td::td_api::messageContactRegistered::ID: {
+            return tr("NotificationContactJoined").arg(Utils::getUserName(m_senderId, openUser));
+        }
+        default: {
+            return tr("UnsupportedMedia");
+        }
     }
+}
+
+int Message::contentType() const
+{
+    return m_contentType;
+}
+
+QString Message::contentTypeString() const
+{
+    static const std::unordered_map<int32_t, std::string_view> messageTypeMap = {
+        {td::td_api::messageText::ID, "messageText"},
+        {td::td_api::messageAudio::ID, "messageAudio"},
+        {td::td_api::messageDocument::ID, "messageDocument"},
+        {td::td_api::messagePhoto::ID, "messagePhoto"},
+        {td::td_api::messageSticker::ID, "messageSticker"},
+        {td::td_api::messageVideo::ID, "messageVideo"},
+        {td::td_api::messageVideoNote::ID, "messageVideoNote"},
+        {td::td_api::messageVoiceNote::ID, "messageVoiceNote"},
+        {td::td_api::messageExpiredPhoto::ID, "messageExpiredPhoto"},
+        {td::td_api::messageExpiredVideo::ID, "messageExpiredVideo"},
+        {td::td_api::messageExpiredVideoNote::ID, "messageExpiredVideoNote"},
+        {td::td_api::messageExpiredVoiceNote::ID, "messageExpiredVoiceNote"},
+        {td::td_api::messageLocation::ID, "messageLocation"},
+        {td::td_api::messageVenue::ID, "messageVenue"},
+        {td::td_api::messageContact::ID, "messageContact"},
+        {td::td_api::messageAnimatedEmoji::ID, "messageAnimatedEmoji"},
+        {td::td_api::messageDice::ID, "messageDice"},
+        {td::td_api::messageGame::ID, "messageGame"},
+        {td::td_api::messagePoll::ID, "messagePoll"},
+        {td::td_api::messageStory::ID, "messageStory"},
+        {td::td_api::messageInvoice::ID, "messageInvoice"},
+        {td::td_api::messageCall::ID, "messageCall"},
+        {td::td_api::messageVideoChatScheduled::ID, "messageVideoChatScheduled"},
+        {td::td_api::messageVideoChatStarted::ID, "messageVideoChatStarted"},
+        {td::td_api::messageVideoChatEnded::ID, "messageVideoChatEnded"},
+        {td::td_api::messageInviteVideoChatParticipants::ID, "messageInviteVideoChatParticipants"},
+        {td::td_api::messageBasicGroupChatCreate::ID, "messageBasicGroupChatCreate"},
+        {td::td_api::messageSupergroupChatCreate::ID, "messageSupergroupChatCreate"},
+        {td::td_api::messageChatChangeTitle::ID, "messageChatChangeTitle"},
+        {td::td_api::messageChatChangePhoto::ID, "messageChatChangePhoto"},
+        {td::td_api::messageChatDeletePhoto::ID, "messageChatDeletePhoto"},
+        {td::td_api::messageChatAddMembers::ID, "messageChatAddMembers"},
+        {td::td_api::messageChatJoinByLink::ID, "messageChatJoinByLink"},
+        {td::td_api::messageChatJoinByRequest::ID, "messageChatJoinByRequest"},
+        {td::td_api::messageChatDeleteMember::ID, "messageChatDeleteMember"},
+        {td::td_api::messageChatUpgradeTo::ID, "messageChatUpgradeTo"},
+        {td::td_api::messageChatUpgradeFrom::ID, "messageChatUpgradeFrom"},
+        {td::td_api::messagePinMessage::ID, "messagePinMessage"},
+        {td::td_api::messageScreenshotTaken::ID, "messageScreenshotTaken"},
+        {td::td_api::messageChatSetBackground::ID, "messageChatSetBackground"},
+        {td::td_api::messageChatSetTheme::ID, "messageChatSetTheme"},
+        {td::td_api::messageChatSetMessageAutoDeleteTime::ID, "messageChatSetMessageAutoDeleteTime"},
+        {td::td_api::messageChatBoost::ID, "messageChatBoost"},
+        {td::td_api::messageForumTopicCreated::ID, "messageForumTopicCreated"},
+        {td::td_api::messageForumTopicEdited::ID, "messageForumTopicEdited"},
+        {td::td_api::messageForumTopicIsClosedToggled::ID, "messageForumTopicIsClosedToggled"},
+        {td::td_api::messageForumTopicIsHiddenToggled::ID, "messageForumTopicIsHiddenToggled"},
+        {td::td_api::messageSuggestProfilePhoto::ID, "messageSuggestProfilePhoto"},
+        {td::td_api::messageCustomServiceAction::ID, "messageCustomServiceAction"},
+        {td::td_api::messageGameScore::ID, "messageGameScore"},
+        {td::td_api::messagePaymentSuccessful::ID, "messagePaymentSuccessful"},
+        {td::td_api::messagePaymentSuccessfulBot::ID, "messagePaymentSuccessfulBot"},
+        {td::td_api::messageGiftedPremium::ID, "messageGiftedPremium"},
+        {td::td_api::messagePremiumGiftCode::ID, "messagePremiumGiftCode"},
+        {td::td_api::messageContactRegistered::ID, "messageContactRegistered"},
+        {td::td_api::messageUsersShared::ID, "messageUsersShared"},
+        {td::td_api::messageChatShared::ID, "messageChatShared"},
+        {td::td_api::messageBotWriteAccessAllowed::ID, "messageBotWriteAccessAllowed"},
+        {td::td_api::messageWebAppDataSent::ID, "messageWebAppDataSent"},
+        {td::td_api::messageWebAppDataReceived::ID, "messageWebAppDataReceived"},
+        {td::td_api::messagePassportDataSent::ID, "messagePassportDataSent"},
+        {td::td_api::messagePassportDataReceived::ID, "messagePassportDataReceived"},
+        {td::td_api::messageProximityAlertTriggered::ID, "messageProximityAlertTriggered"},
+        {td::td_api::messageUnsupported::ID, "messageUnsupported"}};
+
+    if (auto it = messageTypeMap.find(m_contentType); it != messageTypeMap.end())
+    {
+        return QString::fromStdString(std::string(it->second));
+    }
+    else
+    {
+        return QLatin1String("messageUnsupported");
+    }
+}
+
+bool Message::isService() const noexcept
+{
+    static const std::unordered_set<int> messageTypes = {
+        td::td_api::messageExpiredPhoto::ID,
+        td::td_api::messageExpiredVideo::ID,
+        td::td_api::messageBasicGroupChatCreate::ID,
+        td::td_api::messageSupergroupChatCreate::ID,
+        td::td_api::messageChatChangeTitle::ID,
+        td::td_api::messageChatChangePhoto::ID,
+        td::td_api::messageChatDeletePhoto::ID,
+        td::td_api::messageChatAddMembers::ID,
+        td::td_api::messageChatJoinByLink::ID,
+        td::td_api::messageChatJoinByRequest::ID,
+        td::td_api::messageChatDeleteMember::ID,
+        td::td_api::messageChatUpgradeTo::ID,
+        td::td_api::messageChatUpgradeFrom::ID,
+        td::td_api::messagePinMessage::ID,
+        td::td_api::messageScreenshotTaken::ID,
+        td::td_api::messageChatSetBackground::ID,
+        td::td_api::messageChatSetTheme::ID,
+        td::td_api::messageChatSetMessageAutoDeleteTime::ID,
+        td::td_api::messageChatBoost::ID,
+        td::td_api::messageForumTopicCreated::ID,
+        td::td_api::messageForumTopicEdited::ID,
+        td::td_api::messageForumTopicIsClosedToggled::ID,
+        td::td_api::messageForumTopicIsHiddenToggled::ID,
+        td::td_api::messageSuggestProfilePhoto::ID,
+        td::td_api::messageCustomServiceAction::ID,
+        td::td_api::messageContactRegistered::ID,
+        td::td_api::messageInviteVideoChatParticipants::ID,
+        td::td_api::messageVideoChatScheduled::ID,
+        td::td_api::messageVideoChatStarted::ID,
+        td::td_api::messageVideoChatEnded::ID,
+        td::td_api::messageGiftedPremium::ID,
+        td::td_api::messagePremiumGiftCode::ID,
+        td::td_api::messagePaymentSuccessful::ID,
+        td::td_api::messagePaymentSuccessfulBot::ID,
+        td::td_api::messageUsersShared::ID,
+        td::td_api::messageChatShared::ID,
+        td::td_api::messageBotWriteAccessAllowed::ID,
+        td::td_api::messageWebAppDataSent::ID,
+        td::td_api::messageWebAppDataReceived::ID,
+        td::td_api::messagePassportDataSent::ID,
+        td::td_api::messagePassportDataReceived::ID,
+        td::td_api::messageProximityAlertTriggered::ID,
+        td::td_api::messageUnsupported::ID,
+    };
+
+    if (m_message)
+        return messageTypes.contains(m_contentType);
+
+    return false;
+}
+
+Message::SenderType Message::senderType() const noexcept
+{
+    return m_senderType;
 }
 
 void Message::setContent(td::td_api::object_ptr<td::td_api::MessageContent> content)
@@ -608,86 +592,50 @@ void Message::setEditDate(int editDate)
     emit messageChanged();
 }
 
-QString Message::getAuthor() const noexcept
+QString Message::getGroupSenderName() const noexcept
 {
     switch (m_senderType)
     {
         case SenderType::User: {
-            const auto userName = getUserShortName(m_senderId);
-            return !userName.isEmpty() ? userName : tr("HiddenName");
+            if (Utils::isMeUser(m_senderId))
+                return tr("FromYou");
+            return Utils::getUserShortName(m_senderId);
         }
         case SenderType::Chat: {
-            const auto title = m_chat->title();
-            return !title.isEmpty() ? title : tr("HiddenName");
+            return Utils::getChatTitle(m_senderId);
+        }
+        default:
+            return QString();
+    }
+}
+
+QString Message::getSenderAuthor(bool openUser) const noexcept
+{
+    const QString linkStyle = QLatin1String("<a style=\"text-decoration: none; font-weight: bold; color: darkgray\" href=\"");
+    const QString linkClose = QLatin1String("</a>");
+
+    switch (m_senderType)
+    {
+        case SenderType::User: {
+            const auto userName = Utils::getUserShortName(m_senderId);
+
+            if (openUser)
+            {
+                return linkStyle + QLatin1String("userId://") + QString::number(m_senderId) + QLatin1String("\">") + userName + linkClose;
+            }
+
+            return userName;
+        }
+        case SenderType::Chat: {
+            const auto chatTitle = Utils::getChatTitle(m_senderId);
+
+            if (openUser)
+            {
+                return linkStyle + QLatin1String("chatId://") + QString::number(m_senderId) + QLatin1String("\">") + chatTitle + linkClose;
+            }
+            return chatTitle;
         }
         default:
             return {};
     }
-}
-
-QString Message::getUserShortName(qlonglong userId) const noexcept
-{
-    auto user = m_storageManager->getUser(userId);
-
-    switch (user->type())
-    {
-        case User::Type::Bot:
-        case User::Type::Regular: {
-            QString firstName = user->firstName();
-            QString lastName = user->lastName();
-
-            if (!firstName.isEmpty())
-            {
-                return firstName;
-            }
-            if (!lastName.isEmpty())
-            {
-                return lastName;
-            }
-            break;
-        }
-        case User::Type::Deleted:
-        case User::Type::Unknown:
-            return tr("HiddenName");
-        default:
-            return QString();
-    }
-
-    return QString();
-}
-
-QString Message::getUserFullName(qlonglong userId) const noexcept
-{
-    auto user = m_storageManager->getUser(userId);
-
-    switch (user->type())
-    {
-        case User::Type::Bot:
-        case User::Type::Regular: {
-            return QString(user->firstName() + " " + user->lastName()).trimmed();
-        }
-        case User::Type::Deleted:
-        case User::Type::Unknown: {
-            return tr("HiddenName");
-        }
-        default:
-            return QString();
-    }
-
-    return QString();
-}
-
-bool Message::isMeUser(qlonglong userId) const noexcept
-{
-    return m_storageManager->myId() == userId;
-}
-
-QString Message::getUserName(qlonglong userId) const noexcept
-{
-    if (QString userName = getUserShortName(userId); !userName.isEmpty())
-    {
-        return userName;
-    }
-
-    return QString();
 }

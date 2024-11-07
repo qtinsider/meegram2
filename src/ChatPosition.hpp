@@ -32,8 +32,8 @@ signals:
     void listChanged();
 
 private:
-    Type m_type{None};
-    int m_folderId{};
+    Type m_type;
+    int m_folderId;
 };
 
 class ChatPosition : public QObject
@@ -64,23 +64,14 @@ class ChatFolderInfo : public QObject
 
     Q_PROPERTY(int id READ id CONSTANT)
     Q_PROPERTY(QString title READ title CONSTANT)
-    Q_PROPERTY(int colorId READ colorId CONSTANT)
-    Q_PROPERTY(bool isShareable READ isShareable CONSTANT)
-    Q_PROPERTY(bool hasMyInviteLinks READ hasMyInviteLinks CONSTANT)
 
 public:
     explicit ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo> info, QObject *parent = nullptr);
 
     int id() const;
     QString title() const;
-    int colorId() const;
-    bool isShareable() const;
-    bool hasMyInviteLinks() const;
 
 private:
     int m_id;
     QString m_title;
-    int m_colorId;
-    bool m_isShareable;
-    bool m_hasMyInviteLinks;
 };

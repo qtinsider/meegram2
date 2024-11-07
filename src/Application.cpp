@@ -243,6 +243,11 @@ Chat *Application::getChat(qlonglong chatId) const noexcept
     return m_storageManager->getChat(chatId).get();
 }
 
+QString Application::translate(const char *key, int plural) const
+{
+    return m_locale->translate(key, plural);
+}
+
 void Application::close() noexcept
 {
     m_client->send(td::td_api::make_object<td::td_api::close>(), {});

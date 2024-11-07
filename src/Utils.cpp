@@ -1,7 +1,5 @@
 #include "Utils.hpp"
 
-#include "Common.hpp"
-#include "Localization.hpp"
 #include "StorageManager.hpp"
 
 #include <QStringBuilder>
@@ -9,8 +7,6 @@
 
 Utils::Utils(QObject *parent)
     : QObject(parent)
-    , m_locale(&Locale::instance())
-    , m_storageManager(&StorageManager::instance())
 {
 }
 
@@ -18,21 +14,22 @@ td::td_api::object_ptr<td::td_api::ChatList> Utils::toChatList(const std::unique
 {
     switch (list->type())
     {
-        case ChatList::Archive:
+        case ChatList::Type::Main:
+            return td::td_api::make_object<td::td_api::chatListMain>();
+        case ChatList::Type::Archive:
             return td::td_api::make_object<td::td_api::chatListArchive>();
-        case ChatList::Folder:
+        case ChatList::Type::Folder:
             return td::td_api::make_object<td::td_api::chatListFolder>(list->folderId());
         default:
-            return td::td_api::make_object<td::td_api::chatListMain>();
+            // Fallback to nullptr for None or any unexpected type
+            return nullptr;
     }
 }
 
 QString Utils::formattedText(const td::td_api::object_ptr<td::td_api::formattedText> &value) noexcept
 {
     if (!value)
-    {
         return {};
-    }
 
     const auto text = QString::fromStdString(value->text_);
     const auto &entities = value->entities_;
@@ -151,21 +148,7 @@ QString Utils::formattedText(const td::td_api::object_ptr<td::td_api::formattedT
     return html;
 }
 
-QString Utils::getChatTitle(qlonglong chatId, bool showSavedMessages) const noexcept
-{
-    auto chat = m_storageManager->getChat(chatId);
-
-    if (isMeChat(chat) && showSavedMessages)
-    {
-        return QObject::tr("SavedMessages");
-    }
-
-    const auto title = chat->title().trimmed();
-
-    return !title.isEmpty() ? title : QObject::tr("HiddenName");
-}
-
-QString Utils::formatTime(int totalSeconds) const noexcept
+QString Utils::formatTime(int totalSeconds) noexcept
 {
     QString result;
     QTextStream stream(&result);
@@ -196,27 +179,114 @@ QString Utils::formatTime(int totalSeconds) const noexcept
     return result;
 }
 
-bool Utils::isMeChat(const std::shared_ptr<Chat> &chat) const noexcept
+QString Utils::getChatTitle(qlonglong chatId, bool showSavedMessages) noexcept
+{
+    auto chat = StorageManager::instance().getChat(chatId);
+
+    if (isMeChat(chat) && showSavedMessages)
+    {
+        return QObject::tr("SavedMessages");
+    }
+
+    const auto title = chat->title().trimmed();
+
+    return !title.isEmpty() ? title : QObject::tr("HiddenName");
+}
+
+QString Utils::getUserName(qlonglong userId, bool openUser) noexcept
+{
+    const auto userName = getUserShortName(userId);
+
+    if (userName.isEmpty())
+    {
+        return QString();
+    }
+
+    if (openUser)
+    {
+        const QString linkStart = QLatin1String("<a style=\"text-decoration: none; font-weight: bold; color: darkgray\" href=\"userId://");
+        const QString linkEnd = QLatin1String("</a>");
+        return linkStart + QString::number(userId) + QLatin1String("\">") + userName + linkEnd;
+    }
+
+    return userName;
+}
+
+QString Utils::getUserShortName(qlonglong userId) noexcept
+{
+    auto user = StorageManager::instance().getUser(userId);
+    if (!user)
+        return QString();
+
+    switch (user->type())
+    {
+        case User::Type::Bot:
+        case User::Type::Regular: {
+            if (!user->firstName().isEmpty())
+            {
+                return user->firstName();
+            }
+            if (!user->lastName().isEmpty())
+            {
+                return user->lastName();
+            }
+            break;
+        }
+        case User::Type::Deleted:
+        case User::Type::Unknown:
+            return tr("HiddenName");
+        default:
+            return QString();
+    }
+
+    return QString();
+}
+
+QString Utils::getUserFullName(qlonglong userId) noexcept
+{
+    auto user = StorageManager::instance().getUser(userId);
+    if (!user)
+        return QString();
+
+    switch (user->type())
+    {
+        case User::Type::Bot:
+        case User::Type::Regular:
+            return QString(user->firstName() + " " + user->lastName()).trimmed();
+
+        case User::Type::Deleted:
+        case User::Type::Unknown:
+            return tr("HiddenName");
+
+        default:
+            return QString();
+    }
+}
+
+bool Utils::isMeUser(qlonglong userId) noexcept
+{
+    return StorageManager::instance().myId() == userId;
+}
+
+bool Utils::isMeChat(const std::shared_ptr<Chat> &chat) noexcept
 {
     if (!chat)  // Safety check for null pointers
         return false;
 
     const auto chatType = chat->type();
-    const auto myId = m_storageManager->myId();
+    const auto myId = StorageManager::instance().myId();
 
-    if (chatType == Chat::Type::Secret)
+    switch (chatType)
     {
-        return myId == chat->typeId();
-    }
-    else if (chatType == Chat::Type::Private)
-    {
-        return myId == chat->typeId();
+        case Chat::Type::Secret:
+            return myId == chat->typeId();
+
+        case Chat::Type::Private:
+            return myId == chat->typeId();
+
+        default:
+            return {};
     }
 
     return false;
-}
-
-bool Utils::isMeUser(qlonglong userId) const noexcept
-{
-    return m_storageManager->myId() == userId;
 }

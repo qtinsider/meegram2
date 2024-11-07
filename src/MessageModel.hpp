@@ -63,6 +63,8 @@ public:
     Chat *chat() const noexcept;
     void setChat(Chat *value) noexcept;
 
+    Q_INVOKABLE Message *getMessage(qlonglong messageId) const;
+
     Q_INVOKABLE void openChat() noexcept;
     Q_INVOKABLE void closeChat() noexcept;
     Q_INVOKABLE void getChatHistory(qlonglong fromMessageId, int offset, int limit, bool previous = false);

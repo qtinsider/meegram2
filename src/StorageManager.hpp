@@ -1,14 +1,12 @@
 #pragma once
 
 #include "BasicGroup.hpp"
-#include "BasicGroupFullInfo.hpp"
 #include "Chat.hpp"
 #include "Client.hpp"
 #include "File.hpp"
 #include "Supergroup.hpp"
 #include "SupergroupFullInfo.hpp"
 #include "User.hpp"
-#include "UserFullInfo.hpp"
 
 #include <td/telegram/td_api.h>
 
@@ -29,16 +27,14 @@ public:
 
     [[nodiscard]] std::vector<qlonglong> getChatIds() const noexcept;
 
+    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders() const noexcept;
+
     [[nodiscard]] std::shared_ptr<BasicGroup> getBasicGroup(qlonglong groupId) const noexcept;
-    [[nodiscard]] std::shared_ptr<BasicGroupFullInfo> getBasicGroupFullInfo(qlonglong groupId) const noexcept;
     [[nodiscard]] std::shared_ptr<Chat> getChat(qlonglong chatId) const noexcept;
     [[nodiscard]] std::shared_ptr<File> getFile(int fileId) const noexcept;
     [[nodiscard]] std::shared_ptr<Supergroup> getSupergroup(qlonglong groupId) const noexcept;
     [[nodiscard]] std::shared_ptr<SupergroupFullInfo> getSupergroupFullInfo(qlonglong groupId) const noexcept;
     [[nodiscard]] std::shared_ptr<User> getUser(qlonglong userId) const noexcept;
-    [[nodiscard]] std::shared_ptr<UserFullInfo> getUserFullInfo(qlonglong userId) const noexcept;
-
-    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders() const noexcept;
 
     [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
 
@@ -69,11 +65,9 @@ private:
     std::vector<std::shared_ptr<ChatFolderInfo>> m_chatFolders;
 
     std::unordered_map<qlonglong, std::shared_ptr<BasicGroup>> m_basicGroup;
-    std::unordered_map<qlonglong, std::shared_ptr<BasicGroupFullInfo>> m_basicGroupFullInfo;
     std::unordered_map<qlonglong, std::shared_ptr<Chat>> m_chats;
     std::unordered_map<int, std::shared_ptr<File>> m_files;
     std::unordered_map<qlonglong, std::shared_ptr<Supergroup>> m_supergroup;
     std::unordered_map<qlonglong, std::shared_ptr<SupergroupFullInfo>> m_supergroupFullInfo;
     std::unordered_map<qlonglong, std::shared_ptr<User>> m_users;
-    std::unordered_map<qlonglong, std::shared_ptr<UserFullInfo>> m_userFullInfo;
 };

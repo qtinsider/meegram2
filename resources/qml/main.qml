@@ -42,5 +42,5 @@ PageStackWindow {
         }
     }
 
-    Component.onCompleted: theme.inverted = false /*settings.invertedTheme*/
+    Component.onCompleted: theme.inverted = settings.invertedTheme
 }

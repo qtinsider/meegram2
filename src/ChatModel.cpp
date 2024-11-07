@@ -87,7 +87,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     switch (role)
     {
         case IdRole:
-            return QVariant::fromValue(chatPtr->id());
+            return chatPtr->id();
         case TypeRole:
             return chatPtr->type();
         case TitleRole:

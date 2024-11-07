@@ -22,6 +22,7 @@
 #include "LottieAnimation.hpp"
 #include "Message.hpp"
 #include "MessageModel.hpp"
+#include "MessageService.hpp"
 #include "QrCodeItem.hpp"
 #include "Settings.hpp"
 #include "StorageManager.hpp"
@@ -45,6 +46,7 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     qRegisterMetaType<QList<qlonglong>>("QList<qlonglong>");
 
+    qRegisterMetaType<Chat::Type>("Chat::Type");
     qRegisterMetaType<ChatList::Type>("ChatList::Type");
 
     qRegisterMetaType<QModelIndex>("QModelIndex");

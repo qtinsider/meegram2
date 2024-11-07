@@ -14,8 +14,8 @@ class Chat : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qlonglong id READ id NOTIFY chatChanged)
-    Q_PROPERTY(Type type READ type NOTIFY chatChanged)
+    Q_PROPERTY(qlonglong id READ id CONSTANT)
+    Q_PROPERTY(Type type READ type CONSTANT)
     Q_PROPERTY(QString title READ title NOTIFY chatChanged)
     Q_PROPERTY(File *photo READ photo NOTIFY chatChanged)
     Q_PROPERTY(Message *lastMessage READ lastMessage NOTIFY chatChanged)
@@ -28,6 +28,7 @@ class Chat : public QObject
     Q_PROPERTY(int muteFor READ muteFor NOTIFY chatChanged)
     Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatChanged)
 
+    Q_ENUMS(Type)
 public:
     explicit Chat(td::td_api::object_ptr<td::td_api::chat> chat, QObject *parent = nullptr);
 

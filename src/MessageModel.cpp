@@ -4,6 +4,7 @@
 #include "Client.hpp"
 #include "Common.hpp"
 #include "Localization.hpp"
+#include "MessageService.hpp"
 #include "StorageManager.hpp"
 #include "Supergroup.hpp"
 #include "Utils.hpp"
@@ -31,9 +32,9 @@ MessageModel::MessageModel(QObject *parent)
 
     connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
 
-    connect(m_storageManager, SIGNAL(userUpdated(qlonglong)), this, SLOT(handleUserUpdate(qlonglong)));
     connect(m_storageManager, SIGNAL(basicGroupUpdated(qlonglong)), this, SLOT(handleBasicGroupUpdate(qlonglong)));
     connect(m_storageManager, SIGNAL(supergroupUpdated(qlonglong)), this, SLOT(handleSupergroupUpdate(qlonglong)));
+    connect(m_storageManager, SIGNAL(userUpdated(qlonglong)), this, SLOT(handleUserUpdate(qlonglong)));
 
     setRoleNames(roleNames());
 }
@@ -51,84 +52,79 @@ QVariant MessageModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() < 0 || index.row() >= static_cast<int>(m_messages.size()))
         return QVariant();
 
-    const auto it = std::ranges::next(m_messages.begin(), index.row());
-    const auto &message = it->second;  // Access the message directly
+    auto it = m_messages.begin();
+    std::advance(it, index.row());
+    const auto &message = it->second;
 
     switch (role)
     {
         case IdRole:
-            return QVariant::fromValue(message->id());
-        case SenderRole: {
+            return message->id();
+        case SenderRole:
             return message->getSenderName();
-        }
         case ChatIdRole:
             return message->chatId();
         case IsOutgoingRole:
             return message->isOutgoing();
-        case DateRole: {
-            const auto date = message->date();
-            return date.toString(QObject::tr("formatterDay12H"));
-        }
-        case EditDateRole: {
-            const auto date = message->editDate();
-            return date.toString(QObject::tr("formatterDay12H"));
-        }
+        case DateRole:
+            return message->date().toString(QObject::tr("formatterDay12H"));
+        case EditDateRole:
+            return message->editDate().toString(QObject::tr("formatterDay12H"));
         case ContentRole: {
-            auto content = message->content();
-            switch (message->contentType())
+            if (auto content = message->content())
             {
-                case td::td_api::messageText::ID:
-                    return QVariant::fromValue(static_cast<MessageText *>(content));
-                case td::td_api::messageAnimation::ID:
-                    return QVariant::fromValue(static_cast<MessageAnimation *>(content));
-                case td::td_api::messageAudio::ID:
-                    return QVariant::fromValue(static_cast<MessageAudio *>(content));
-                case td::td_api::messageDocument::ID:
-                    return QVariant::fromValue(static_cast<MessageDocument *>(content));
-                case td::td_api::messagePhoto::ID:
-                    return QVariant::fromValue(static_cast<MessagePhoto *>(content));
-                case td::td_api::messageSticker::ID:
-                    return QVariant::fromValue(static_cast<MessageSticker *>(content));
-                case td::td_api::messageVideo::ID:
-                    return QVariant::fromValue(static_cast<MessageVideo *>(content));
-                case td::td_api::messageVideoNote::ID:
-                    return QVariant::fromValue(static_cast<MessageVideoNote *>(content));
-                case td::td_api::messageVoiceNote::ID:
-                    return QVariant::fromValue(static_cast<MessageVoiceNote *>(content));
-                case td::td_api::messageLocation::ID:
-                    return QVariant::fromValue(static_cast<MessageLocation *>(content));
-                case td::td_api::messageVenue::ID:
-                    return QVariant::fromValue(static_cast<MessageVenue *>(content));
-                case td::td_api::messageContact::ID:
-                    return QVariant::fromValue(static_cast<MessageContact *>(content));
-                case td::td_api::messageAnimatedEmoji::ID:
-                    return QVariant::fromValue(static_cast<MessageAnimatedEmoji *>(content));
-                case td::td_api::messagePoll::ID:
-                    return QVariant::fromValue(static_cast<MessagePoll *>(content));
-                case td::td_api::messageCall::ID:
-                    return QVariant::fromValue(static_cast<MessageCall *>(content));
-                default:
-                    return QVariant::fromValue(static_cast<MessageService *>(content));
+                switch (message->contentType())
+                {
+                    case td::td_api::messageText::ID:
+                        return QVariant::fromValue(static_cast<MessageText *>(content));
+                    case td::td_api::messageAnimation::ID:
+                        return QVariant::fromValue(static_cast<MessageAnimation *>(content));
+                    case td::td_api::messageAudio::ID:
+                        return QVariant::fromValue(static_cast<MessageAudio *>(content));
+                    case td::td_api::messageDocument::ID:
+                        return QVariant::fromValue(static_cast<MessageDocument *>(content));
+                    case td::td_api::messagePhoto::ID:
+                        return QVariant::fromValue(static_cast<MessagePhoto *>(content));
+                    case td::td_api::messageSticker::ID:
+                        return QVariant::fromValue(static_cast<MessageSticker *>(content));
+                    case td::td_api::messageVideo::ID:
+                        return QVariant::fromValue(static_cast<MessageVideo *>(content));
+                    case td::td_api::messageVideoNote::ID:
+                        return QVariant::fromValue(static_cast<MessageVideoNote *>(content));
+                    case td::td_api::messageVoiceNote::ID:
+                        return QVariant::fromValue(static_cast<MessageVoiceNote *>(content));
+                    case td::td_api::messageLocation::ID:
+                        return QVariant::fromValue(static_cast<MessageLocation *>(content));
+                    case td::td_api::messageVenue::ID:
+                        return QVariant::fromValue(static_cast<MessageVenue *>(content));
+                    case td::td_api::messageContact::ID:
+                        return QVariant::fromValue(static_cast<MessageContact *>(content));
+                    case td::td_api::messageAnimatedEmoji::ID:
+                        return QVariant::fromValue(static_cast<MessageAnimatedEmoji *>(content));
+                    case td::td_api::messagePoll::ID:
+                        return QVariant::fromValue(static_cast<MessagePoll *>(content));
+                    case td::td_api::messageCall::ID:
+                        return QVariant::fromValue(static_cast<MessageCall *>(content));
+                    default:
+                        return QVariant::fromValue(static_cast<MessageService *>(content));
+                }
             }
+            return QVariant();
         }
-        case ContentTypeRole: {
+        case ContentTypeRole:
             return message->contentTypeString();
-        }
-        case IsServiceRole: {
+        case IsServiceRole:
             return message->isService();
-        }
         case SectionRole: {
-            const auto days = message->date().daysTo(QDateTime::currentDateTime());
+            static const auto currentDateTime = QDateTime::currentDateTime();
+            const int days = message->date().daysTo(currentDateTime);
 
-            switch (days)
-            {
-                case 0:
-                    return QObject::tr("MessageScheduleToday");
-                case 1:
-                    return QObject::tr("Yesterday");
-                default:
-                    return message->date().toString(QObject::tr("chatFullDate"));
-            }
+            if (days == 0)
+                return QObject::tr("MessageScheduleToday");
+            else if (days == 1)
+                return QObject::tr("Yesterday");
+            else
+                return message->date().toString(QObject::tr("chatFullDate"));
         }
     }
 
@@ -203,15 +199,23 @@ void MessageModel::setChat(Chat *value) noexcept
     emit chatChanged();
 }
 
+Message *MessageModel::getMessage(qlonglong messageId) const
+{
+    if (auto it = m_messages.find(messageId); it != m_messages.end())
+    {
+        return it->second.get();
+    }
+
+    return nullptr;
+}
+
 void MessageModel::loadNextSlice() noexcept
 {
     if (!m_loading)
     {
-        qDebug() << "Loading next message slice. Max message ID:" << std::ranges::max(m_messages | std::views::keys);
+        m_loading = true;
 
         getChatHistory(std::ranges::max(m_messages | std::views::keys), -MessageSliceLimit, MessageSliceLimit);
-
-        m_loading = true;
 
         emit loadingChanged();
     }
@@ -221,8 +225,6 @@ void MessageModel::loadPreviousSlice() noexcept
 {
     if (!m_loading)
     {
-        qDebug() << "Loading previous message slice. Min message ID:" << std::ranges::min(m_messages | std::views::keys);
-
         m_loading = true;
 
         getChatHistory(std::ranges::min(m_messages | std::views::keys), 0, MessageSliceLimit);
@@ -260,31 +262,40 @@ void MessageModel::getChatHistory(qlonglong fromMessageId, int offset, int limit
     request->only_local_ = false;
 
     m_client->send(std::move(request), [this, previous](auto &&response) {
-        if (response->get_id() == td::td_api::messages::ID)
+        if (response->get_id() != td::td_api::messages::ID)
         {
-            auto messages = td::td_api::move_object_as<td::td_api::messages>(response);
-
-            if (!messages || messages->messages_.empty())
+            if (m_loading)
             {
                 m_loading = false;
                 emit loadingChanged();
-
-                return;
             }
-
-            std::vector<std::unique_ptr<Message>> newMessages;
-            newMessages.reserve(messages->total_count_);  // Reserve space to avoid reallocations
-
-            for (auto &&message : messages->messages_)
-            {
-                if (message)
-                {
-                    newMessages.emplace_back(std::make_unique<Message>(std::move(message)));
-                }
-            }
-
-            handleMessages(std::move(newMessages), previous);
+            return;
         }
+
+        auto messages = td::td_api::move_object_as<td::td_api::messages>(response);
+
+        if (!messages || messages->messages_.empty())
+        {
+            if (m_loading)
+            {
+                m_loading = false;
+                emit loadingChanged();
+            }
+            return;
+        }
+
+        std::vector<std::unique_ptr<Message>> newMessages;
+        newMessages.reserve(messages->messages_.size());  // Reserve space for exact number of messages
+
+        for (auto &&message : messages->messages_)
+        {
+            if (message)
+            {
+                newMessages.emplace_back(std::make_unique<Message>(std::move(message)));
+            }
+        }
+
+        handleMessages(std::move(newMessages), previous);
     });
 }
 
@@ -375,11 +386,6 @@ void MessageModel::componentComplete()
 
 void MessageModel::handleChatItem()
 {
-    qDebug() << "(m_chat ID:" << m_chat->id() << ")";
-    qDebug() << "Total number of items in the model:" << count();
-    qDebug() << "Last read inbox message ID:" << m_chat->lastReadInboxMessageId();
-    qDebug() << "Last read outbox message ID:" << m_chat->lastReadOutboxMessageId();
-    qDebug() << "Total unread message count:" << m_chat->unreadCount();
 }
 
 void MessageModel::handleResult(td::td_api::Object *object)
@@ -524,9 +530,19 @@ void MessageModel::handleChatOnlineMemberCount(qlonglong chatId, int onlineMembe
 
 void MessageModel::handleMessages(std::vector<std::unique_ptr<Message>> &&messages, bool previous)
 {
-    const auto messageCount = static_cast<int>(messages.size());
+    const int messageCount = static_cast<int>(messages.size());
 
     qDebug() << "handleMessages called. Number of messages received:" << messageCount;
+
+    if (messageCount == 0)
+    {
+        if (m_loading)
+        {
+            m_loading = false;
+            emit loadingChanged();
+        }
+        return;
+    }
 
     const int insertPos = previous ? 0 : rowCount();
 
@@ -586,8 +602,7 @@ ChatInfo::ChatInfo(Chat *chat, QObject *parent)
 
 QString ChatInfo::title() const noexcept
 {
-    const auto title = m_chat->title();
-    return !title.isEmpty() ? title : tr("HiddenName");
+    return Utils::getChatTitle(m_chat->id(), true);
 }
 
 QString ChatInfo::status() const noexcept
@@ -663,10 +678,10 @@ void ChatInfo::updateStatus()
         else
         {
             int count = getMemberCountWithFallback();
-            newStatus = (count <= 0)
-                            ? (m_supergroup->hasLocation() ? QObject::tr("MegaLocation")
-                                                           : (m_supergroup->usernames().isEmpty() ? QObject::tr("MegaPrivate") : QObject::tr("MegaPublic")))
-                            : formatStatus(count, "Members", "OnlineCount");
+            newStatus = (count <= 0) ? (m_supergroup->hasLocation()
+                                            ? QObject::tr("MegaLocation")
+                                            : (m_supergroup->activeUsernames().isEmpty() ? QObject::tr("MegaPrivate") : QObject::tr("MegaPublic")))
+                                     : formatStatus(count, "Members", "OnlineCount");
         }
     }
     else if (m_user)

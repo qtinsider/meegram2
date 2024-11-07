@@ -29,6 +29,8 @@ public:
 
     Q_INVOKABLE Chat *getChat(qlonglong chatId) const noexcept;
 
+    Q_INVOKABLE QString translate(const char *key, int plural = -1) const;
+
 signals:
     void authorizedChanged();
     void connectionStateChanged();

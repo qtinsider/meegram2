@@ -8,7 +8,7 @@
 Settings::Settings()
     : m_settings(new QSettings(QSettings::IniFormat, QSettings::UserScope, QCoreApplication::organizationName(), QCoreApplication::applicationName()))
 {
-    m_invertedTheme = m_settings->value("invertedTheme", true).toBool();
+    m_invertedTheme = m_settings->value("invertedTheme", false).toBool();
 
     m_languagePackId = m_settings->value("languagePackId", DefaultLanguageCode).toString();
     m_languagePluralId = m_settings->value("languagePluralId", DefaultLanguageCode).toString();

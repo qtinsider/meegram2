@@ -38,7 +38,7 @@ Page {
                         buttonWidth: 100
                         buttonHeight: 42
                     }
-                    text: qsTr("Chats")
+                    text: qsTr("WidgetChats")
                     onClicked: pageStack.pop()
                 }
             }
@@ -120,71 +120,80 @@ Page {
                 cacheBuffer: listView.height * 2
                 pressDelay: 50
 
-                delegate: Component {
+                delegate: Item {
+
+                    height: loader.y + loader.height
+                    width: listView.width
+
                     Loader {
                         id: loader
                         width: listView.width
-                        // height: childrenRect.height
-                        sourceComponent: model.isService ? textMessageComponent  : deleglateChooser.get(model.contentType)
+                        sourceComponent: model.isService ? serviceMessageComponent  : deleglateChooser.get(model.contentType)
+                    }
 
-                        Component {
-                            id: textMessageComponent
+                    Component {
+                        id: serviceMessageComponent
 
-                            MessageBubble {
-                                childrenWidth: messageText.paintedWidth
+                        ServiceMessageDelegate {}
+                    }
 
-                                content: Label {
-                                    id: messageText
-                                    text: model.content.formattedText
-                                    textFormat: Text.RichText
-                                    color: model.isService ? "gray" : model.isOutgoing ? "white" : "black"
-                                    width: isPortrait ? 380 : 754
-                                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: model.isService ? 50 : model.isOutgoing ? 80 : 20
-                                    }
-                                    font.pixelSize: model.isService ? 18 : 23
-                                    horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-                                    onLinkActivated: Qt.openUrlExternally(link)
+                    Component {
+                        id: textMessageComponent
+
+                        MessageBubble {
+                            childrenWidth: messageText.paintedWidth
+
+                            content: Label {
+                                id: messageText
+                                text: model.content.formattedText
+                                textFormat: Text.RichText
+                                color: model.isOutgoing ? "white" : "black"
+                                width: isPortrait ? 380 : 754
+                                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                                anchors {
+                                    left: parent.left
+                                    leftMargin: model.isOutgoing ? 80 : 20
                                 }
+                                font.pixelSize: 23
+                                horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
+                                onLinkActivated: Qt.openUrlExternally(link)
                             }
                         }
+                    }
 
-                        Component {
-                            id: notSupportedMessageComponent
+                    Component {
+                        id: notSupportedMessageComponent
 
-                            MessageBubble {
-                                childrenWidth: notSupportedMessage.paintedWidth
+                        MessageBubble {
+                            childrenWidth: notSupportedMessage.paintedWidth
 
-                                content: Label {
-                                    id: notSupportedMessage
-                                    anchors {
-                                        left: parent.left
-                                        leftMargin: model.isOutgoing ? 80 : 20
-                                    }
-                                    width: isPortrait ? 380 : 754
-                                    font {
-                                        bold: true
-                                        pixelSize: 23
-                                    }
-                                    horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-                                    wrapMode: Text.Wrap
-                                    color: model.isOutgoing ? "white" : "black"
-                                    text: "The message is not supported on MeeGram yet"
+                            content: Label {
+                                id: notSupportedMessage
+                                anchors {
+                                    left: parent.left
+                                    leftMargin: model.isOutgoing ? 80 : 20
                                 }
+                                width: isPortrait ? 380 : 754
+                                font {
+                                    bold: true
+                                    pixelSize: 23
+                                }
+                                horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
+                                wrapMode: Text.Wrap
+                                color: model.isOutgoing ? "white" : "black"
+                                text: "The message is not supported on MeeGram yet"
                             }
                         }
+                    }
 
-                        QtObject {
-                            id: deleglateChooser
-                            function get(contentType) {
-                                switch (contentType) {
-                                case "messageText":
-                                    return textMessageComponent;
-                                default:
-                                    return notSupportedMessageComponent;
-                                }
+                    QtObject {
+                        id: deleglateChooser
+                        function get(contentType) {
+                            switch (contentType) {
+                            case "messageText":
+                                return textMessageComponent;
+                            default:
+                                return notSupportedMessageComponent;
                             }
                         }
                     }

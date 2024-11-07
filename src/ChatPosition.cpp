@@ -9,28 +9,27 @@ ChatList::ChatList(QObject *parent)
 
 ChatList::ChatList(td::td_api::object_ptr<td::td_api::ChatList> list, QObject *parent)
     : QObject(parent)
+    , m_type(Type::None)
+    , m_folderId(0)
 {
-    if (list->get_id() == td::td_api::chatListMain::ID)
+    switch (list->get_id())
     {
-        m_type = Type::Main;
-    }
-    else if (list->get_id() == td::td_api::chatListArchive::ID)
-    {
-        m_type = Type::Archive;
-    }
-    else if (list->get_id() == td::td_api::chatListFolder::ID)
-    {
-        m_type = Type::Folder;
-    }
-
-    if (const auto folder = static_cast<const td::td_api::chatListFolder *>(list.get()))
-    {
-        m_folderId = folder->chat_folder_id_;
-    }
-    else
-    {
-        m_type = Type::None;
-        m_folderId = 0;
+        case td::td_api::chatListMain::ID:
+            m_type = Type::Main;
+            break;
+        case td::td_api::chatListArchive::ID:
+            m_type = Type::Archive;
+            break;
+        case td::td_api::chatListFolder::ID:
+            m_type = Type::Folder;
+            if (const auto folder = static_cast<const td::td_api::chatListFolder *>(list.get()))
+            {
+                m_folderId = folder->chat_folder_id_;
+            }
+            break;
+        default:
+            // m_type and m_folderId remain as initialized (None and 0).
+            break;
     }
 }
 
@@ -94,9 +93,6 @@ ChatFolderInfo::ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo
     : QObject(parent)
     , m_id(info->id_)
     , m_title(QString::fromStdString(info->title_))
-    , m_colorId(info->color_id_)
-    , m_isShareable(info->is_shareable_)
-    , m_hasMyInviteLinks(info->has_my_invite_links_)
 {
 }
 
@@ -108,19 +104,4 @@ int ChatFolderInfo::id() const
 QString ChatFolderInfo::title() const
 {
     return m_title;
-}
-
-int ChatFolderInfo::colorId() const
-{
-    return m_colorId;
-}
-
-bool ChatFolderInfo::isShareable() const
-{
-    return m_isShareable;
-}
-
-bool ChatFolderInfo::hasMyInviteLinks() const
-{
-    return m_hasMyInviteLinks;
 }

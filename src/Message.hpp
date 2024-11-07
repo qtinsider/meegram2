@@ -14,17 +14,16 @@ class Message : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(qlonglong id READ id NOTIFY messageChanged)
-    Q_PROPERTY(qlonglong chatId READ chatId NOTIFY messageChanged)
-    Q_PROPERTY(qlonglong senderId READ senderId NOTIFY messageChanged)
-    Q_PROPERTY(bool isOutgoing READ isOutgoing NOTIFY messageChanged)
-    Q_PROPERTY(QDateTime date READ date NOTIFY messageChanged)
+    Q_PROPERTY(qlonglong id READ id CONSTANT)
+    Q_PROPERTY(qlonglong chatId READ chatId CONSTANT)
+    Q_PROPERTY(qlonglong senderId READ senderId CONSTANT)
+    Q_PROPERTY(bool isOutgoing READ isOutgoing CONSTANT)
+    Q_PROPERTY(QDateTime date READ date CONSTANT)
     Q_PROPERTY(QDateTime editDate READ editDate NOTIFY messageChanged)
 
     Q_PROPERTY(QString content READ getContent NOTIFY messageChanged)
     Q_PROPERTY(QString contentType READ contentTypeString NOTIFY messageChanged)
-    Q_PROPERTY(bool isService READ isService NOTIFY messageChanged)
-    Q_PROPERTY(SenderType senderType READ senderType NOTIFY messageChanged)
+    Q_PROPERTY(bool isService READ isService CONSTANT)
 
 public:
     explicit Message(td::td_api::object_ptr<td::td_api::message> message, QObject *parent = nullptr);
@@ -41,8 +40,9 @@ public:
 
     QString getTitle() const noexcept;
     QString getSenderName() const noexcept;
-    QString getServiceMessageContent() const;
     QString getContent() const noexcept;
+
+    Q_INVOKABLE QString getServiceContent(bool openUser = false) const;
 
     int contentType() const;
     QString contentTypeString() const;
@@ -56,12 +56,9 @@ public:
 signals:
     void messageChanged();
 
-private:
-    QString getAuthor() const noexcept;
-    QString getUserShortName(qlonglong userId) const noexcept;
-    QString getUserFullName(qlonglong userId) const noexcept;
-    bool isMeUser(qlonglong userId) const noexcept;
-    QString getUserName(qlonglong userId) const noexcept;
+private:    
+    QString getGroupSenderName() const noexcept;
+    QString getSenderAuthor(bool openUser) const noexcept;
 
     qlonglong m_id;
     qlonglong m_chatId;
@@ -77,8 +74,6 @@ private:
     SenderType m_senderType;
 
     StorageManager *m_storageManager{};
-
-    std::shared_ptr<Chat> m_chat;
 
     std::unique_ptr<MessageContent> m_content;
 

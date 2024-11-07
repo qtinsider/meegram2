@@ -27,7 +27,6 @@ set(SRC_FILES
     src/Application.cpp
     src/Authorization.cpp
     src/BasicGroup.cpp
-    src/BasicGroupFullInfo.cpp
     src/Chat.cpp
     src/ChatFolderModel.cpp
     src/ChatModel.cpp
@@ -43,6 +42,7 @@ set(SRC_FILES
     src/Message.cpp
     src/MessageContent.cpp
     src/MessageModel.cpp
+    src/MessageService.cpp
     src/PluralRules.cpp
     src/QrCodeItem.cpp
     src/Settings.cpp
@@ -50,7 +50,6 @@ set(SRC_FILES
     src/SupergroupFullInfo.cpp
     src/Supergroup.cpp
     src/User.cpp
-    src/UserFullInfo.cpp
     src/Utils.cpp
 )
 
@@ -58,7 +57,6 @@ set(HEADER_FILES
     src/Application.hpp
     src/Authorization.hpp
     src/BasicGroup.hpp
-    src/BasicGroupFullInfo.hpp
     src/Chat.hpp
     src/ChatFolderModel.hpp
     src/ChatModel.hpp
@@ -74,6 +72,7 @@ set(HEADER_FILES
     src/Message.hpp
     src/MessageContent.hpp
     src/MessageModel.hpp
+    src/MessageService.hpp
     src/PluralRules.hpp
     src/QrCodeItem.hpp
     src/Settings.hpp
@@ -81,13 +80,11 @@ set(HEADER_FILES
     src/Supergroup.hpp
     src/SupergroupFullInfo.hpp
     src/User.hpp
-    src/UserFullInfo.hpp
     src/Utils.hpp
 )
 
 set(QRC_FILES
     resources/fonts.qrc
-    resources/i18n.qrc
     resources/images.qrc
     resources/qml.qrc
     resources/tgs.qrc

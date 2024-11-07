@@ -11,7 +11,7 @@ Item {
     signal clicked
     signal pressAndHold
 
-    height: model.isService ? contentItem.children[0].height + 30 : contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 30 : 28);
+    height: contentItem.children[0].height + messageDate.height + (senderLabel.text !== "" ? senderLabel.height : 0) + (model.isOutgoing ? 30 : 28);
     width: parent.width
 
     BorderImage {
@@ -19,9 +19,9 @@ Item {
         width: Math.max(childrenWidth, messageDate.paintedWidth + (model.isOutgoing ? 0 : 28),  senderLabel.paintedWidth) + 26
         anchors {
             left: parent.left
-            leftMargin: model.isService ? (parent.width - width) / 2 : model.isOutgoing ? parent.width - width - 10 : 10
+            leftMargin: model.isOutgoing ? parent.width - width - 10 : 10
             top: parent.top
-            topMargin: model.isService ? 2 : model.isOutgoing ? 1 : 8
+            topMargin: model.isOutgoing ? 1 : 8
         }
 
         source: internal.getBubbleImage();
@@ -62,7 +62,7 @@ Item {
         wrapMode: Text.WrapAnywhere
         maximumLineCount: 1
         horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-        visible: text !== "" && !isService
+        visible: text !== ""
     }
 
     Item {
@@ -71,7 +71,7 @@ Item {
         height: contentItem.children[0].height
         anchors {
             top: parent.top
-            topMargin: model.isService ? 15 : senderLabel.text === "" ? 16 : 46
+            topMargin: senderLabel.text === "" ? 16 : 46
         }
     }
 
@@ -89,8 +89,7 @@ Item {
         color: model.isOutgoing ? "white" : "black"
         font.pixelSize: 16
         font.weight: Font.Light
-        horizontalAlignment: model.isService ? Text.AlignHCenter : model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-        visible: !model.isService
+        horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
     }
 
     QtObject {
@@ -98,12 +97,9 @@ Item {
 
         function getBubbleImage() {
             var imageSrc = "qrc:/images/";
-            if (model.isService) {
-                imageSrc += "notification"
-            } else {
-                imageSrc += model.isOutgoing ? "outgoing" : "incoming"
-                imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
-            }
+
+            imageSrc += model.isOutgoing ? "outgoing" : "incoming"
+            imageSrc += mouseArea.pressed ? "-pressed" : "-normal"
 
             return imageSrc + ".png";
         }

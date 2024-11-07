@@ -58,10 +58,10 @@ QString Locale::translate(const char *key, int plural) const
 
 QString Locale::getString(const char *key) const
 {
-    if (!m_languagePack.contains(key))
+    if (!m_languagePack.contains(QString(key)))
     {
         qDebug() << "LOC_ERR:" << key;
-        return key;
+        return QString::fromUtf8(key);
     }
 
     auto it = m_languagePack.find(key);
@@ -101,9 +101,9 @@ QString Locale::getString(const char *key) const
     }
 
     static std::regex boldRegex(R"(\*\*(.*?)\*\*)");
-    result = std::regex_replace(result, boldRegex, "<b>$1</b>");
-
     static std::regex italicRegex(R"(\*(.*?)\*)");
+
+    result = std::regex_replace(result, boldRegex, "<b>$1</b>");
     result = std::regex_replace(result, italicRegex, "<i>$1</i>");
 
     return QString::fromStdString(result);
@@ -191,47 +191,45 @@ void Locale::setLanguagePlural(const QString &value)
     }
 }
 
-void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> value)
+void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languagePackStrings> languagePackData)
 {
-    for (auto &&string : value->strings_)
+    m_languagePack.reserve(languagePackData->strings_.size());  // Reserve to avoid reallocations
+
+    for (auto &languageString : languagePackData->strings_)
     {
-        if (string->value_->get_id() == td::td_api::languagePackStringValueOrdinary::ID)
+        const auto stringKey = QString::fromStdString(languageString->key_);
+
+        switch (languageString->value_->get_id())
         {
-            auto ordinaryValue = td::td_api::move_object_as<td::td_api::languagePackStringValueOrdinary>(string->value_);
-            m_languagePack.emplace(QString::fromStdString(string->key_), QString::fromStdString(ordinaryValue->value_));
-        }
-        else if (string->value_->get_id() == td::td_api::languagePackStringValuePluralized::ID)
-        {
-            auto pluralizedValue = td::td_api::move_object_as<td::td_api::languagePackStringValuePluralized>(string->value_);
-            const auto keyBase = QString::fromStdString(string->key_);
-            if (!pluralizedValue->zero_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_zero_value", QString::fromStdString(pluralizedValue->zero_value_));
+            case td::td_api::languagePackStringValueOrdinary::ID: {
+                if (auto ordinaryValue = td::td_api::move_object_as<td::td_api::languagePackStringValueOrdinary>(languageString->value_))
+                    m_languagePack.emplace(stringKey, QString::fromStdString(ordinaryValue->value_));
+                break;
             }
-            if (!pluralizedValue->one_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_one_value", QString::fromStdString(pluralizedValue->one_value_));
+
+            case td::td_api::languagePackStringValuePluralized::ID: {
+                if (auto pluralizedValue = td::td_api::move_object_as<td::td_api::languagePackStringValuePluralized>(languageString->value_))
+                {
+                    const std::array<std::pair<QString, std::string_view>, 6> pluralForms = {{{"_zero_value", pluralizedValue->zero_value_},
+                                                                                              {"_one_value", pluralizedValue->one_value_},
+                                                                                              {"_two_value", pluralizedValue->two_value_},
+                                                                                              {"_few_value", pluralizedValue->few_value_},
+                                                                                              {"_many_value", pluralizedValue->many_value_},
+                                                                                              {"_other_value", pluralizedValue->other_value_}}};
+
+                    std::ranges::for_each(pluralForms | std::views::filter([](const auto &form) { return !form.second.empty(); }) |
+                                              std::views::transform([&stringKey](const auto &form) {
+                                                  return std::pair{stringKey + form.first, QString::fromStdString(std::string (form.second))};
+                                              }),
+                                          [this](auto &&entry) { m_languagePack.emplace(std::move(entry)); });
+                }
+                break;
             }
-            if (!pluralizedValue->two_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_two_value", QString::fromStdString(pluralizedValue->two_value_));
-            }
-            if (!pluralizedValue->few_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_few_value", QString::fromStdString(pluralizedValue->few_value_));
-            }
-            if (!pluralizedValue->many_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_many_value", QString::fromStdString(pluralizedValue->many_value_));
-            }
-            if (!pluralizedValue->other_value_.empty())
-            {
-                m_languagePack.emplace(keyBase + "_other_value", QString::fromStdString(pluralizedValue->other_value_));
-            }
-        }
-        else if (string->value_->get_id() == td::td_api::languagePackStringValueDeleted::ID)
-        {
-            // No action needed for deleted strings
+            case td::td_api::languagePackStringValueDeleted::ID:
+                // No action needed for deleted strings
+                break;
+            default:
+                break;
         }
     }
 

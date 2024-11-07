@@ -83,7 +83,8 @@ Page {
             anchors.horizontalCenter: parent.horizontalCenter
             width: 160
             height: 160
-            source: "qrc:/tgs/Newborn.json"
+            source: "qrc:/tgs/Newborn.tgs"
+            loop: 34
             onStatusChanged: {
                 if (status === LottieAnimation.Ready)
                     lottieAnimation.play();
@@ -112,7 +113,7 @@ Page {
         id: chatFolderDialog
         titleText: qsTr("Filters")
         selectedIndex: 0
-        model: mychatFolderModel
+        model: ListModel { id: insertFolderModel }
 
         onAccepted: {
             if (model.get(selectedIndex).id === 0) {
@@ -120,6 +121,14 @@ Page {
             } else {
                 chatList.type = ChatList.Folder;
                 chatList.folderId = model.get(selectedIndex).id;
+            }
+        }
+
+        Component.onCompleted: {
+            insertFolderModel.append({ id: 0, name: qsTr("FilterAllChats") });
+
+            for (var i = 0; i < mychatFolderModel.count; i++) {
+                insertFolderModel.append(mychatFolderModel.get(i));
             }
         }
     }
@@ -172,6 +181,18 @@ Page {
 
     AboutDialog {
         id: aboutDialog
+    }
+
+    Connections {
+        target: null // Replace with StorageManager
+        onChatFoldersUpdated: {
+            insertFolderModel.clear();
+            insertFolderModel.append({ id: 0, name: qsTr("FilterAllChats") });
+
+            for (var i = 0; i < mychatFolderModel.count; i++) {
+                insertFolderModel.append(mychatFolderModel.get(i));
+            }
+        }
     }
 
     tools: ToolBarLayout {

@@ -17,16 +17,6 @@ int File::id() const
     return m_id;
 }
 
-int File::size() const
-{
-    return m_size;
-}
-
-int File::expectedSize() const
-{
-    return m_expectedSize;
-}
-
 QString File::localPath() const
 {
     return m_localPath;
@@ -65,8 +55,6 @@ void File::updateFileProperties()
         return;
 
     m_id = m_file->id_;
-    m_size = m_file->size_;
-    m_expectedSize = m_file->expected_size_;
 
     if (m_file->local_)
     {

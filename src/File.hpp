@@ -14,9 +14,6 @@ class File : public QObject
 
     Q_PROPERTY(int id READ id NOTIFY fileChanged)
 
-    Q_PROPERTY(int size READ size NOTIFY fileChanged)
-    Q_PROPERTY(int expectedSize READ expectedSize NOTIFY fileChanged)
-
     Q_PROPERTY(QString localPath READ localPath NOTIFY fileChanged)
 
     Q_PROPERTY(bool canBeDownloaded READ canBeDownloaded NOTIFY fileChanged)
@@ -27,9 +24,6 @@ public:
     explicit File(td::td_api::object_ptr<td::td_api::file> file, QObject *parent = nullptr);
 
     int id() const;
-
-    int size() const;
-    int expectedSize() const;
 
     QString localPath() const;
 
@@ -48,9 +42,6 @@ private:
     void updateFileProperties();
 
     int m_id;
-
-    int m_size;
-    int m_expectedSize;
 
     QString m_localPath;
 
