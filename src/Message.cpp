@@ -393,6 +393,60 @@ QString Message::getServiceContent(bool openUser) const
     }
 }
 
+bool Message::isService() const noexcept
+{
+    static const std::unordered_set<int> messageTypes = {
+        td::td_api::messageExpiredPhoto::ID,
+        td::td_api::messageExpiredVideo::ID,
+        td::td_api::messageBasicGroupChatCreate::ID,
+        td::td_api::messageSupergroupChatCreate::ID,
+        td::td_api::messageChatChangeTitle::ID,
+        td::td_api::messageChatChangePhoto::ID,
+        td::td_api::messageChatDeletePhoto::ID,
+        td::td_api::messageChatAddMembers::ID,
+        td::td_api::messageChatJoinByLink::ID,
+        td::td_api::messageChatJoinByRequest::ID,
+        td::td_api::messageChatDeleteMember::ID,
+        td::td_api::messageChatUpgradeTo::ID,
+        td::td_api::messageChatUpgradeFrom::ID,
+        td::td_api::messagePinMessage::ID,
+        td::td_api::messageScreenshotTaken::ID,
+        td::td_api::messageChatSetBackground::ID,
+        td::td_api::messageChatSetTheme::ID,
+        td::td_api::messageChatSetMessageAutoDeleteTime::ID,
+        td::td_api::messageChatBoost::ID,
+        td::td_api::messageForumTopicCreated::ID,
+        td::td_api::messageForumTopicEdited::ID,
+        td::td_api::messageForumTopicIsClosedToggled::ID,
+        td::td_api::messageForumTopicIsHiddenToggled::ID,
+        td::td_api::messageSuggestProfilePhoto::ID,
+        td::td_api::messageCustomServiceAction::ID,
+        td::td_api::messageContactRegistered::ID,
+        td::td_api::messageInviteVideoChatParticipants::ID,
+        td::td_api::messageVideoChatScheduled::ID,
+        td::td_api::messageVideoChatStarted::ID,
+        td::td_api::messageVideoChatEnded::ID,
+        td::td_api::messageGiftedPremium::ID,
+        td::td_api::messagePremiumGiftCode::ID,
+        td::td_api::messagePaymentSuccessful::ID,
+        td::td_api::messagePaymentSuccessfulBot::ID,
+        td::td_api::messageUsersShared::ID,
+        td::td_api::messageChatShared::ID,
+        td::td_api::messageBotWriteAccessAllowed::ID,
+        td::td_api::messageWebAppDataSent::ID,
+        td::td_api::messageWebAppDataReceived::ID,
+        td::td_api::messagePassportDataSent::ID,
+        td::td_api::messagePassportDataReceived::ID,
+        td::td_api::messageProximityAlertTriggered::ID,
+        td::td_api::messageUnsupported::ID,
+    };
+
+    if (m_message)
+        return messageTypes.contains(m_contentType);
+
+    return false;
+}
+
 int Message::contentType() const
 {
     return m_contentType;
@@ -474,65 +528,6 @@ QString Message::contentTypeString() const
     {
         return QLatin1String("messageUnsupported");
     }
-}
-
-bool Message::isService() const noexcept
-{
-    static const std::unordered_set<int> messageTypes = {
-        td::td_api::messageExpiredPhoto::ID,
-        td::td_api::messageExpiredVideo::ID,
-        td::td_api::messageBasicGroupChatCreate::ID,
-        td::td_api::messageSupergroupChatCreate::ID,
-        td::td_api::messageChatChangeTitle::ID,
-        td::td_api::messageChatChangePhoto::ID,
-        td::td_api::messageChatDeletePhoto::ID,
-        td::td_api::messageChatAddMembers::ID,
-        td::td_api::messageChatJoinByLink::ID,
-        td::td_api::messageChatJoinByRequest::ID,
-        td::td_api::messageChatDeleteMember::ID,
-        td::td_api::messageChatUpgradeTo::ID,
-        td::td_api::messageChatUpgradeFrom::ID,
-        td::td_api::messagePinMessage::ID,
-        td::td_api::messageScreenshotTaken::ID,
-        td::td_api::messageChatSetBackground::ID,
-        td::td_api::messageChatSetTheme::ID,
-        td::td_api::messageChatSetMessageAutoDeleteTime::ID,
-        td::td_api::messageChatBoost::ID,
-        td::td_api::messageForumTopicCreated::ID,
-        td::td_api::messageForumTopicEdited::ID,
-        td::td_api::messageForumTopicIsClosedToggled::ID,
-        td::td_api::messageForumTopicIsHiddenToggled::ID,
-        td::td_api::messageSuggestProfilePhoto::ID,
-        td::td_api::messageCustomServiceAction::ID,
-        td::td_api::messageContactRegistered::ID,
-        td::td_api::messageInviteVideoChatParticipants::ID,
-        td::td_api::messageVideoChatScheduled::ID,
-        td::td_api::messageVideoChatStarted::ID,
-        td::td_api::messageVideoChatEnded::ID,
-        td::td_api::messageGiftedPremium::ID,
-        td::td_api::messagePremiumGiftCode::ID,
-        td::td_api::messagePaymentSuccessful::ID,
-        td::td_api::messagePaymentSuccessfulBot::ID,
-        td::td_api::messageUsersShared::ID,
-        td::td_api::messageChatShared::ID,
-        td::td_api::messageBotWriteAccessAllowed::ID,
-        td::td_api::messageWebAppDataSent::ID,
-        td::td_api::messageWebAppDataReceived::ID,
-        td::td_api::messagePassportDataSent::ID,
-        td::td_api::messagePassportDataReceived::ID,
-        td::td_api::messageProximityAlertTriggered::ID,
-        td::td_api::messageUnsupported::ID,
-    };
-
-    if (m_message)
-        return messageTypes.contains(m_contentType);
-
-    return false;
-}
-
-Message::SenderType Message::senderType() const noexcept
-{
-    return m_senderType;
 }
 
 void Message::setContent(td::td_api::object_ptr<td::td_api::MessageContent> content)

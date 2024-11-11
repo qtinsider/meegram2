@@ -122,6 +122,7 @@ QString MessageVideo::caption() const
 MessageVideoNote::MessageVideoNote(td::td_api::object_ptr<td::td_api::messageVideoNote> content, QObject *parent)
     : QObject(parent)
 {
+    Q_UNUSED(content)
 }
 
 MessageVoiceNote::MessageVoiceNote(td::td_api::object_ptr<td::td_api::messageVoiceNote> content, QObject *parent)
@@ -138,11 +139,13 @@ QString MessageVoiceNote::caption() const
 MessageLocation::MessageLocation(td::td_api::object_ptr<td::td_api::messageLocation> content, QObject *parent)
     : QObject(parent)
 {
+    Q_UNUSED(content)
 }
 
 MessageVenue::MessageVenue(td::td_api::object_ptr<td::td_api::messageVenue> content, QObject *parent)
     : QObject(parent)
 {
+    m_venue = QString::fromStdString(content->venue_->title_);
 }
 
 QString MessageVenue::venue() const
@@ -153,11 +156,13 @@ QString MessageVenue::venue() const
 MessageContact::MessageContact(td::td_api::object_ptr<td::td_api::messageContact> content, QObject *parent)
     : QObject(parent)
 {
+    Q_UNUSED(content)
 }
 
 MessageAnimatedEmoji::MessageAnimatedEmoji(td::td_api::object_ptr<td::td_api::messageAnimatedEmoji> content, QObject *parent)
     : QObject(parent)
 {
+    Q_UNUSED(content)
 }
 
 MessagePoll::MessagePoll(td::td_api::object_ptr<td::td_api::messagePoll> content, QObject *parent)
@@ -174,6 +179,7 @@ QString MessagePoll::question() const
 MessageInvoice::MessageInvoice(td::td_api::object_ptr<td::td_api::messageInvoice> content, QObject *parent)
     : QObject(parent)
 {
+    Q_UNUSED(content)
 }
 
 MessageCall::MessageCall(td::td_api::object_ptr<td::td_api::messageCall> content, QObject *parent)

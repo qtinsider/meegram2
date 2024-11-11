@@ -44,11 +44,10 @@ public:
 
     Q_INVOKABLE QString getServiceContent(bool openUser = false) const;
 
+    bool isService() const noexcept;
+
     int contentType() const;
     QString contentTypeString() const;
-
-    bool isService() const noexcept;
-    SenderType senderType() const noexcept;
 
     void setContent(td::td_api::object_ptr<td::td_api::MessageContent> content);
     void setEditDate(int editDate);
@@ -56,7 +55,7 @@ public:
 signals:
     void messageChanged();
 
-private:    
+private:
     QString getGroupSenderName() const noexcept;
     QString getSenderAuthor(bool openUser) const noexcept;
 

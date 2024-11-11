@@ -493,6 +493,8 @@ void MessageModel::handleMessageContent(qlonglong chatId, qlonglong messageId, t
 
 void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup)
 {
+    Q_UNUSED(replyMarkup)
+
     if (!m_chat || chatId != m_chat->id())
         return;
 
@@ -506,6 +508,9 @@ void MessageModel::handleMessageEdited(qlonglong chatId, qlonglong messageId, in
 
 void MessageModel::handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache)
 {
+    Q_UNUSED(isPermanent)
+    Q_UNUSED(fromCache)
+
     if (!m_chat || chatId != m_chat->id())
         return;
 
