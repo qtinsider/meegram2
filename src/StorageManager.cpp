@@ -114,186 +114,198 @@ qlonglong StorageManager::myId() const noexcept
 
 void StorageManager::handleResult(td::td_api::Object *object)
 {
-    td::td_api::downcast_call(
-        *object, detail::Overloaded{[this](td::td_api::updateNewChat &value) {
-                                        auto chat = std::make_shared<Chat>(std::move(value.chat_));
-                                        auto chatId = chat->id();
-
-                                        m_chats.emplace(chatId, std::move(chat));
-
-                                        emit chatUpdated(chatId);
-                                    },
-                                    [this](td::td_api::updateChatTitle &value) {
-                                        auto chatId = value.chat_id_;
-
-                                        if (auto it = m_chats.find(chatId); it != m_chats.end())
-                                        {
-                                            it->second->setTitle(value.title_);
-
-                                            emit chatUpdated(chatId);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatPhoto &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setPhoto(std::move(value.photo_));
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatLastMessage &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setLastMessage(std::move(value.last_message_));
-                                            it->second->setPositions(std::move(value.positions_));
-
-                                            emit chatUpdated(value.chat_id_);
-                                            emit chatPositionUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatPosition &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> result;
-                                            result.emplace_back(std::move(value.position_));
-
-                                            it->second->setPositions(std::move(result));
-
-                                            emit chatUpdated(value.chat_id_);
-                                            emit chatPositionUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatReadInbox &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setUnreadCount(value.unread_count_);
-                                            it->second->setLastReadInboxMessageId(value.last_read_inbox_message_id_);
-
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatReadOutbox &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setLastReadOutboxMessageId(value.last_read_outbox_message_id_);
-
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatDraftMessage &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setPositions(std::move(value.positions_));
-
-                                            emit chatUpdated(value.chat_id_);
-                                            emit chatPositionUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatNotificationSettings &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setNotificationSettings(std::move(value.notification_settings_));
-
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatUnreadMentionCount &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setUnreadMentionCount(value.unread_mention_count_);
-
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateChatIsMarkedAsUnread &value) {
-                                        if (auto it = m_chats.find(value.chat_id_); it != m_chats.end())
-                                        {
-                                            it->second->setIsMarkedAsUnread(value.is_marked_as_unread_);
-
-                                            emit chatUpdated(value.chat_id_);
-                                        }
-                                    },
-                                    [this](td::td_api::updateUser &value) {
-                                        auto user = std::make_shared<User>(std::move(value.user_));
-                                        auto userId = user->id();
-
-                                        m_users.insert_or_assign(userId, std::move(user));
-
-                                        emit userUpdated(userId);
-                                    },
-                                    [this](td::td_api::updateUserStatus &value) {
-                                        auto userId = value.user_id_;
-
-                                        if (auto it = m_users.find(userId); it != m_users.end())
-                                        {
-                                            it->second->setStatus(std::move(value.status_));
-
-                                            emit userUpdated(userId);
-                                        }
-                                    },
-                                    [this](td::td_api::updateBasicGroup &value) {
-                                        auto group = std::make_shared<BasicGroup>(std::move(value.basic_group_));
-                                        auto groupId = group->id();
-
-                                        m_basicGroup.insert_or_assign(groupId, std::move(group));
-
-                                        emit basicGroupUpdated(groupId);
-                                    },
-                                    [this](td::td_api::updateSupergroup &value) {
-                                        auto supergroup = std::make_shared<Supergroup>(std::move(value.supergroup_));
-                                        auto groupId = supergroup->id();
-
-                                        m_supergroup.insert_or_assign(groupId, std::move(supergroup));
-
-                                        emit supergroupUpdated(groupId);
-                                    },
-                                    [this](td::td_api::updateSupergroupFullInfo &value) {
-                                        auto supergroupId = value.supergroup_id_;
-                                        auto supergroupFullInfo = std::make_shared<SupergroupFullInfo>(std::move(value.supergroup_full_info_));
-
-                                        m_supergroupFullInfo.insert_or_assign(supergroupId, std::move(supergroupFullInfo));
-
-                                        emit supergroupFullInfoUpdated(supergroupId);
-                                    },
-                                    [this](td::td_api::updateChatFolders &value) {
-                                        m_chatFolders.clear();
-                                        m_chatFolders.reserve(value.chat_folders_.size());
-
-                                        std::transform(value.chat_folders_.begin(), value.chat_folders_.end(), std::back_inserter(m_chatFolders),
-                                                       [](auto &&folder) { return std::make_shared<ChatFolderInfo>(std::move(folder)); });
-
-                                        emit chatFoldersUpdated();
-                                    },
-
-                                    [this](td::td_api::updateFile &value) {
-                                        auto fileId = value.file_->id_;
-                                        if (auto it = m_files.find(fileId); it != m_files.end())
-                                        {
-                                            it->second->setFile(std::move(value.file_));
-                                        }
-                                        else
-                                        {
-                                            m_files[fileId] = std::make_shared<File>(std::move(value.file_));
-                                        }
-
-                                        emit fileUpdated(fileId);
-                                    },
-                                    [this](td::td_api::updateOption &value) {
-                                        auto optionValue = [](td::td_api::object_ptr<td::td_api::OptionValue> &&option) -> QVariant {
-                                            switch (option->get_id())
-                                            {
-                                                case td::td_api::optionValueBoolean::ID:
-                                                    return QVariant::fromValue(static_cast<td::td_api::optionValueBoolean *>(option.get())->value_);
-                                                case td::td_api::optionValueInteger::ID:
-                                                    return QVariant::fromValue(static_cast<td::td_api::optionValueInteger *>(option.get())->value_);
-                                                case td::td_api::optionValueString::ID:
-                                                    return QVariant::fromValue(
-                                                        QString::fromStdString(static_cast<td::td_api::optionValueString *>(option.get())->value_));
-                                                default:
-                                                    return QVariant();
-                                            }
-                                        };
-
-                                        m_options.insert(QString::fromStdString(value.name_), optionValue(std::move(value.value_)));
-                                    },
-                                    [](auto &) {}});
+    switch (object->get_id())
+    {
+        case td::td_api::updateNewChat::ID: {
+            auto update = static_cast<td::td_api::updateNewChat *>(object);
+            auto chat = std::make_shared<Chat>(std::move(update->chat_));
+            auto chatId = chat->id();
+            m_chats.emplace(chatId, std::move(chat));
+            emit chatUpdated(chatId);
+            break;
+        }
+        case td::td_api::updateChatTitle::ID: {
+            auto update = static_cast<td::td_api::updateChatTitle *>(object);
+            auto chatId = update->chat_id_;
+            if (auto it = m_chats.find(chatId); it != m_chats.end())
+            {
+                it->second->setTitle(update->title_);
+                emit chatUpdated(chatId);
+            }
+            break;
+        }
+        case td::td_api::updateChatPhoto::ID: {
+            auto update = static_cast<td::td_api::updateChatPhoto *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setPhoto(std::move(update->photo_));
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatLastMessage::ID: {
+            auto update = static_cast<td::td_api::updateChatLastMessage *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setLastMessage(std::move(update->last_message_));
+                it->second->setPositions(std::move(update->positions_));
+                emit chatUpdated(update->chat_id_);
+                emit chatPositionUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatPosition::ID: {
+            auto update = static_cast<td::td_api::updateChatPosition *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                std::vector<td::td_api::object_ptr<td::td_api::chatPosition>> result;
+                result.emplace_back(std::move(update->position_));
+                it->second->setPositions(std::move(result));
+                emit chatUpdated(update->chat_id_);
+                emit chatPositionUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatReadInbox::ID: {
+            auto update = static_cast<td::td_api::updateChatReadInbox *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setUnreadCount(update->unread_count_);
+                it->second->setLastReadInboxMessageId(update->last_read_inbox_message_id_);
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatReadOutbox::ID: {
+            auto update = static_cast<td::td_api::updateChatReadOutbox *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setLastReadOutboxMessageId(update->last_read_outbox_message_id_);
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatDraftMessage::ID: {
+            auto update = static_cast<td::td_api::updateChatDraftMessage *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setPositions(std::move(update->positions_));
+                emit chatUpdated(update->chat_id_);
+                emit chatPositionUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatNotificationSettings::ID: {
+            auto update = static_cast<td::td_api::updateChatNotificationSettings *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setNotificationSettings(std::move(update->notification_settings_));
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatUnreadMentionCount::ID: {
+            auto update = static_cast<td::td_api::updateChatUnreadMentionCount *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setUnreadMentionCount(update->unread_mention_count_);
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateChatIsMarkedAsUnread::ID: {
+            auto update = static_cast<td::td_api::updateChatIsMarkedAsUnread *>(object);
+            if (auto it = m_chats.find(update->chat_id_); it != m_chats.end())
+            {
+                it->second->setIsMarkedAsUnread(update->is_marked_as_unread_);
+                emit chatUpdated(update->chat_id_);
+            }
+            break;
+        }
+        case td::td_api::updateUser::ID: {
+            auto update = static_cast<td::td_api::updateUser *>(object);
+            auto user = std::make_shared<User>(std::move(update->user_));
+            auto userId = user->id();
+            m_users.insert_or_assign(userId, std::move(user));
+            emit userUpdated(userId);
+            break;
+        }
+        case td::td_api::updateUserStatus::ID: {
+            auto update = static_cast<td::td_api::updateUserStatus *>(object);
+            auto userId = update->user_id_;
+            if (auto it = m_users.find(userId); it != m_users.end())
+            {
+                it->second->setStatus(std::move(update->status_));
+                emit userUpdated(userId);
+            }
+            break;
+        }
+        case td::td_api::updateBasicGroup::ID: {
+            auto update = static_cast<td::td_api::updateBasicGroup *>(object);
+            auto group = std::make_shared<BasicGroup>(std::move(update->basic_group_));
+            auto groupId = group->id();
+            m_basicGroup.insert_or_assign(groupId, std::move(group));
+            emit basicGroupUpdated(groupId);
+            break;
+        }
+        case td::td_api::updateSupergroup::ID: {
+            auto update = static_cast<td::td_api::updateSupergroup *>(object);
+            auto supergroup = std::make_shared<Supergroup>(std::move(update->supergroup_));
+            auto groupId = supergroup->id();
+            m_supergroup.insert_or_assign(groupId, std::move(supergroup));
+            emit supergroupUpdated(groupId);
+            break;
+        }
+        case td::td_api::updateSupergroupFullInfo::ID: {
+            auto update = static_cast<td::td_api::updateSupergroupFullInfo *>(object);
+            auto supergroupId = update->supergroup_id_;
+            auto supergroupFullInfo = std::make_shared<SupergroupFullInfo>(std::move(update->supergroup_full_info_));
+            m_supergroupFullInfo.insert_or_assign(supergroupId, std::move(supergroupFullInfo));
+            emit supergroupFullInfoUpdated(supergroupId);
+            break;
+        }
+        case td::td_api::updateChatFolders::ID: {
+            auto update = static_cast<td::td_api::updateChatFolders *>(object);
+            m_chatFolders.clear();
+            m_chatFolders.reserve(update->chat_folders_.size());
+            std::transform(update->chat_folders_.begin(), update->chat_folders_.end(), std::back_inserter(m_chatFolders),
+                           [](auto &&folder) { return std::make_shared<ChatFolderInfo>(std::move(folder)); });
+            emit chatFoldersUpdated();
+            break;
+        }
+        case td::td_api::updateFile::ID: {
+            auto update = static_cast<td::td_api::updateFile *>(object);
+            auto fileId = update->file_->id_;
+            if (auto it = m_files.find(fileId); it != m_files.end())
+            {
+                it->second->setFile(std::move(update->file_));
+            }
+            else
+            {
+                m_files[fileId] = std::make_shared<File>(std::move(update->file_));
+            }
+            emit fileUpdated(fileId);
+            break;
+        }
+        case td::td_api::updateOption::ID: {
+            auto update = static_cast<td::td_api::updateOption *>(object);
+            auto optionValue = [](td::td_api::object_ptr<td::td_api::OptionValue> &&option) -> QVariant {
+                switch (option->get_id())
+                {
+                    case td::td_api::optionValueBoolean::ID:
+                        return QVariant::fromValue(static_cast<td::td_api::optionValueBoolean *>(option.get())->value_);
+                    case td::td_api::optionValueInteger::ID:
+                        return QVariant::fromValue(static_cast<td::td_api::optionValueInteger *>(option.get())->value_);
+                    case td::td_api::optionValueString::ID:
+                        return QVariant::fromValue(QString::fromStdString(static_cast<td::td_api::optionValueString *>(option.get())->value_));
+                    default:
+                        return QVariant();
+                }
+            };
+            m_options.insert(QString::fromStdString(update->name_), optionValue(std::move(update->value_)));
+            break;
+        }
+        default:
+            break;
+    }
 }

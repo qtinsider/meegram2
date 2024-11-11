@@ -97,8 +97,8 @@ void Authorization::handleResult(td::td_api::Object *object)
     switch (object->get_id())
     {
         case td::td_api::updateAuthorizationState::ID: {
-            const auto *updateAuthState = static_cast<const td::td_api::updateAuthorizationState *>(object);
-            const auto *authorizationState = updateAuthState->authorization_state_.get();
+            const auto updateAuthState = static_cast<const td::td_api::updateAuthorizationState *>(object);
+            const auto authorizationState = updateAuthState->authorization_state_.get();
 
             switch (authorizationState->get_id())
             {

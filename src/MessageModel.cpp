@@ -390,19 +390,36 @@ void MessageModel::handleChatItem()
 
 void MessageModel::handleResult(td::td_api::Object *object)
 {
-    td::td_api::downcast_call(
-        *object,
-        detail::Overloaded{
-            [this](td::td_api::updateNewMessage &value) { handleNewMessage(std::move(value.message_)); },
-            [this](td::td_api::updateMessageContent &value) { handleMessageContent(value.chat_id_, value.message_id_, std::move(value.new_content_)); },
-            [this](td::td_api::updateMessageEdited &value) {
-                handleMessageEdited(value.chat_id_, value.message_id_, value.edit_date_, std::move(value.reply_markup_));
-            },
-            [this](td::td_api::updateDeleteMessages &value) {
-                handleDeleteMessages(value.chat_id_, std::move(value.message_ids_), value.is_permanent_, value.from_cache_);
-            },
-            [this](td::td_api::updateChatOnlineMemberCount &value) { handleChatOnlineMemberCount(value.chat_id_, value.online_member_count_); },
-            [](auto &) {}});
+    switch (object->get_id())
+    {
+        case td::td_api::updateNewMessage::ID: {
+            auto update = static_cast<td::td_api::updateNewMessage *>(object);
+            handleNewMessage(std::move(update->message_));
+            break;
+        }
+        case td::td_api::updateMessageContent::ID: {
+            auto update = static_cast<td::td_api::updateMessageContent *>(object);
+            handleMessageContent(update->chat_id_, update->message_id_, std::move(update->new_content_));
+            break;
+        }
+        case td::td_api::updateMessageEdited::ID: {
+            auto update = static_cast<td::td_api::updateMessageEdited *>(object);
+            handleMessageEdited(update->chat_id_, update->message_id_, update->edit_date_, std::move(update->reply_markup_));
+            break;
+        }
+        case td::td_api::updateDeleteMessages::ID: {
+            auto update = static_cast<td::td_api::updateDeleteMessages *>(object);
+            handleDeleteMessages(update->chat_id_, std::move(update->message_ids_), update->is_permanent_, update->from_cache_);
+            break;
+        }
+        case td::td_api::updateChatOnlineMemberCount::ID: {
+            auto update = static_cast<td::td_api::updateChatOnlineMemberCount *>(object);
+            handleChatOnlineMemberCount(update->chat_id_, update->online_member_count_);
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 void MessageModel::handleUserUpdate(qlonglong userId)
