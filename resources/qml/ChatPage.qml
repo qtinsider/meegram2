@@ -10,243 +10,207 @@ Page {
     property alias chatInfo: myMessageModel.chatInfo
 
     property int replyMessageId: 0
-    property int editMessageId: 0
-    property bool __loading: true
 
-    Column {
-        id: contentColumn
-        width: parent.width
-        height: parent.height
+    property QtObject platformStyle: SheetStyle {}
 
-        Image {
-            id: topBar
-            height: isPortrait ? 72 : 64
+    Connections {
+        id: fetchConnections
+        target: null
+
+        onBackFetchable: {
+            if (listView.model.canFetchMoreBack()) {
+                fetchMoreTimer.running = true;
+            }
+        }
+        onBackFetched: {
+            fetchMoreTimer.fetching = false;
+            if (fetchMoreTimer.oldIndex != -1) {
+                listView.positionViewAtIndex(fetchMoreTimer.oldIndex + numItems, ListView.Beginning);
+            } else {
+                listView.positionViewAtIndex(0, ListView.End);
+            }
+
+            if (!listView.model.canFetchMoreBack()) {
+                fetchMoreTimer.running = false;
+            }
+        }
+    }
+
+    Timer {
+        id: fetchMoreTimer
+        interval: 1000
+        running: false
+        repeat: true
+
+        property bool fetching : false
+        property int oldIndex : -1
+
+        onTriggered: {
+            if (listView.atYBeginning) {
+                if (!fetching && listView.model.canFetchMoreBack()) {
+                    fetching = true;
+                    oldIndex = 0;
+                    listView.model.fetchMoreBack();
+                }
+            }
+        }
+
+        onFetchingChanged: {}
+    }
+
+    Item {
+        id: content
+        anchors.fill: parent
+        clip: true
+
+        Item {
+            id: header
             width: parent.width
-            z: 1
-            source: "image://theme/meegotouch-view-header-fixed"
+            height: headerBackground.height
 
-            Row {
-                id: backButtonRow
-                anchors { left: parent.left; leftMargin: 12 }
-                height: parent.height
+            BorderImage {
+                id: headerBackground
+                border {
+                    left: platformStyle.headerBackgroundMarginLeft
+                    right: platformStyle.headerBackgroundMarginRight
+                    top: platformStyle.headerBackgroundMarginTop
+                    bottom: platformStyle.headerBackgroundMarginBottom
+                }
+                source: platformStyle.headerBackground
+                width: header.width
+            }
 
-                Button {
+            Item {
+                id: headerContent
+                anchors.fill: parent
+
+                SheetButton {
+                    id: backButton
+                    anchors.left: parent.left
+                    anchors.leftMargin: root.platformStyle.rejectButtonLeftMargin
                     anchors.verticalCenter: parent.verticalCenter
-                    platformStyle: ButtonStyle {
-                        background: "image://theme/meegotouch-sheet-button-background"
-                        pressedBackground: "image://theme/meegotouch-sheet-button-background-pressed"
-                        buttonWidth: 100
-                        buttonHeight: 42
-                    }
                     text: qsTr("WidgetChats")
                     onClicked: pageStack.pop()
                 }
-            }
 
-            Row {
-                anchors {
-                    left: backButtonRow.right
-                    leftMargin: 70
-                    right: parent.right
-                    rightMargin: 12
-                }
-                height: parent.height
-                width: parent.width
-                spacing: 12
-                layoutDirection: Qt.RightToLeft
-
-                MaskedItem {
-                    id: maskedItem
+                Row {
+                    id: chatInfoRow
+                    anchors.right: parent.right
+                    anchors.rightMargin: root.platformStyle.rejectButtonLeftMargin
                     anchors.verticalCenter: parent.verticalCenter
-                    height: 50
-                    width: 50
 
-                    mask: Image {
-                        sourceSize.width: maskedItem.width
-                        sourceSize.height: maskedItem.height
-                        source: "qrc:/images/avatar-image-mask.png"
+                    spacing: 12
+                    layoutDirection: Qt.RightToLeft
+
+                    MaskedItem {
+                        id: maskedItem
+                        anchors.verticalCenter: parent.verticalCenter
+                        height: 50
+                        width: 50
+
+                        mask: Image {
+                            sourceSize.width: maskedItem.width
+                            sourceSize.height: maskedItem.height
+                            source: "qrc:/images/avatar-image-mask.png"
+                        }
+
+                        Image {
+                            id: profilePhotoImage
+                            anchors.fill: parent
+                            cache:  false
+                            smooth: true
+                            fillMode: Image.PreserveAspectCrop
+                            clip: true
+                            source: chat.photo && chat.photo.localPath !== "" ?
+                                        "image://chatPhoto/" + chat.photo.localPath :
+                                        "image://theme/icon-l-content-avatar-placeholder"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                        }
                     }
 
-                    Image {
-                        id: profilePhotoImage
-                        anchors.fill: parent
-                        cache:  false
-                        smooth: true
-                        fillMode: Image.PreserveAspectCrop
-                        clip: true
-                        source: chat.photo && chat.photo.localPath !== "" ?
-                                    "image://chatPhoto/" + chat.photo.localPath :
-                                    "image://theme/icon-l-content-avatar-placeholder"
-                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
 
-                    MouseArea {
-                        anchors.fill: parent
-                    }
-                }
+                        Label {
+                            text: chatInfo.title
+                            font.bold: true
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            width: 230
+                        }
 
-                Column {
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width
-
-                    Label {
-                        text: chatInfo.title
-                        font.bold: true
-                        width: parent.width
-                        horizontalAlignment: Text.AlignRight
-                        elide: Text.ElideRight
-                    }
-
-                    Label {
-                        text: chatInfo.status
-                        font { weight: Font.Light; pixelSize: 20 }
-                        width: parent.width
-                        horizontalAlignment: Text.AlignRight
-                        elide: Text.ElideRight
+                        Label {
+                            text: chatInfo.status
+                            font {
+                                weight: Font.Light
+                                pixelSize: 20
+                            }
+                            horizontalAlignment: Text.AlignRight
+                            elide: Text.ElideRight
+                            width: 230
+                        }
                     }
                 }
             }
         }
 
-        Item {
-            id: item
-            height: parent.height - topBar.height - inputPanelHolder.height
-            width: parent.width
+        Component {
+            id: sectionDateDelegate
+            Item {
+                width: listView.width
+                height: 50
 
-            ListView {
-                id: listView
-                anchors.fill: parent
-                spacing: 6
-                clip: true
-                cacheBuffer: listView.height * 2
-                pressDelay: 50
-
-                delegate: Item {
-
-                    height: loader.y + loader.height
-                    width: listView.width
-
-                    Loader {
-                        id: loader
-                        width: listView.width
-                        sourceComponent: model.isService ? serviceMessageComponent  : deleglateChooser.get(model.contentType)
-                    }
-
-                    Component {
-                        id: serviceMessageComponent
-
-                        ServiceMessageDelegate {}
-                    }
-
-                    Component {
-                        id: textMessageComponent
-
-                        MessageBubble {
-                            childrenWidth: messageText.paintedWidth
-
-                            content: Label {
-                                id: messageText
-                                text: model.content.formattedText
-                                textFormat: Text.RichText
-                                color: model.isOutgoing ? "white" : "black"
-                                width: isPortrait ? 380 : 754
-                                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                                anchors {
-                                    left: parent.left
-                                    leftMargin: model.isOutgoing ? 80 : 20
-                                }
-                                font.pixelSize: 23
-                                horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-                                onLinkActivated: Qt.openUrlExternally(link)
-                            }
-                        }
-                    }
-
-                    Component {
-                        id: notSupportedMessageComponent
-
-                        MessageBubble {
-                            childrenWidth: notSupportedMessage.paintedWidth
-
-                            content: Label {
-                                id: notSupportedMessage
-                                anchors {
-                                    left: parent.left
-                                    leftMargin: model.isOutgoing ? 80 : 20
-                                }
-                                width: isPortrait ? 380 : 754
-                                font {
-                                    bold: true
-                                    pixelSize: 23
-                                }
-                                horizontalAlignment: model.isOutgoing ? Text.AlignRight : Text.AlignLeft
-                                wrapMode: Text.Wrap
-                                color: model.isOutgoing ? "white" : "black"
-                                text: "The message is not supported on MeeGram yet"
-                            }
-                        }
-                    }
-
-                    QtObject {
-                        id: deleglateChooser
-                        function get(contentType) {
-                            switch (contentType) {
-                            case "messageText":
-                                return textMessageComponent;
-                            default:
-                                return notSupportedMessageComponent;
-                            }
-                        }
-                    }
-                }
-
-                model: myMessageModel
-
-                section {
-                    delegate: Label {
-                        id: sectionLabel
-                        wrapMode: Text.WordWrap
-                        color: "black"
-                        font.pixelSize: 18
-                        font.bold: true
-                        text: section
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.topMargin: 12
-                        anchors.bottomMargin: 12
-                    }
-                    property: "section"
-                }
-
-                Connections {
-                    target: inputContext
-                    onSoftwareInputPanelVisibleChanged: {
-                        if (inputContext.softwareInputPanelVisible) {
-                            listView.positionViewAtEnd();
-                        }
-                    }
-                }
-
-                ScrollDecorator { flickableItem: listView }
-            }
-
-            Column {
-                anchors.verticalCenter: parent.verticalCenter
-                width: parent.width
-                height: busyIndicator.height
-                visible: myMessageModel.count === 0
-
-                BusyIndicator  {
-                    id: busyIndicator
+                Label {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    running: true
-                    platformStyle: BusyIndicatorStyle { size: "large" }
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "black"
+                    font.bold: true
+                    font.pixelSize: 18
+                    verticalAlignment: Text.AlignVCenter
+                    horizontalAlignment: Text.AlignHCenter
+                    text: section
+                    wrapMode: Text.WordWrap
                 }
             }
+        }
+
+        ListView {
+            id: listView
+            anchors {
+                top: header.bottom
+                left: parent.left
+                right: parent.right
+                bottom: inputPanelHolder.top
+            }
+
+            cacheBuffer: 600
+            delegate: MessageDelegate {}
+
+            model: myMessageModel
+
+            highlightFollowsCurrentItem: true
+            currentIndex: count - 1
+
+            clip: true
+
+            section.property: "section"
+            section.criteria: ViewSection.FullString
+            section.delegate: sectionDateDelegate
+
+            interactive: contentHeight > height
+
+            ScrollDecorator { flickableItem: listView }
         }
 
         Column {
             id: inputPanelHolder
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
 
             TextArea {
                 id: textArea

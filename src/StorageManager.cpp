@@ -21,10 +21,31 @@ std::shared_ptr<Client> StorageManager::client() const noexcept
     return m_client;
 }
 
+qlonglong StorageManager::myId() const noexcept
+{
+    if (const auto value = getOption("my_id"); not value.isNull())
+        return value.toLongLong();
+
+    return 0;
+}
+
+QVariant StorageManager::getOption(const QString &name) const noexcept
+{
+    if (auto it = m_options.find(name); it != m_options.end())
+        return it.value();
+
+    return QVariant();
+}
+
 std::vector<qlonglong> StorageManager::getChatIds() const noexcept
 {
     auto view = m_chats | std::views::keys;
     return std::vector(view.begin(), view.end());
+}
+
+std::vector<std::shared_ptr<ChatFolderInfo>> StorageManager::getChatFolders() const noexcept
+{
+    return m_chatFolders;
 }
 
 std::shared_ptr<BasicGroup> StorageManager::getBasicGroup(qlonglong groupId) const noexcept
@@ -85,27 +106,6 @@ std::shared_ptr<User> StorageManager::getUser(qlonglong userId) const noexcept
     }
 
     return nullptr;
-}
-
-QVariant StorageManager::getOption(const QString &name) const noexcept
-{
-    if (auto it = m_options.find(name); it != m_options.end())
-        return it.value();
-
-    return QVariant();
-}
-
-std::vector<std::shared_ptr<ChatFolderInfo>> StorageManager::chatFolders() const noexcept
-{
-    return m_chatFolders;
-}
-
-qlonglong StorageManager::myId() const noexcept
-{
-    if (const auto value = getOption("my_id"); not value.isNull())
-        return value.toLongLong();
-
-    return 0;
 }
 
 void StorageManager::handleResult(td::td_api::Object *object)

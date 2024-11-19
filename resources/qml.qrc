@@ -7,6 +7,7 @@
         <file>qml/components/Icons.qml</file>
         <file>qml/components/ListItem.qml</file>
         <file>qml/components/MessageBubble.qml</file>
+        <file>qml/components/MessageDelegate.qml</file>
         <file>qml/components/MyCountBubble.qml</file>
         <file>qml/components/Ripple.qml</file>
         <file>qml/components/ServiceMessageDelegate.qml</file>

@@ -28,7 +28,10 @@ set(SRC_FILES
     src/Authorization.cpp
     src/BasicGroup.cpp
     src/Chat.cpp
+    src/ChatFolderInfo.cpp
     src/ChatFolderModel.cpp
+    src/ChatList.cpp
+    src/ChatManager.cpp
     src/ChatModel.cpp
     src/ChatPhotoProvider.cpp
     src/ChatPosition.cpp
@@ -58,7 +61,10 @@ set(HEADER_FILES
     src/Authorization.hpp
     src/BasicGroup.hpp
     src/Chat.hpp
+    src/ChatFolderInfo.hpp
     src/ChatFolderModel.hpp
+    src/ChatList.hpp
+    src/ChatManager.hpp
     src/ChatModel.hpp
     src/ChatPhotoProvider.hpp
     src/ChatPosition.hpp

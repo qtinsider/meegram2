@@ -91,7 +91,7 @@ Item {
             font.pixelSize: 22
             color: model.lastMessage.isService ? theme.selectionColor : mouseArea.pressed ? "#797979" : "#505050"
             elide: Text.ElideRight
-            text: model.lastMessage.content
+            text: sanitizeText(model.lastMessage.content)
         }
 
         Loader {
@@ -168,5 +168,9 @@ Item {
         anchors.fill: parent
         onClicked: appWindow.openChat(model.id)
         onPressAndHold: root.pressAndHold()
+    }
+
+    function sanitizeText(text) {
+        return text.replace(/\n/g, " ").replace(/\r/g, " ");
     }
 }

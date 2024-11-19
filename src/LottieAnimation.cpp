@@ -109,7 +109,7 @@ LottieAnimation::Status LottieAnimation::status() const noexcept
     return m_status;
 }
 
-void LottieAnimation::setStatus(Status status)
+void LottieAnimation::setStatus(Status status) noexcept
 {
     if (status == m_status)
         return;
@@ -123,7 +123,7 @@ QUrl LottieAnimation::source() const noexcept
     return m_source;
 }
 
-void LottieAnimation::setSource(const QUrl &source)
+void LottieAnimation::setSource(const QUrl &source) noexcept
 {
     if (source == m_source)
         return;
@@ -135,12 +135,12 @@ void LottieAnimation::setSource(const QUrl &source)
         loadContent();
 }
 
-qreal LottieAnimation::loop() const noexcept
+int LottieAnimation::loop() const noexcept
 {
     return m_loop;
 }
 
-void LottieAnimation::setLoop(qreal loop)
+void LottieAnimation::setLoop(int loop) noexcept
 {
     if (m_loop == loop)
         return;
@@ -178,7 +178,7 @@ void LottieAnimation::componentComplete()
         loadContent();
 }
 
-void LottieAnimation::updateFrame()
+void LottieAnimation::updateFrame() noexcept
 {
     if (m_currentFrame >= m_frameCount)
     {
@@ -210,7 +210,7 @@ void LottieAnimation::updateFrame()
     ++m_currentFrame;
 }
 
-void LottieAnimation::loadContent()
+void LottieAnimation::loadContent() noexcept
 {
     setStatus(Status::Loading);
 
@@ -231,7 +231,7 @@ void LottieAnimation::loadContent()
     setStatus(Status::Error);
 }
 
-void LottieAnimation::initializeAnimation()
+void LottieAnimation::initializeAnimation() noexcept
 {
     size_t width = 0;
     size_t height = 0;
@@ -246,7 +246,7 @@ void LottieAnimation::initializeAnimation()
     m_frameTimer.setInterval(1000 / m_frameRate);  // Set timer interval based on frame rate
 }
 
-QString LottieAnimation::urlToLocalFileOrQrc(const QUrl &url)
+QString LottieAnimation::urlToLocalFileOrQrc(const QUrl &url) noexcept
 {
     if (url.scheme().compare(QLatin1String("qrc"), Qt::CaseInsensitive) == 0)
     {

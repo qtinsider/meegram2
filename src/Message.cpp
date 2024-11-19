@@ -162,79 +162,65 @@ QString Message::getSenderName() const noexcept
 
 QString Message::getContent() const noexcept
 {
+    if (!m_content)
+        return {};
+
     auto content = m_content.get();
 
-    auto textOneLine = [](const QString &text) noexcept -> QString {
-        QString result = text;
-        result.replace("\n", " ");
-        result.replace("\r", " ");
-        return result;
-    };
-
-    auto getCaption = [&](const QString &text) noexcept -> QString { return !text.isEmpty() ? ": " + textOneLine(text) : textOneLine(text); };
+    auto formatCaption = [&](const QString &text) noexcept -> QString { return text.isEmpty() ? text : QLatin1String(": ") + text; };
 
     switch (m_contentType)
     {
         case td::td_api::messageText::ID: {
             auto text = static_cast<MessageText *>(content);
-            return textOneLine(text->text());
+            return text->text();
         }
         case td::td_api::messageAnimation::ID: {
             auto animation = static_cast<MessageAnimation *>(content);
-
-            return tr("AttachGif") + getCaption(animation->caption());
+            return tr("AttachGif") + formatCaption(animation->caption());
         }
         case td::td_api::messageAudio::ID: {
             auto audio = static_cast<MessageAudio *>(content);
-
             QString title = getAudioTitle(audio);
             if (title.isEmpty())
             {
                 title = tr("AttachMusic");
             }
-
-            return title + getCaption(audio->caption());
+            return title + formatCaption(audio->caption());
         }
         case td::td_api::messageDocument::ID: {
             auto document = static_cast<MessageDocument *>(content);
-
             if (auto fileName = document->fileName(); !fileName.isEmpty())
             {
-                return fileName + getCaption(document->caption());
+                return fileName + formatCaption(document->caption());
             }
-
-            return tr("AttachDocument") + getCaption(document->caption());
+            return tr("AttachDocument") + formatCaption(document->caption());
         }
         case td::td_api::messagePhoto::ID: {
             auto photo = static_cast<MessagePhoto *>(content);
-
-            return tr("AttachPhoto") + getCaption(photo->caption());
+            return tr("AttachPhoto") + formatCaption(photo->caption());
         }
         case td::td_api::messageSticker::ID: {
             auto sticker = static_cast<MessageSticker *>(content);
-
             return sticker->emoji() + " " + tr("AttachSticker");
         }
         case td::td_api::messageVideo::ID: {
             auto video = static_cast<MessageVideo *>(content);
-
-            return tr("AttachVideo") + getCaption(video->caption());
+            return tr("AttachVideo") + formatCaption(video->caption());
         }
         case td::td_api::messageVideoNote::ID: {
             return tr("AttachRound");
         }
         case td::td_api::messageVoiceNote::ID: {
             auto voiceNote = static_cast<MessageVoiceNote *>(content);
-
-            return tr("AttachAudio") + getCaption(voiceNote->caption());
+            return tr("AttachAudio") + formatCaption(voiceNote->caption());
         }
         case td::td_api::messageLocation::ID: {
             return tr("AttachLocation");
         }
         case td::td_api::messageVenue::ID: {
             auto venue = static_cast<MessageVenue *>(content);
-
-            return tr("AttachLocation") + getCaption(venue->venue());
+            return tr("AttachLocation") + formatCaption(venue->venue());
         }
         case td::td_api::messageContact::ID: {
             return tr("AttachContact");
@@ -247,18 +233,15 @@ QString Message::getContent() const noexcept
         }
         case td::td_api::messagePoll::ID: {
             auto poll = static_cast<MessagePoll *>(content);
-
-            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20") + " " + poll->question();
+            return QString::fromUtf8("\xf0\x9f\x93\x8a\x20") + QLatin1String(" ") + poll->question();
         }
         case td::td_api::messageCall::ID: {
             auto call = static_cast<MessageCall *>(content);
-
             auto text = getCallContent(call, m_isOutgoing);
 
             if (call->duration() > 0)
             {
                 const auto callDuration = Locale::instance().formatCallDuration(call->duration());
-
                 return tr("CallMessageWithDuration").arg(text).arg(callDuration);
             }
 
@@ -277,7 +260,7 @@ QString Message::getContent() const noexcept
 
 QString Message::getServiceContent(bool openUser) const
 {
-    if (!m_storageManager)
+    if (!m_content)
         return {};
 
     auto chat = m_storageManager->getChat(m_chatId);

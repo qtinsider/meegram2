@@ -7,7 +7,6 @@
 #include <QMetaType>
 #include <QStringList>
 
-
 class MessageService : public QObject, public MessageContent
 {
     Q_OBJECT

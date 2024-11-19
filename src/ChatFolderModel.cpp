@@ -13,7 +13,7 @@ ChatFolderModel::ChatFolderModel(QObject *parent)
 
     setRoleNames(roles);
 
-    auto newFolders = StorageManager::instance().chatFolders();
+    auto newFolders = StorageManager::instance().getChatFolders();
 
     m_chatFolders =
         newFolders | std::ranges::views::transform([](const auto &folder) { return std::weak_ptr<ChatFolderInfo>(folder); }) | std::ranges::to<std::vector>();
@@ -33,9 +33,7 @@ QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
     auto folderPtr = m_chatFolders.at(index.row()).lock();
 
     if (!folderPtr)
-    {
         return QVariant();
-    }
 
     switch (role)
     {

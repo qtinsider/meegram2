@@ -63,14 +63,14 @@ private slots:
     void updatePhoneInfoFromPrefix();
 
 private:
+    void fetchAndLoadCountries() noexcept;
+
     struct CountryInfo
     {
         QString name;
         QString countryCode;
         QString callingCode;
     };
-
-    void fetchAndLoadCountries() noexcept;
 
     int m_selectedIndex{-1};
 

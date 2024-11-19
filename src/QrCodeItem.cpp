@@ -344,9 +344,7 @@ void QrCodeItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option
     Q_UNUSED(widget);
 
     if (m_qrCodeImage.isNull())
-    {
         return;
-    }
 
     const QRectF boundingRect = option->rect.adjusted(0, 0, -1, -1);
     const QSizeF imageSize = m_qrCodeImage.size();

@@ -1,40 +1,12 @@
 #pragma once
 
+#include "ChatList.hpp"
+
 #include <td/telegram/td_api.h>
 
 #include <QObject>
 
 #include <memory>
-
-class ChatList : public QObject
-{
-    Q_OBJECT
-
-    Q_PROPERTY(Type type READ type WRITE setType NOTIFY listChanged)
-    Q_PROPERTY(int folderId READ folderId WRITE setFolderId NOTIFY listChanged)
-
-    Q_ENUMS(Type)
-public:
-    explicit ChatList(QObject *parent = nullptr);
-    explicit ChatList(td::td_api::object_ptr<td::td_api::ChatList> list, QObject *parent = nullptr);
-
-    enum Type { None, Main, Archive, Folder };
-
-    bool operator==(const ChatList &other) const noexcept;
-
-    Type type() const;
-    int folderId() const;
-
-    void setType(Type type);
-    void setFolderId(int folderId);
-
-signals:
-    void listChanged();
-
-private:
-    Type m_type;
-    int m_folderId;
-};
 
 class ChatPosition : public QObject
 {
@@ -56,22 +28,4 @@ private:
     bool m_isPinned{};
 
     std::unique_ptr<ChatList> m_list;
-};
-
-class ChatFolderInfo : public QObject
-{
-    Q_OBJECT
-
-    Q_PROPERTY(int id READ id CONSTANT)
-    Q_PROPERTY(QString title READ title CONSTANT)
-
-public:
-    explicit ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo> info, QObject *parent = nullptr);
-
-    int id() const;
-    QString title() const;
-
-private:
-    int m_id;
-    QString m_title;
 };

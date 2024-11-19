@@ -2,6 +2,7 @@
 
 #include "BasicGroup.hpp"
 #include "Chat.hpp"
+#include "ChatFolderInfo.hpp"
 #include "Client.hpp"
 #include "File.hpp"
 #include "Supergroup.hpp"
@@ -25,9 +26,13 @@ public:
 
     [[nodiscard]] std::shared_ptr<Client> client() const noexcept;
 
+    [[nodiscard]] qlonglong myId() const noexcept;
+
+    [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
+
     [[nodiscard]] std::vector<qlonglong> getChatIds() const noexcept;
 
-    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders() const noexcept;
+    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> getChatFolders() const noexcept;
 
     [[nodiscard]] std::shared_ptr<BasicGroup> getBasicGroup(qlonglong groupId) const noexcept;
     [[nodiscard]] std::shared_ptr<Chat> getChat(qlonglong chatId) const noexcept;
@@ -36,11 +41,8 @@ public:
     [[nodiscard]] std::shared_ptr<SupergroupFullInfo> getSupergroupFullInfo(qlonglong groupId) const noexcept;
     [[nodiscard]] std::shared_ptr<User> getUser(qlonglong userId) const noexcept;
 
-    [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
-
-    [[nodiscard]] qlonglong myId() const noexcept;
-
 signals:
+    void chatFoldersUpdated();
     void basicGroupUpdated(qlonglong groupId);
     void basicGroupFullInfoUpdated(qlonglong groupId);
     void chatUpdated(qlonglong chatId);
@@ -50,7 +52,6 @@ signals:
     void supergroupFullInfoUpdated(qlonglong groupId);
     void userUpdated(qlonglong userId);
     void userFullInfoUpdated(qlonglong userId);
-    void chatFoldersUpdated();
 
 private slots:
     void handleResult(td::td_api::Object *object);

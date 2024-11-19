@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ChatPosition.hpp"
+#include "ChatFolderInfo.hpp"
 
 #include <QAbstractListModel>
 

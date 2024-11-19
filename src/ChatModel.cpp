@@ -80,9 +80,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     auto chatPtr = m_chats.at(index.row()).lock();
 
     if (!chatPtr)
-    {
         return QVariant();
-    }
 
     switch (role)
     {
@@ -97,7 +95,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case LastMessage:
             return QVariant::fromValue(chatPtr->lastMessage());
         case IsPinnedRole:
-            return getChatPosition(chatPtr.get(), m_list.get())->isPinned();
+            return this->getChatPosition(chatPtr.get(), m_list.get())->isPinned();
         case UnreadCountRole:
             return chatPtr->unreadCount();
         case UnreadMentionCountRole:
@@ -144,9 +142,7 @@ ChatList *ChatModel::list() const
 void ChatModel::setList(ChatList *value)
 {
     if (m_list.get() == value)
-    {
         return;
-    }
 
     if (m_list)
     {
@@ -186,9 +182,7 @@ void ChatModel::populate()
         const auto chat = m_storageManager->getChat(id);
 
         if (!chat)
-        {
             continue;
-        }
 
         if (std::ranges::any_of(chat->positions(), [&](const auto &position) { return *position->list() == *m_list; }))
         {
