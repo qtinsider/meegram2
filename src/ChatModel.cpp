@@ -2,7 +2,6 @@
 
 #include "Client.hpp"
 #include "Common.hpp"
-#include "Localization.hpp"
 #include "Message.hpp"
 #include "StorageManager.hpp"
 #include "Utils.hpp"
@@ -14,25 +13,21 @@
 #include <algorithm>
 #include <ranges>
 
-ChatModel::ChatModel(QObject *parent)
-    : QAbstractListModel(parent)
-    , m_client(StorageManager::instance().client())
-    , m_locale(&Locale::instance())
-    , m_storageManager(&StorageManager::instance())
-    , m_list(std::make_unique<ChatList>(this))
+ChatModel::ChatModel(std::unique_ptr<ChatList> list, std::shared_ptr<Locale> locale, std::shared_ptr<StorageManager> storage)
+    : m_list(std::move(list))
+    , m_locale(std::move(locale))
+    , m_storageManager(std::move(storage))
 {
     connect(&m_sortTimer, SIGNAL(timeout()), this, SLOT(sortChats()));
     connect(&m_loadingTimer, SIGNAL(timeout()), this, SLOT(loadChats()));
-
-    connect(this, SIGNAL(listChanged()), this, SLOT(refresh()));
-
-    connect(m_storageManager, SIGNAL(chatUpdated(qlonglong)), this, SLOT(handleChatItem(qlonglong)));
-    connect(m_storageManager, SIGNAL(chatPositionUpdated(qlonglong)), this, SLOT(handleChatPosition(qlonglong)));
 
     m_sortTimer.setInterval(500);
     m_sortTimer.setSingleShot(true);
 
     m_loadingTimer.setInterval(500);
+
+    connect(m_storageManager.get(), SIGNAL(chatUpdated(qlonglong)), SLOT(handleChatItem(qlonglong)));
+    connect(m_storageManager.get(), SIGNAL(chatPositionUpdated(qlonglong)), SLOT(handleChatPosition(qlonglong)));
 
     setRoleNames(roleNames());
 }
@@ -58,15 +53,18 @@ void ChatModel::fetchMore(const QModelIndex &parent)
     if (parent.isValid())
         return;
 
-    const auto itemsToFetch = std::min(ChatSliceLimit, static_cast<int>(m_chats.size()) - m_count);
+    int remainingItems = static_cast<int>(m_chats.size()) - m_count;
+
+    const auto itemsToFetch = std::min(ChatSliceLimit, remainingItems);
 
     if (itemsToFetch <= 0)
         return;
 
-    beginInsertRows(QModelIndex(), m_count, m_count + itemsToFetch - 1);
+    int startIndex = m_count;
+    int endIndex = m_count + itemsToFetch - 1;
 
+    beginInsertRows(QModelIndex(), startIndex, endIndex);
     m_count += itemsToFetch;
-
     endInsertRows();
 
     emit countChanged();
@@ -78,7 +76,6 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     auto chatPtr = m_chats.at(index.row()).lock();
-
     if (!chatPtr)
         return QVariant();
 
@@ -89,13 +86,15 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         case TypeRole:
             return chatPtr->type();
         case TitleRole:
-            return chatPtr->title();
+            return Utils::getChatTitle(chatPtr, m_storageManager);
+        case DateRole:
+            return Utils::getMessageDate(chatPtr->lastMessage());
         case PhotoRole:
             return QVariant::fromValue(chatPtr->photo());
-        case LastMessage:
-            return QVariant::fromValue(chatPtr->lastMessage());
+        case LastMessageRole:
+            return Utils::getContent(chatPtr->lastMessage(), m_storageManager, m_locale);
         case IsPinnedRole:
-            return this->getChatPosition(chatPtr.get(), m_list.get())->isPinned();
+            return getChatPosition(chatPtr.get())->isPinned();
         case UnreadCountRole:
             return chatPtr->unreadCount();
         case UnreadMentionCountRole:
@@ -114,8 +113,9 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[IdRole] = "id";
     roles[TypeRole] = "type";
     roles[TitleRole] = "title";
+    roles[DateRole] = "date";
     roles[PhotoRole] = "photo";
-    roles[LastMessage] = "lastMessage";
+    roles[LastMessageRole] = "lastMessage";
     roles[IsPinnedRole] = "isPinned";
     roles[UnreadCountRole] = "unreadCount";
     roles[UnreadMentionCountRole] = "unreadMentionCount";
@@ -134,59 +134,24 @@ bool ChatModel::loading() const
     return m_loading;
 }
 
-ChatList *ChatModel::list() const
-{
-    return m_list.get();
-}
-
-void ChatModel::setList(ChatList *value)
-{
-    if (m_list.get() == value)
-        return;
-
-    if (m_list)
-    {
-        disconnect(m_list.get(), SIGNAL(listChanged()), this, SIGNAL(listChanged()));
-    }
-
-    m_list.reset(value);
-
-    if (m_list)
-    {
-        connect(m_list.get(), SIGNAL(listChanged()), this, SIGNAL(listChanged()));
-    }
-
-    emit listChanged();
-}
-
-void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
-{
-    auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
-    request->chat_list_ = Utils::toChatList(m_list);
-    request->chat_id_ = chatId;
-    request->is_pinned_ = isPinned;
-
-    m_client->send(std::move(request));
-}
-
 void ChatModel::populate()
 {
     m_chats.clear();
 
-    const auto &chatIds = m_storageManager->getChatIds();
+    const auto &chatIds = m_storageManager->chatIds();
 
     m_chats.reserve(chatIds.size());
 
     for (const auto &id : chatIds)
     {
-        const auto chat = m_storageManager->getChat(id);
+        auto chat = m_storageManager->chat(id);
 
         if (!chat)
             continue;
 
-        if (std::ranges::any_of(chat->positions(), [&](const auto &position) { return *position->list() == *m_list; }))
+        if (std::ranges::any_of(chat->positions(), [&](const auto &pos) { return *pos->list() == *m_list; }))
         {
-            m_chats.emplace_back(std::move(chat));
+            m_chats.emplace_back(chat);
         }
     }
 
@@ -225,7 +190,7 @@ void ChatModel::sortChats()
     std::ranges::sort(m_chats, std::greater{}, [&](auto &&chatPtr) {
         if (auto chat = chatPtr.lock())
         {
-            if (auto pos = getChatPosition(chat.get(), m_list.get()))
+            if (auto pos = getChatPosition(chat.get()))
             {
                 return pos->order();
             }
@@ -257,23 +222,40 @@ void ChatModel::handleChatPosition(qlonglong chatId)
     if (it != chats.end())
     {
         // emit delayed event
-        if (not m_sortTimer.isActive())
+        if (!m_sortTimer.isActive())
         {
             m_sortTimer.start();
         }
     }
 }
 
-ChatPosition *ChatModel::getChatPosition(Chat *chat, ChatList *list) const
+ChatPosition *ChatModel::getChatPosition(Chat *chat) const
 {
+    if (!chat)
+        return nullptr;
+
     const auto &positions = chat->positions();
 
-    if (auto it = std::ranges::find_if(positions, [&](const auto &position) { return *position->list() == *list; }); it != positions.end())
+    if (auto it = std::ranges::find_if(positions, [&](const auto &pos) { return *pos->list() == *m_list; }); it != positions.end())
     {
         return it->get();
     }
 
     return nullptr;
+}
+
+void ChatModel::toggleChatIsPinned(qlonglong chatId, bool isPinned)
+{
+    auto request = td::td_api::make_object<td::td_api::toggleChatIsPinned>();
+    request->chat_list_ = Utils::toChatList(m_list);
+    request->chat_id_ = chatId;
+    request->is_pinned_ = isPinned;
+
+    auto client = m_storageManager->client();
+    if (!client)
+        return;
+
+    client->send(std::move(request));
 }
 
 void ChatModel::loadChats()
@@ -282,7 +264,11 @@ void ChatModel::loadChats()
     request->chat_list_ = Utils::toChatList(m_list);
     request->limit_ = ChatSliceLimit;
 
-    m_client->send(std::move(request), [this](auto &&response) {
+    auto client = m_storageManager->client();
+    if (!client)
+        return;
+
+    client->send(std::move(request), [this](auto &&response) {
         if (response->get_id() == td::td_api::error::ID)
         {
             if (td::td_api::move_object_as<td::td_api::error>(response)->code_ == 404)

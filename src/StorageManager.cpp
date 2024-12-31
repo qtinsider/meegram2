@@ -4,21 +4,87 @@
 #include <ranges>
 #include <unordered_set>
 
-StorageManager::StorageManager()
-    : m_client(std::make_shared<Client>())
+StorageManager::StorageManager(std::shared_ptr<Client> client, QObject *parent)
+    : QObject(parent)
+    , m_client(std::move(client))
 {
-    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
-}
-
-StorageManager &StorageManager::instance()
-{
-    static StorageManager staticObject;
-    return staticObject;
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), SLOT(handleResult(td::td_api::Object *)));
 }
 
 std::shared_ptr<Client> StorageManager::client() const noexcept
 {
     return m_client;
+}
+
+std::vector<qlonglong> StorageManager::chatIds() const noexcept
+{
+    auto view = m_chats | std::views::keys;
+    return std::vector(view.begin(), view.end());
+}
+
+std::vector<std::shared_ptr<ChatFolderInfo>> StorageManager::chatFolders() const noexcept
+{
+    return m_chatFolders;
+}
+
+std::shared_ptr<BasicGroup> StorageManager::basicGroup(qlonglong groupId) const noexcept
+{
+    if (auto it = m_basicGroup.find(groupId); it != m_basicGroup.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<Chat> StorageManager::chat(qlonglong chatId) const noexcept
+{
+    if (auto it = m_chats.find(chatId); it != m_chats.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<File> StorageManager::file(int fileId) const noexcept
+{
+    if (auto it = m_files.find(fileId); it != m_files.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<Supergroup> StorageManager::supergroup(qlonglong groupId) const noexcept
+{
+    if (auto it = m_supergroup.find(groupId); it != m_supergroup.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<SupergroupFullInfo> StorageManager::supergroupFullInfo(qlonglong groupId) const noexcept
+{
+    if (auto it = m_supergroupFullInfo.find(groupId); it != m_supergroupFullInfo.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<User> StorageManager::user(qlonglong userId) const noexcept
+{
+    if (auto it = m_users.find(userId); it != m_users.end())
+    {
+        return it->second;
+    }
+
+    return nullptr;
 }
 
 qlonglong StorageManager::myId() const noexcept
@@ -37,75 +103,34 @@ QVariant StorageManager::getOption(const QString &name) const noexcept
     return QVariant();
 }
 
-std::vector<qlonglong> StorageManager::getChatIds() const noexcept
+BasicGroup *StorageManager::getBasicGroup(qlonglong groupId) const noexcept
 {
-    auto view = m_chats | std::views::keys;
-    return std::vector(view.begin(), view.end());
+    return this->basicGroup(groupId).get();
 }
 
-std::vector<std::shared_ptr<ChatFolderInfo>> StorageManager::getChatFolders() const noexcept
+Chat *StorageManager::getChat(qlonglong chatId) const noexcept
 {
-    return m_chatFolders;
+    return this->chat(chatId).get();
 }
 
-std::shared_ptr<BasicGroup> StorageManager::getBasicGroup(qlonglong groupId) const noexcept
+File *StorageManager::getFile(int fileId) const noexcept
 {
-    if (auto it = m_basicGroup.find(groupId); it != m_basicGroup.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
+    return this->file(fileId).get();
 }
 
-std::shared_ptr<Chat> StorageManager::getChat(qlonglong chatId) const noexcept
+Supergroup *StorageManager::getSupergroup(qlonglong groupId) const noexcept
 {
-    if (auto it = m_chats.find(chatId); it != m_chats.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
+    return this->supergroup(groupId).get();
 }
 
-std::shared_ptr<File> StorageManager::getFile(int fileId) const noexcept
+SupergroupFullInfo *StorageManager::getSupergroupFullInfo(qlonglong groupId) const noexcept
 {
-    if (auto it = m_files.find(fileId); it != m_files.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
+    return this->supergroupFullInfo(groupId).get();
 }
 
-std::shared_ptr<Supergroup> StorageManager::getSupergroup(qlonglong groupId) const noexcept
+User *StorageManager::getUser(qlonglong userId) const noexcept
 {
-    if (auto it = m_supergroup.find(groupId); it != m_supergroup.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<SupergroupFullInfo> StorageManager::getSupergroupFullInfo(qlonglong groupId) const noexcept
-{
-    if (auto it = m_supergroupFullInfo.find(groupId); it != m_supergroupFullInfo.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<User> StorageManager::getUser(qlonglong userId) const noexcept
-{
-    if (auto it = m_users.find(userId); it != m_users.end())
-    {
-        return it->second;
-    }
-
-    return nullptr;
+    return this->user(userId).get();
 }
 
 void StorageManager::handleResult(td::td_api::Object *object)
@@ -218,6 +243,11 @@ void StorageManager::handleResult(td::td_api::Object *object)
             }
             break;
         }
+        case td::td_api::updateChatOnlineMemberCount::ID: {
+            auto update = static_cast<td::td_api::updateChatOnlineMemberCount *>(object);
+            emit chatOnlineMemberCountUpdated(update->chat_id_, update->online_member_count_);
+            break;
+        }
         case td::td_api::updateUser::ID: {
             auto update = static_cast<td::td_api::updateUser *>(object);
             auto user = std::make_shared<User>(std::move(update->user_));
@@ -264,8 +294,9 @@ void StorageManager::handleResult(td::td_api::Object *object)
             auto update = static_cast<td::td_api::updateChatFolders *>(object);
             m_chatFolders.clear();
             m_chatFolders.reserve(update->chat_folders_.size());
-            std::transform(update->chat_folders_.begin(), update->chat_folders_.end(), std::back_inserter(m_chatFolders),
-                           [](auto &&folder) { return std::make_shared<ChatFolderInfo>(std::move(folder)); });
+            std::ranges::transform(update->chat_folders_, std::back_inserter(m_chatFolders),
+                                   [](auto &&folder) { return std::make_shared<ChatFolderInfo>(std::move(folder)); });
+
             emit chatFoldersUpdated();
             break;
         }

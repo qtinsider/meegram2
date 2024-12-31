@@ -33,7 +33,7 @@ Item {
         }
 
         Label {
-            text: qsTr("Log in to Telegram by QR Code")
+            text: "Log in to Telegram by QR Code"
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
             font: UiConstants.TitleFont
@@ -46,7 +46,7 @@ Item {
             width: parent.width
 
             Label {
-                text: qsTr("Open Telegram on your phone")
+                text: "Open Telegram on your phone"
                 font: UiConstants.SubtitleFont
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
@@ -54,7 +54,7 @@ Item {
             }
 
             Label {
-                text: qsTr("Go to <b>Settings</b> > <b>Devices</b> > <b>Link Desktop Device</b>")
+                text: "Go to <b>Settings</b> > <b>Devices</b> > <b>Link Desktop Device</b>"
                 font: UiConstants.SubtitleFont
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
@@ -62,7 +62,7 @@ Item {
             }
 
             Label {
-                text: qsTr("Point your phone at this screen to confirm login")
+                text: "Point your phone at this screen to confirm login"
                 font: UiConstants.SubtitleFont
                 wrapMode: Text.Wrap
                 horizontalAlignment: Text.AlignHCenter
@@ -71,7 +71,7 @@ Item {
         }
 
         Button {
-            text: qsTr("Log in by phone Number")
+            text: "Log in by phone Number"
             anchors.horizontalCenter: parent.horizontalCenter
             onClicked: { authorization.state = "phone_number" }
         }

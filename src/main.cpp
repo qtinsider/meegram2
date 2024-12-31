@@ -4,27 +4,22 @@
 #include <QDeclarativeEngine>
 #include <QDeclarativeView>
 #include <QFontDatabase>
+#include <QModelIndex>
 #include <QTextCodec>
 
-#include "Application.hpp"
+#include "AppManager.hpp"
 #include "Authorization.hpp"
 #include "Chat.hpp"
-#include "ChatFolderInfo.hpp"
-#include "ChatFolderModel.hpp"
-#include "ChatList.hpp"
 #include "ChatManager.hpp"
-#include "ChatModel.hpp"
 #include "ChatPhotoProvider.hpp"
 #include "ChatPosition.hpp"
 #include "Client.hpp"
 #include "Common.hpp"
-#include "CountryModel.hpp"
 #include "File.hpp"
 #include "LanguagePackInfoModel.hpp"
 #include "Localization.hpp"
 #include "LottieAnimation.hpp"
 #include "Message.hpp"
-#include "MessageModel.hpp"
 #include "MessageService.hpp"
 #include "QrCodeItem.hpp"
 #include "Settings.hpp"
@@ -50,27 +45,29 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
     qRegisterMetaType<QList<qlonglong>>("QList<qlonglong>");
 
     qRegisterMetaType<Chat::Type>("Chat::Type");
-    qRegisterMetaType<ChatList::Type>("ChatList::Type");
 
     qRegisterMetaType<QModelIndex>("QModelIndex");
-
-    qmlRegisterType<Authorization>("MyComponent", 1, 0, "Authorization");
-    qmlRegisterType<ChatList>("MyComponent", 1, 0, "ChatList");
-
-    qmlRegisterType<ChatModel>("MyComponent", 1, 0, "ChatModel");
-    qmlRegisterType<ChatFolderModel>("MyComponent", 1, 0, "ChatFolderModel");
-    qmlRegisterType<CountryModel>("MyComponent", 1, 0, "CountryModel");
-    qmlRegisterType<LanguagePackInfoModel>("MyComponent", 1, 0, "LanguagePackInfoModel");
-    qmlRegisterType<MessageModel>("MyComponent", 1, 0, "MessageModel");
 
     qmlRegisterType<LottieAnimation>("MyComponent", 1, 0, "LottieAnimation");
     qmlRegisterType<QrCodeItem>("MyComponent", 1, 0, "QrCode");
 
+    qmlRegisterUncreatableType<Client>("MyComponent", 1, 0, "Client", "Client cannot be created from QML.");
+    qmlRegisterUncreatableType<Authorization>("MyComponent", 1, 0, "Authorization", "Authorization cannot be created from QML.");
+    qmlRegisterUncreatableType<Locale>("MyComponent", 1, 0, "Locale", "Locale cannot be created from QML.");
+    qmlRegisterUncreatableType<Settings>("MyComponent", 1, 0, "Settings", "Settings cannot be created from QML.");
+    qmlRegisterUncreatableType<ChatManager>("MyComponent", 1, 0, "ChatManager", "ChatManager cannot be created from QML.");
+    qmlRegisterUncreatableType<StorageManager>("MyComponent", 1, 0, "StorageManager", "BasicGroup cannot be created from QML.");
+    qmlRegisterUncreatableType<LanguagePackInfoModel>("MyComponent", 1, 0, "LanguagePackInfoModel", "LanguagePackInfoModel cannot be created from QML.");
+
+    qmlRegisterUncreatableType<BasicGroup>("MyComponent", 1, 0, "BasicGroup", "BasicGroup cannot be created from QML.");
     qmlRegisterUncreatableType<Chat>("MyComponent", 1, 0, "Chat", "Chat cannot be created from QML.");
-    qmlRegisterUncreatableType<ChatInfo>("MyComponent", 1, 0, "ChatInfo", "ChatInfo cannot be created from QML.");
+    qmlRegisterUncreatableType<ChatManager>("MyComponent", 1, 0, "ChatInfo", "ChatInfo cannot be created from QML.");
     qmlRegisterUncreatableType<ChatPosition>("MyComponent", 1, 0, "ChatPosition", "ChatPosition cannot be created from QML.");
     qmlRegisterUncreatableType<File>("MyComponent", 1, 0, "File", "File cannot be created from QML.");
     qmlRegisterUncreatableType<Message>("MyComponent", 1, 0, "Message", "Message cannot be created from QML.");
+    qmlRegisterUncreatableType<Supergroup>("MyComponent", 1, 0, "Supergroup", "Supergroup cannot be created from QML.");
+    qmlRegisterUncreatableType<SupergroupFullInfo>("MyComponent", 1, 0, "SupergroupFullInfo", "SupergroupFullInfo cannot be created from QML.");
+    qmlRegisterUncreatableType<User>("MyComponent", 1, 0, "User", "User cannot be created from QML.");
 
     qmlRegisterUncreatableType<MessageText>("MyComponent", 1, 0, "MessageText", "MessageText cannot be created from QML.");
     qmlRegisterUncreatableType<MessageAnimation>("MyComponent", 1, 0, "MessageAnimation", "MessageAnimation cannot be created from QML.");
@@ -92,14 +89,12 @@ Q_DECL_EXPORT int main(int argc, char *argv[])
 
     QDeclarativeView viewer;
 
-    Application application;
+    AppManager appManager;
     Utils utils;
 
-    Translator translator;
-    app.installTranslator(&translator);
+    app.installTranslator(appManager.locale());
 
-    viewer.rootContext()->setContextProperty("app", &application);
-    viewer.rootContext()->setContextProperty("settings", &Settings::instance());
+    viewer.rootContext()->setContextProperty("appManager", &appManager);
     viewer.rootContext()->setContextProperty("utils", &utils);
 
     viewer.rootContext()->setContextProperty("AppVersion", AppVersion);

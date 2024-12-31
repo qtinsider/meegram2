@@ -1,11 +1,10 @@
 #include "Authorization.hpp"
 
-#include "StorageManager.hpp"
-#include "Utils.hpp"
+#include "Client.hpp"
 
-Authorization::Authorization(QObject *parent)
+Authorization::Authorization(std::shared_ptr<Client> client, QObject *parent)
     : QObject(parent)
-    , m_client(StorageManager::instance().client())
+    , m_client(std::move(client))
 {
     m_responseCallback = [this](auto response) {
         if (response->get_id() == td::td_api::error::ID)
@@ -15,7 +14,7 @@ Authorization::Authorization(QObject *parent)
         }
     };
 
-    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), this, SLOT(handleResult(td::td_api::Object *)));
+    connect(m_client.get(), SIGNAL(result(td::td_api::Object *)), SLOT(handleResult(td::td_api::Object *)));
 }
 
 QString Authorization::state() const noexcept
@@ -26,6 +25,11 @@ QString Authorization::state() const noexcept
 QVariant Authorization::content() const noexcept
 {
     return m_content;
+}
+
+QObject *Authorization::countryModel() const noexcept
+{
+    return m_countryModel.get();
 }
 
 void Authorization::setState(const QString &value) noexcept
@@ -79,7 +83,7 @@ void Authorization::resendCode() noexcept
     m_client->send(td::td_api::make_object<td::td_api::resendAuthenticationCode>(), m_responseCallback);
 }
 
-void Authorization::destroy() noexcept
+void Authorization::_destroy() noexcept
 {
     m_client->send(td::td_api::make_object<td::td_api::destroy>(), m_responseCallback);
 }
@@ -90,6 +94,14 @@ void Authorization::deleteAccount(const QString &reason) noexcept
     request->reason_ = reason.toStdString();
 
     m_client->send(std::move(request), m_responseCallback);
+}
+
+void Authorization::initializeCountryModel()
+{
+    if (!m_countryModel)
+    {
+        m_countryModel = std::make_unique<CountryModel>(m_client, this);
+    }
 }
 
 void Authorization::handleResult(td::td_api::Object *object)
@@ -137,7 +149,6 @@ void Authorization::handleResult(td::td_api::Object *object)
             break;
         }
         case td::td_api::error::ID:
-            // Handle error if needed
             break;
         default:
             break;

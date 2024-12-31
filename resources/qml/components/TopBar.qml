@@ -56,7 +56,7 @@ Item {
     }
 
     function getTitle() {
-        switch (app.connectionStateString) {
+        switch (appManager.connectionStateString) {
         case "Updating":
             return qsTr("Updating");
         case "Connecting":

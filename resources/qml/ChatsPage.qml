@@ -1,38 +1,176 @@
 import QtQuick 1.1
 import com.nokia.meego 1.1
-import com.nokia.extras 1.1
 import MyComponent 1.0
 import "components"
 
 Page {
     id: root
 
-    orientationLock: PageOrientation.LockPortrait
+    property variant chatFolderModel: chatManager.folderModel
+    property variant mainChatModel: chatManager.mainModel
+    property variant folderChatModels: chatManager.folderModels
 
-    property variant chatPosition: null
+    orientationLock: PageOrientation.LockPortrait
 
     TopBar {
         id: header
         title: "MeeGram"
+    }
 
-        Image {
-            anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
-                rightMargin: 16
-            }
-            source: "image://theme/meegotouch-combobox-indicator-inverted"
+    Loader {
+        id: layoutLoader
+        anchors {
+            top: header.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
         }
 
-        onClicked: chatFolderDialog.open()
+        sourceComponent: folderChatModels.count === 0 ? chatLayoutComponent : chatTabsLayoutComponent
+    }
+
+    Component {
+        id: chatLayoutComponent
+
+        Item {
+            anchors.fill: parent
+
+            ChatListView { model: mainChatModel }
+        }
+    }
+
+    Component {
+        id: chatTabsLayoutComponent
+
+        Item {
+            id: chatTabsLayout
+
+            property alias tabFlickable: tabRowFlickable
+
+            anchors.fill: parent
+            Flickable {
+                id: tabRowFlickable
+                contentWidth: tabButtonRow.width
+                height: 48
+                flickableDirection: Flickable.HorizontalFlick
+                clip: true
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                }
+
+                Row {
+                    id: tabButtonRow
+                    property int buttonMargin: 1
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    TabButton {
+                        id: allChatsTabButton
+                        text: qsTr("FilterAllChats")
+                        tab: allChatsTab
+                        checked: tabGroup.currentTab === allChatsTab
+                        onClicked: {
+                            tabGroup.currentTab = allChatsTab;
+                            root.ensureVisible(allChatsTabButton);
+                        }
+                        width: allChatsTabText.width + tabButtonRow.buttonMargin * 2
+
+                        Text {
+                            id: allChatsTabText
+                            text: parent.text
+                            visible: false // Invisible, used only for width calculation
+                        }
+                    }
+
+                    Repeater {
+                        model: chatFolderModel
+
+                        TabButton {
+                            id: folderTabButton
+                            text: model.name
+                            checked: tabGroup.currentTab === tabGroup.children[index + 1]
+                            onClicked: {
+                                tabGroup.currentTab = tabGroup.children[index + 1];
+                                root.ensureVisible(folderTabButton);
+                            }
+                            width: folderTabText.width + tabButtonRow.buttonMargin * 2
+
+                            Text {
+                                id: folderTabText
+                                text: parent.text
+                                visible: false // Invisible, used only for width calculation
+                            }
+                        }
+                    }
+                }
+
+                function smoothScrollTo(targetX) {
+                    contentXAnimation.to = targetX;
+                    contentXAnimation.running = true;
+                }
+
+                NumberAnimation {
+                    id: contentXAnimation
+                    target: tabRowFlickable
+                    property: "contentX"
+                    duration: 300
+                    easing.type: Easing.InOutQuad
+                }
+            }
+
+            TabGroup {
+                id: tabGroup
+                currentTab: allChatsTab
+                anchors {
+                    top: tabRowFlickable.bottom
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
+
+                Item {
+                    id: allChatsTab
+                    anchors.fill: parent
+
+                    ChatListView {
+                        model: mainChatModel
+                        clip: true
+                    }
+                }
+
+                Repeater {
+                    model: folderChatModels
+
+                    Item {
+                        id: folderTabPage
+                        anchors.fill: parent
+
+                        ChatListView {
+                            model: modelData
+                            clip: true
+                        }
+                    }
+                }
+
+                onCurrentTabChanged: {
+
+                }
+            }
+        }
     }
 
     Menu {
         id: myMenu
+
         MenuLayout {
             MenuItem {
+                text: qsTr("SavedMessages")
+                onClicked: appWindow.openChat(storageManager.myId())
+            }
+            MenuItem {
                 text: qsTr("ArchivedChats")
-                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"))
+                onClicked: pageStack.push(Qt.createComponent("ArchivedChatPage.qml"), { model: chatManager.archivedModel })
             }
             MenuItem {
                 text: qsTr("SETTINGS")
@@ -45,154 +183,8 @@ Page {
         }
     }
 
-    ListView {
-        id: listView
-
-        anchors {
-            top: header.bottom
-            bottom: parent.bottom
-            left: parent.left
-            right: parent.right
-        }
-
-        cacheBuffer: listView.height * 2
-
-        delegate: ChatItem {
-            onPressAndHold: {
-                var chat = app.getChat(model.id)
-                chatPosition = myChatModel.getChatPosition(chat, chatList);
-                contextMenu.open();
-            }
-        }
-
-        model: myChatModel
-        snapMode: ListView.SnapToItem
-    }
-
-    Column {
-        anchors.centerIn: listView
-        anchors.margins: UiConstants.DefaultMargin * 2
-        spacing: UiConstants.HeaderDefaultTopSpacingPortrait
-
-        width: parent.width
-
-        visible: myChatModel.count === 0 && !populateTimer.running && !myChatModel.loading
-
-        LottieAnimation {
-            id: lottieAnimation
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 160
-            height: 160
-            source: "qrc:/tgs/Newborn.tgs"
-            loop: 34
-            onStatusChanged: {
-                if (status === LottieAnimation.Ready)
-                    lottieAnimation.play();
-            }
-        }
-
-        Label {
-            text: qsTr("NoChats")
-            wrapMode: Text.WordWrap
-            color: "gray"
-            font.pixelSize: 42
-            horizontalAlignment: Text.AlignHCenter
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: parent.width
-        }
-    }
-
-    BusyIndicator {
-        anchors.centerIn: listView
-        running: visible
-        visible: populateTimer.running || myChatModel.loading
-        platformStyle: BusyIndicatorStyle { size: "large" }
-    }
-
-    SelectionDialog {
-        id: chatFolderDialog
-        titleText: qsTr("Filters")
-        selectedIndex: 0
-        model: ListModel { id: insertFolderModel }
-
-        onAccepted: {
-            if (model.get(selectedIndex).id === 0) {
-                chatList.type = ChatList.Main;
-            } else {
-                chatList.type = ChatList.Folder;
-                chatList.folderId = model.get(selectedIndex).id;
-            }
-        }
-
-        Component.onCompleted: {
-            insertFolderModel.append({ id: 0, name: qsTr("FilterAllChats") });
-
-            for (var i = 0; i < mychatFolderModel.count; i++) {
-                insertFolderModel.append(mychatFolderModel.get(i));
-            }
-        }
-    }
-
-    ChatFolderModel {
-        id: mychatFolderModel
-    }
-
-    ChatModel {
-        id: myChatModel
-        list: chatList
-
-        onLoadingChanged: {
-            if (!loading)
-                populateTimer.restart()
-        }
-    }
-
-    ChatList {
-        id: chatList
-        type: ChatList.Main
-    }
-
-    ContextMenu {
-        id: contextMenu
-
-        MenuLayout {
-            MenuItem {
-                text: chatPosition && chatPosition.isPinned
-                      ? qsTr("UnpinFromTop")
-                      : qsTr("PinToTop")
-                onClicked: {
-                    if (chatPosition)
-                        myChatModel.toggleChatIsPinned(chatPosition.id, !chatPosition.isPinned)
-                }
-            }
-        }
-    }
-
-    Timer {
-        id: populateTimer
-        interval: 200
-        repeat: false
-        onTriggered: myChatModel.populate()
-    }
-
-    ScrollDecorator {
-        flickableItem: listView
-    }
-
     AboutDialog {
         id: aboutDialog
-    }
-
-    Connections {
-        target: null // Replace with StorageManager
-        onChatFoldersUpdated: {
-            insertFolderModel.clear();
-            insertFolderModel.append({ id: 0, name: qsTr("FilterAllChats") });
-
-            for (var i = 0; i < mychatFolderModel.count; i++) {
-                insertFolderModel.append(mychatFolderModel.get(i));
-            }
-        }
     }
 
     tools: ToolBarLayout {
@@ -203,5 +195,12 @@ Page {
         }
     }
 
-    Component.onCompleted: { myChatModel.refresh() }
+    function ensureVisible(item) {
+        if (layoutLoader.item && layoutLoader.item.tabFlickable) {
+            var flickable = layoutLoader.item.tabFlickable;
+            var targetContentX = item.x + item.width / 2 - flickable.width / 2;
+            var clampedContentX = Math.max(0, Math.min(targetContentX, flickable.contentWidth - flickable.width));
+            flickable.smoothScrollTo(clampedContentX);
+        }
+    }
 }

@@ -1,12 +1,7 @@
 #include "File.hpp"
 
-#include "StorageManager.hpp"
-
-#include <QDebug>
-
 File::File(td::td_api::object_ptr<td::td_api::file> file, QObject *parent)
     : QObject(parent)
-    , m_client(StorageManager::instance().client())
     , m_file(std::move(file))
 {
     updateFileProperties();
@@ -35,11 +30,6 @@ bool File::isDownloadingActive() const
 bool File::isDownloadingCompleted() const
 {
     return m_isDownloadingCompleted;
-}
-
-void File::downloadFile()
-{
-    m_client->send(td::td_api::make_object<td::td_api::downloadFile>(m_id, 1, 0, 0, false), {});
 }
 
 void File::setFile(td::td_api::object_ptr<td::td_api::file> file)

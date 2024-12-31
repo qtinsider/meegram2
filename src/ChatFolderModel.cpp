@@ -2,7 +2,21 @@
 
 #include "StorageManager.hpp"
 
-#include <ranges>
+ChatFolderInfo::ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo> info)
+    : m_id(info->id_)
+    , m_title(QString::fromStdString(info->title_))
+{
+}
+
+int ChatFolderInfo::id() const
+{
+    return m_id;
+}
+
+QString ChatFolderInfo::title() const
+{
+    return m_title;
+}
 
 ChatFolderModel::ChatFolderModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -12,17 +26,21 @@ ChatFolderModel::ChatFolderModel(QObject *parent)
     roles.insert(TitleRole, "name");
 
     setRoleNames(roles);
+}
 
-    auto newFolders = StorageManager::instance().getChatFolders();
+void ChatFolderModel::setItems(std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders)
+{
+    beginResetModel();
+    m_chatFolders = std::move(chatFolders);
+    endResetModel();
 
-    m_chatFolders =
-        newFolders | std::ranges::views::transform([](const auto &folder) { return std::weak_ptr<ChatFolderInfo>(folder); }) | std::ranges::to<std::vector>();
+    emit countChanged();
 }
 
 int ChatFolderModel::rowCount(const QModelIndex &index) const
 {
     Q_UNUSED(index);
-    return m_chatFolders.size();
+    return static_cast<int>(m_chatFolders.size());
 }
 
 QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
@@ -30,7 +48,7 @@ QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= static_cast<int>(m_chatFolders.size()))
         return QVariant();
 
-    auto folderPtr = m_chatFolders.at(index.row()).lock();
+    auto folderPtr = m_chatFolders.at(index.row());
 
     if (!folderPtr)
         return QVariant();
@@ -48,14 +66,15 @@ QVariant ChatFolderModel::data(const QModelIndex &index, int role) const
 
 QVariant ChatFolderModel::get(int index) const noexcept
 {
-    QModelIndex modelIndex = createIndex(index, 0);
-    QVariantMap result;
-    result.insert("id", data(modelIndex, IdRole));
-    result.insert("name", data(modelIndex, TitleRole));  // title
-    return result;
+    if (index < 0 || index >= static_cast<int>(m_chatFolders.size()))
+    {
+        return QVariant();
+    }
+
+    return QVariant::fromValue(m_chatFolders.at(index).get());
 }
 
 int ChatFolderModel::count() const noexcept
 {
-    return m_chatFolders.size();
+    return static_cast<int>(m_chatFolders.size());
 }

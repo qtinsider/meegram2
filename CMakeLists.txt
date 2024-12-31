@@ -24,19 +24,19 @@ set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING 
 include(cmake/qr_code_generator.cmake)
 
 set(SRC_FILES
-    src/Application.cpp
+    src/AppManager.cpp
     src/Authorization.cpp
     src/BasicGroup.cpp
     src/Chat.cpp
-    src/ChatFolderInfo.cpp
     src/ChatFolderModel.cpp
-    src/ChatList.cpp
     src/ChatManager.cpp
     src/ChatModel.cpp
     src/ChatPhotoProvider.cpp
     src/ChatPosition.cpp
     src/Client.cpp
     src/CountryModel.cpp
+    src/Emoji.cpp
+    src/EmojiModel.cpp
     src/File.cpp
     src/LanguagePackInfoModel.cpp
     src/Localization.cpp
@@ -57,13 +57,11 @@ set(SRC_FILES
 )
 
 set(HEADER_FILES
-    src/Application.hpp
+    src/AppManager.hpp
     src/Authorization.hpp
     src/BasicGroup.hpp
     src/Chat.hpp
-    src/ChatFolderInfo.hpp
     src/ChatFolderModel.hpp
-    src/ChatList.hpp
     src/ChatManager.hpp
     src/ChatModel.hpp
     src/ChatPhotoProvider.hpp
@@ -71,6 +69,8 @@ set(HEADER_FILES
     src/Client.hpp
     src/Common.hpp
     src/CountryModel.hpp
+    src/Emoji.hpp
+    src/EmojiModel.hpp
     src/File.hpp
     src/LanguagePackInfoModel.hpp
     src/Localization.hpp
@@ -90,11 +90,24 @@ set(HEADER_FILES
 )
 
 set(QRC_FILES
+    resources/emoji_1.qrc
+    resources/emoji_2.qrc
+    resources/emoji_3.qrc
+    resources/emoji_4.qrc
+    resources/emoji_5.qrc
+    resources/emoji_6.qrc
     resources/fonts.qrc
     resources/images.qrc
     resources/qml.qrc
     resources/tgs.qrc
 )
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    message(STATUS "Enabling AddressSanitizer")
+    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address)
+    # add_definitions(-DASAN_OPTIONS="new_delete_type_mismatch=0")
+endif()
 
 add_executable(meegram ${SRC_FILES} ${HEADER_FILES} ${QRC_FILES})
 

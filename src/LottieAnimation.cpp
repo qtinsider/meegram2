@@ -215,7 +215,7 @@ void LottieAnimation::loadContent() noexcept
     setStatus(Status::Loading);
 
     const auto filePath = urlToLocalFileOrQrc(m_source);
-    if (const auto result = loadFileContent(filePath); result)
+    if (const auto result = loadFileContent(filePath))
     {
         m_animation = rlottie::Animation::loadFromData(*result, {}, {}, false);
         if (m_animation)

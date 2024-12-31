@@ -3,33 +3,29 @@
 #include <td/telegram/td_api.h>
 
 #include <QAbstractListModel>
-#include <QDeclarativeParserStatus>
 
-#include <map>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class Chat;
-class ChatInfo;
+class ChatManager;
 class Client;
 class Locale;
 class Message;
 class StorageManager;
 
-class MessageModel : public QAbstractListModel, public QDeclarativeParserStatus
+class MessageModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_INTERFACES(QDeclarativeParserStatus)
-
-    Q_PROPERTY(Chat *chat READ chat WRITE setChat NOTIFY chatChanged)
-    Q_PROPERTY(ChatInfo *chatInfo READ chatInfo NOTIFY chatInfoChanged)
 
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
     Q_PROPERTY(bool backFetching READ backFetching NOTIFY backFetchingChanged)
 
 public:
-    explicit MessageModel(QObject *parent = nullptr);
+    explicit MessageModel(std::shared_ptr<Chat> chat, std::shared_ptr<Locale> locale, std::shared_ptr<StorageManager> storage);
 
     enum Role {
         IdRole = Qt::UserRole + 1,
@@ -42,6 +38,7 @@ public:
         // Custom role
         ContentTypeRole,
         IsServiceRole,
+        ServiceMessageRole,
         SectionRole
     };
 
@@ -58,48 +55,30 @@ public:
     bool loading() const noexcept;
     bool backFetching() const noexcept;
 
-    ChatInfo *chatInfo() const noexcept;
-
-    Chat *chat() const noexcept;
-    void setChat(Chat *value) noexcept;
-
-    Q_INVOKABLE Message *getMessage(qlonglong messageId) const noexcept;
-
-    Q_INVOKABLE void openChat() noexcept;
-    Q_INVOKABLE void closeChat() noexcept;
-    Q_INVOKABLE void getChatHistory(qlonglong fromMessageId, int offset, int limit, bool previous = false) noexcept;
-    Q_INVOKABLE void viewMessages(const QList<qlonglong> &messageIds) noexcept;
+    Q_INVOKABLE void getChatHistory(qlonglong fromMessageId, int offset, int limit, bool fetchPrevious = false) noexcept;
+    Q_INVOKABLE void viewMessages(const QStringList &messageIds) noexcept;
     Q_INVOKABLE void deleteMessage(qlonglong messageId, bool revoke = false) noexcept;
 
     Q_INVOKABLE void sendMessage(const QString &message, qlonglong replyToMessageId = 0) noexcept;
 
-    Q_INVOKABLE bool canFetchMoreBack() const noexcept;
     Q_INVOKABLE void fetchMoreBack() noexcept;
 
+    Q_INVOKABLE int lastMessageIndex() const noexcept;
+
 signals:
-    void chatChanged();
-    void chatInfoChanged();
     void countChanged();
     void loadingChanged();
 
-    void backFetchable();
-    void backFetched(int numItems);
     void backFetchingChanged();
+
+    void fetchedPosition(int numItems);
 
 public slots:
     void refresh() noexcept;
 
-protected:
-    void classBegin() override;
-    void componentComplete() override;
-
 private slots:
     void handleChatItem() noexcept;
     void handleResult(td::td_api::Object *object) noexcept;
-
-    void handleBasicGroupUpdate(qlonglong groupId) noexcept;
-    void handleSupergroupUpdate(qlonglong groupId) noexcept;
-    void handleUserUpdate(qlonglong userId) noexcept;
 
 private:
     void handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message) noexcept;
@@ -107,27 +86,21 @@ private:
     void handleMessageEdited(qlonglong chatId, qlonglong messageId, int editDate, td::td_api::object_ptr<td::td_api::ReplyMarkup> &&replyMarkup) noexcept;
     void handleDeleteMessages(qlonglong chatId, std::vector<int64_t> &&messageIds, bool isPermanent, bool fromCache) noexcept;
 
-    void handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount) noexcept;
-
-    void handleMessages(std::vector<std::unique_ptr<Message>> &&messages, bool previous) noexcept;
-
     void loadMessages() noexcept;
 
     void itemChanged(size_t index) noexcept;
 
-    Chat *m_chat{};
+    void insertMessages(std::vector<qlonglong> &&newIds, bool prepend);
 
     std::shared_ptr<Client> m_client;
+    std::shared_ptr<Locale> m_locale;
+    std::shared_ptr<StorageManager> m_storage;
 
-    StorageManager *m_storageManager{};
-
-    int m_onlineCount{0};
+    std::shared_ptr<Chat> m_chat;
 
     bool m_loading{true};
+    bool m_backFetching{true};
 
-    bool m_backFetching{false};
-
-    std::unique_ptr<ChatInfo> m_chatInfo;
-
-    std::map<qlonglong, std::unique_ptr<Message>> m_messages;
+    std::vector<qlonglong> m_messages;
+    std::unordered_map<qlonglong, std::unique_ptr<Message>> m_messageMap;
 };

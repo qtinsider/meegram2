@@ -41,7 +41,7 @@ signals:
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override;
 
-    void componentComplete();
+    void componentComplete() override;
 
 private slots:
     void updateFrame() noexcept;

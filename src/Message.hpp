@@ -1,14 +1,10 @@
 #pragma once
 
 #include "MessageContent.hpp"
-#include "User.hpp"
 
 #include <QDateTime>
 
 #include <memory>
-
-class Chat;
-class StorageManager;
 
 class Message : public QObject
 {
@@ -21,7 +17,6 @@ class Message : public QObject
     Q_PROPERTY(QDateTime date READ date CONSTANT)
     Q_PROPERTY(QDateTime editDate READ editDate NOTIFY messageChanged)
 
-    Q_PROPERTY(QString content READ getContent NOTIFY messageChanged)
     Q_PROPERTY(QString contentType READ contentTypeString NOTIFY messageChanged)
     Q_PROPERTY(bool isService READ isService CONSTANT)
 
@@ -38,16 +33,12 @@ public:
     QDateTime editDate() const;
     MessageContent *content() const;
 
-    QString getTitle() const noexcept;
-    QString getSenderName() const noexcept;
-    QString getContent() const noexcept;
-
-    Q_INVOKABLE QString getServiceContent(bool openUser = false) const;
-
     bool isService() const noexcept;
 
     int contentType() const;
     QString contentTypeString() const;
+
+    SenderType senderType() const;
 
     void setContent(td::td_api::object_ptr<td::td_api::MessageContent> content);
     void setEditDate(int editDate);
@@ -56,9 +47,6 @@ signals:
     void messageChanged();
 
 private:
-    QString getGroupSenderName() const noexcept;
-    QString getSenderAuthor(bool openUser) const noexcept;
-
     qlonglong m_id;
     qlonglong m_chatId;
     qlonglong m_senderId;
@@ -66,13 +54,8 @@ private:
     QDateTime m_date;
     QDateTime m_editDate;
 
-    QString m_title;
-    QString m_senderName;
-
     int m_contentType;
     SenderType m_senderType;
-
-    StorageManager *m_storageManager{};
 
     std::unique_ptr<MessageContent> m_content;
 

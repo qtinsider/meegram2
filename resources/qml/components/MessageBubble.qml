@@ -36,6 +36,7 @@ Item {
 
             onClicked:  {
                 console.log(model.id)
+                console.log(utils.replaceEmoji(model.content.formattedText))
                 root.clicked()
             }
             onPressAndHold: {
@@ -56,7 +57,7 @@ Item {
             leftMargin: isOutgoing ? 80 : 20
         }
         color: model.isOutgoing ? "white" : "black"
-        text: model.sender
+        text: utils.replaceEmoji(model.sender)
         font.pixelSize: 20
         font.bold: true
         wrapMode: Text.WrapAnywhere

@@ -6,57 +6,13 @@ import "components"
 Page {
     id: root
 
-    property alias chat: myMessageModel.chat
-    property alias chatInfo: myMessageModel.chatInfo
+    property variant chat: chatManager.selectedChat
+    property variant chatInfo: chatManager.chatInfo
+    property variant messageModel: chatManager.messageModel
 
-    property int replyMessageId: 0
+    property bool loading: true
 
     property QtObject platformStyle: SheetStyle {}
-
-    Connections {
-        id: fetchConnections
-        target: null
-
-        onBackFetchable: {
-            if (listView.model.canFetchMoreBack()) {
-                fetchMoreTimer.running = true;
-            }
-        }
-        onBackFetched: {
-            fetchMoreTimer.fetching = false;
-            if (fetchMoreTimer.oldIndex != -1) {
-                listView.positionViewAtIndex(fetchMoreTimer.oldIndex + numItems, ListView.Beginning);
-            } else {
-                listView.positionViewAtIndex(0, ListView.End);
-            }
-
-            if (!listView.model.canFetchMoreBack()) {
-                fetchMoreTimer.running = false;
-            }
-        }
-    }
-
-    Timer {
-        id: fetchMoreTimer
-        interval: 1000
-        running: false
-        repeat: true
-
-        property bool fetching : false
-        property int oldIndex : -1
-
-        onTriggered: {
-            if (listView.atYBeginning) {
-                if (!fetching && listView.model.canFetchMoreBack()) {
-                    fetching = true;
-                    oldIndex = 0;
-                    listView.model.fetchMoreBack();
-                }
-            }
-        }
-
-        onFetchingChanged: {}
-    }
 
     Item {
         id: content
@@ -135,7 +91,7 @@ Page {
                         anchors.verticalCenter: parent.verticalCenter
 
                         Label {
-                            text: chatInfo.title
+                            text: utils.replaceEmoji(chatInfo.title)
                             font.bold: true
                             horizontalAlignment: Text.AlignRight
                             elide: Text.ElideRight
@@ -185,24 +141,57 @@ Page {
                 right: parent.right
                 bottom: inputPanelHolder.top
             }
-
-            cacheBuffer: 600
-            delegate: MessageDelegate {}
-
-            model: myMessageModel
-
-            highlightFollowsCurrentItem: true
-            currentIndex: count - 1
+            spacing: 6
 
             clip: true
+            cacheBuffer: listView.height * 2
+
+            delegate: MessageDelegate {}
+            model: messageModel
+
+            highlightFollowsCurrentItem: true
 
             section.property: "section"
             section.criteria: ViewSection.FullString
             section.delegate: sectionDateDelegate
 
-            interactive: contentHeight > height
-
             ScrollDecorator { flickableItem: listView }
+
+            onCountChanged: {
+                if (!messageModel.loading && loading) {
+                    if (chat.unreadCount > 0) {
+                        listView.positionViewAtIndex(messageModel.lastMessageIndex(), ListView.Center)
+                    } else {
+                        listView.positionViewAtEnd()
+                    }
+
+                    loading = false
+                }
+            }
+
+            onAtYBeginningChanged: {
+                if (atYBeginning && !loading) {
+                    console.log("Fetching more messages...")
+                    messageModel.fetchMoreBack()
+                }
+            }
+        }
+
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+
+            width: parent.width
+            height: busyIndicator.height
+
+            visible: messageModel.count === 0
+
+            BusyIndicator  {
+                id: busyIndicator
+
+                anchors.horizontalCenter: parent.horizontalCenter
+                running: true
+                platformStyle: BusyIndicatorStyle { size: "large" }
+            }
         }
 
         Column {
@@ -258,7 +247,7 @@ Page {
                     platformStyle: ButtonStyle { inverted: true }
                     text: "Send"
                     onClicked: {
-                        myMessageModel.sendMessage(textArea.text)
+                        messageModel.sendMessage(textArea.text)
                         textArea.text = ""
                     }
                 }
@@ -274,9 +263,13 @@ Page {
         }
     }
 
-    MessageModel {
-        id: myMessageModel
+    Connections {
+        target: messageModel
+
+        onFetchedPosition: {
+            listView.positionViewAtIndex(numItems, ListView.Beginning);
+        }
     }
 
-    Component.onDestruction: { myMessageModel.closeChat() }
+    Component.onDestruction: { chatManager.closeChat(chat.id) }
 }

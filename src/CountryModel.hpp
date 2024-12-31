@@ -22,7 +22,7 @@ class CountryModel : public QAbstractListModel
     Q_PROPERTY(QString formattedPhoneNumber READ formattedPhoneNumber NOTIFY formattedPhoneNumberChanged)
 
 public:
-    CountryModel(QObject *parent = nullptr);
+    CountryModel(std::shared_ptr<Client> m_client, QObject *parent = nullptr);
 
     enum CountryRoles {
         NameRole = Qt::UserRole + 1,

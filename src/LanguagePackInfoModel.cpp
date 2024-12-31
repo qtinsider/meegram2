@@ -6,9 +6,9 @@
 #include <QStringList>
 #include <algorithm>
 
-LanguagePackInfoModel::LanguagePackInfoModel(QObject *parent)
+LanguagePackInfoModel::LanguagePackInfoModel(std::shared_ptr<Client> client, QObject *parent)
     : QAbstractListModel(parent)
-    , m_client(StorageManager::instance().client())
+    , m_client(std::move(client))
 {
     QHash<int, QByteArray> roles;
     roles.insert(IdRole, "id");
@@ -72,7 +72,7 @@ int LanguagePackInfoModel::count() const noexcept
 void LanguagePackInfoModel::loadLocalizationData() noexcept
 {
     auto request = td::td_api::make_object<td::td_api::getLocalizationTargetInfo>();
-    request->only_local_ = false;
+    request->only_local_ = true;
 
     qDebug() << "Loading localization target info...";
 

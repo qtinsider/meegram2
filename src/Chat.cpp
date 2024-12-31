@@ -1,12 +1,6 @@
 #include "Chat.hpp"
-#include "Localization.hpp"
-#include "Message.hpp"
-#include "StorageManager.hpp"
-#include "Utils.hpp"
 
 #include <algorithm>
-#include <memory>
-#include <ranges>
 
 Chat::Chat(td::td_api::object_ptr<td::td_api::chat> chat, QObject *parent)
     : QObject(parent)
@@ -223,7 +217,7 @@ void Chat::attemptDownload()
 {
     if (m_file && m_file->canBeDownloaded() && !m_file->isDownloadingActive() && !m_file->isDownloadingCompleted())
     {
-        m_file->downloadFile();
+        // m_file->downloadFile();
     }
 }
 

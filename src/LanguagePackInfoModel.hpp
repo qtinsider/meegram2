@@ -15,14 +15,14 @@ class LanguagePackInfoModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
-    LanguagePackInfoModel(QObject *parent = nullptr);
+    explicit LanguagePackInfoModel(std::shared_ptr<Client> client, QObject *parent = nullptr);
 
     enum LanguagePackInfoRoles {
         IdRole = Qt::UserRole + 1,
         BaseIdRole,
         NameRole,
         NativeNameRole,
-        PluralCodeRole
+        PluralCodeRole,
     };
 
     int rowCount(const QModelIndex &index = QModelIndex()) const override;

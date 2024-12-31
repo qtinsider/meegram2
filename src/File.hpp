@@ -6,8 +6,6 @@
 
 #include <memory>
 
-class Client;
-
 class File : public QObject
 {
     Q_OBJECT
@@ -31,8 +29,6 @@ public:
     bool isDownloadingActive() const;
     bool isDownloadingCompleted() const;
 
-    Q_INVOKABLE void downloadFile();
-
     void setFile(td::td_api::object_ptr<td::td_api::file> file);
 
 signals:
@@ -49,10 +45,7 @@ private:
     bool m_isDownloadingActive;
     bool m_isDownloadingCompleted;
 
-    std::shared_ptr<Client> m_client;
-
     td::td_api::object_ptr<td::td_api::file> m_file;
 };
 
-// This allows us to store File * as a QVariant
 Q_DECLARE_METATYPE(File *);

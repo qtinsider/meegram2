@@ -6,10 +6,10 @@ import "components"
 
 Item {
     id: signInItem
-
     anchors.fill: parent
     anchors.margins: UiConstants.DefaultMargin * 2
 
+    property QtObject countryModel: null
     property variant content: authorization.content
 
     Column {
@@ -39,7 +39,7 @@ Item {
             text: countryModel.get(selectionDialog.selectedIndex).name || qsTr("Country")
             height: UiConstants.HeaderDefaultHeightPortrait
             width: parent.width
-            onClicked: { selectionDialog.open() }
+            onClicked: selectionDialog.open()
         }
 
         TextField {
@@ -61,21 +61,11 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: 12
                 text: "+"
-                color: "gray"
+                font: phoneNumberField.font
                 visible: phoneNumberField.text !== ""
             }
 
-            onTextChanged: {
-                countryModel.phoneNumberPrefix = text
-                phoneNumberField.text = countryModel.callingCode + countryModel.formattedPhoneNumber
-
-                var match = text.match(/(\d)(?!.*\d)/);
-                var lastDigitPosition = match ? text.lastIndexOf(match[0]) : -1;
-
-                phoneNumberField.cursorPosition = lastDigitPosition + 1;
-            }
-
-            Keys.onReturnPressed: {}
+            onTextChanged: updatePhoneNumber()
         }
 
         Item {
@@ -86,16 +76,7 @@ Item {
         Button {
             text: "Log in by QR Code"
             anchors.horizontalCenter: parent.horizontalCenter
-            onClicked: { authorization.state = "qr_code" }
-        }
-    }
-
-    CountryModel {
-        id: countryModel
-
-        onSelectedIndexChanged: {
-            if (selectionDialog.selectedIndex !== selectedIndex)
-                selectionDialog.selectedIndex = selectedIndex
+            onClicked: authorization.state = "qr_code"
         }
     }
 
@@ -103,17 +84,7 @@ Item {
         id: selectionDialog
         titleText: qsTr("ChooseCountry")
         selectedIndex: countryModel.selectedIndex
-        model: countryModel
-        onSelectedIndexChanged: {
-            if (selectedIndex !== -1) {
-                phoneNumberField.text = countryModel.get(selectedIndex).code
-                phoneNumberField.forceActiveFocus();
-            }
-        }
-    }
-
-    function error(code, message) {
-        console.log(message)
+        onSelectedIndexChanged: handleCountrySelection(selectedIndex)
     }
 
     QueryDialog {
@@ -129,10 +100,45 @@ Item {
         }
     }
 
-    Component.onCompleted: {
+    Connections {
+        id: countryModelConnection
+        target: countryModel
+        ignoreUnknownSignals: true
+        onSelectedIndexChanged: updateSelectedIndex()
+    }
+
+    Component.onCompleted: initializeComponent()
+
+    function initializeComponent() {
         phoneNumberField.forceActiveFocus();
+        authorization.initializeCountryModel();
+        countryModel = authorization.countryModel();
+        selectionDialog.model = countryModel;
 
         acceptButton.clicked.connect(function () { dialog.open(); })
         rejectButton.clicked.connect(function () { sheet.state = "closed"; })
+    }
+
+    function updatePhoneNumber() {
+        countryModel.phoneNumberPrefix = phoneNumberField.text;
+        phoneNumberField.text = countryModel.callingCode + countryModel.formattedPhoneNumber;
+
+        var match = phoneNumberField.text.match(/(\d)(?!.*\d)/);
+        var lastDigitPosition = match ? phoneNumberField.text.lastIndexOf(match[0]) : -1;
+
+        phoneNumberField.cursorPosition = lastDigitPosition + 1;
+    }
+
+    function handleCountrySelection(index) {
+        if (index !== -1) {
+            phoneNumberField.text = countryModel.get(index).code;
+            phoneNumberField.forceActiveFocus();
+        }
+    }
+
+    function updateSelectedIndex() {
+        if (selectionDialog.selectedIndex !== countryModel.selectedIndex) {
+            selectionDialog.selectedIndex = countryModel.selectedIndex;
+        }
     }
 }

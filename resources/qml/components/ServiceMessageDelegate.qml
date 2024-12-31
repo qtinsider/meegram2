@@ -6,11 +6,6 @@ import "UIConstants.js" as UI
 Item {
     id: root
 
-    property variant chat: app.getChat(model.chatId)
-    property variant message: myMessageModel.getMessage(model.id)
-
-    property string labelContent: message.getServiceContent(true)
-
     anchors.horizontalCenter: parent.horizontalCenter
     width: parent.width - UiConstants.DefaultMargin * 2
     height: column.height
@@ -44,7 +39,7 @@ Item {
                 x: UI.PADDING_XLARGE
                 y: (UI.FIELD_DEFAULT_HEIGHT - font.pixelSize) / 2
                 width: root.width - UI.PADDING_XLARGE * 2
-                text: labelContent
+                text: utils.replaceEmoji(model.serviceMessage)
                 onLinkActivated: { console.log(link)}
             }
         }

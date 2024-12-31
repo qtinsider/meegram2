@@ -85,9 +85,9 @@ Page {
     }
 
     Connections {
-        target: app
+        target: appManager
         onAppInitialized: {
-            if (app.authorized) {
+            if (appManager.authorized) {
                 pageStack.push(Qt.createComponent("ChatsPage.qml"))
             } else {
                 loader.sourceComponent = infoComponent
@@ -95,5 +95,5 @@ Page {
         }
     }
 
-    Component.onCompleted: app.initialize()
+    Component.onCompleted: appManager.initialize()
 }

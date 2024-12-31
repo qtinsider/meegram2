@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Client.hpp"
+#include "CountryModel.hpp"
 
 #include <td/telegram/td_api.h>
 
@@ -8,6 +8,8 @@
 
 #include <functional>
 #include <memory>
+
+class Client;
 
 class Authorization : public QObject
 {
@@ -17,10 +19,12 @@ class Authorization : public QObject
     Q_PROPERTY(QVariant content READ content NOTIFY contentChanged)
 
 public:
-    explicit Authorization(QObject *parent = nullptr);
+    explicit Authorization(std::shared_ptr<Client> client, QObject *parent = nullptr);
 
     [[nodiscard]] QString state() const noexcept;
     [[nodiscard]] QVariant content() const noexcept;
+
+    Q_INVOKABLE QObject *countryModel() const noexcept;
 
     void setState(const QString &value) noexcept;
 
@@ -31,8 +35,10 @@ public:
     Q_INVOKABLE void registerUser(const QString &firstName, const QString &lastName) noexcept;
     Q_INVOKABLE void setPhoneNumber(const QString &phoneNumber) noexcept;
     Q_INVOKABLE void resendCode() noexcept;
-    Q_INVOKABLE void destroy() noexcept;
+    Q_INVOKABLE void _destroy() noexcept;
     Q_INVOKABLE void deleteAccount(const QString &reason) noexcept;
+
+    Q_INVOKABLE void initializeCountryModel();
 
 signals:
     void error(int code, const QString &message);
@@ -55,6 +61,7 @@ private:
     QVariant m_content;
 
     std::shared_ptr<Client> m_client;
+    std::unique_ptr<CountryModel> m_countryModel;
 
     std::function<void(td::td_api::object_ptr<td::td_api::Object>)> m_responseCallback;
 };

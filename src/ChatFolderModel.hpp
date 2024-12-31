@@ -1,11 +1,29 @@
 #pragma once
 
-#include "ChatFolderInfo.hpp"
+#include <td/telegram/td_api.h>
 
 #include <QAbstractListModel>
 
 #include <memory>
 #include <vector>
+
+class ChatFolderInfo
+{
+    Q_GADGET
+
+    Q_PROPERTY(int id READ id CONSTANT)
+    Q_PROPERTY(QString title READ title CONSTANT)
+
+public:
+    explicit ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo> info);
+
+    int id() const;
+    QString title() const;
+
+private:
+    int m_id;
+    QString m_title;
+};
 
 class ChatFolderModel : public QAbstractListModel
 {
@@ -15,10 +33,9 @@ class ChatFolderModel : public QAbstractListModel
 public:
     ChatFolderModel(QObject *parent = nullptr);
 
-    enum ChatFolderRole {
-        IdRole = Qt::UserRole + 1,
-        TitleRole
-    };
+    enum ChatFolderRole { IdRole = Qt::UserRole + 1, TitleRole };
+
+    void setItems(std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders);
 
     int rowCount(const QModelIndex &index = QModelIndex()) const override;
 
@@ -32,5 +49,7 @@ signals:
     void countChanged();
 
 private:
-    std::vector<std::weak_ptr<ChatFolderInfo>> m_chatFolders;
+    std::vector<std::shared_ptr<ChatFolderInfo>> m_chatFolders;
 };
+
+Q_DECLARE_METATYPE(ChatFolderInfo *);

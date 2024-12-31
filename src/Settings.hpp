@@ -14,10 +14,7 @@ class Settings : public QObject
     Q_PROPERTY(QString languagePluralId READ languagePluralId WRITE setLanguagePluralId NOTIFY languagePluralIdChanged)
 
 public:
-    static Settings &instance();
-
-    Settings(const Settings &) = delete;
-    Settings &operator=(const Settings &) = delete;
+    explicit Settings(QObject *parent = nullptr);
 
     bool invertedTheme() const;
     void setInvertedTheme(bool value);
@@ -35,8 +32,6 @@ signals:
     void languagePluralIdChanged();
 
 private:
-    Settings();
-
     QSettings *m_settings{};
 
     bool m_invertedTheme;

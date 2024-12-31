@@ -25,7 +25,7 @@ Item {
 
             content: Label {
                 id: messageText
-                text: model.content.formattedText
+                text: utils.replaceEmoji(model.content.formattedText)
                 textFormat: Text.RichText
                 color: model.isOutgoing ? "white" : "black"
                 width: isPortrait ? 380 : 754

@@ -22,9 +22,7 @@ Page {
             top: header.bottom
         }
 
-        model: LanguagePackInfoModel {
-            id: languagePackModel
-        }
+        model: appManager.languagePackInfoModel
 
         delegate: ListItem {
             Column {

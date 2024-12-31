@@ -28,6 +28,8 @@ class Chat : public QObject
     Q_PROPERTY(int muteFor READ muteFor NOTIFY chatChanged)
     Q_PROPERTY(bool isMuted READ isMuted NOTIFY chatChanged)
 
+    Q_PROPERTY(qlonglong typeId READ typeId NOTIFY chatChanged)
+
     Q_ENUMS(Type)
 public:
     explicit Chat(td::td_api::object_ptr<td::td_api::chat> chat, QObject *parent = nullptr);

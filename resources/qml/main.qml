@@ -7,6 +7,13 @@ import "components"
 PageStackWindow {
     id: appWindow
 
+    property variant client: appManager.client
+    property variant authorization: appManager.authorization
+    property variant locale: appManager.locale
+    property variant settings: appManager.settings
+    property variant storageManager: appManager.storageManager
+    property variant chatManager: appManager.chatManager
+
     property bool isPortrait: screen.currentOrientation !== Screen.Landscape
 
     initialPage: Component { MainPage {} }
@@ -14,7 +21,6 @@ PageStackWindow {
     onOrientationChangeFinished: showStatusBar = isPortrait
 
     Icons { id: icons }
-    Authorization { id: authorization }
 
     InfoBanner {
         id: banner
@@ -34,9 +40,9 @@ PageStackWindow {
 
     function openChat(chatId) {
         var component = Qt.createComponent("ChatPage.qml");
-
         if (component.status === Component.Ready) {
-            pageStack.push(component, { chat: app.getChat(chatId) });
+            chatManager.openChat(chatId);
+            pageStack.push(component);
         } else {
             console.debug("Error loading component:", component.errorString());
         }

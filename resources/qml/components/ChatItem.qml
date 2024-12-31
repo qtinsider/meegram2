@@ -51,7 +51,7 @@ Item {
             font.pixelSize: 26
             color: mouseArea.pressed ? "#797979" : "#282828"
             elide: Text.ElideRight
-            text: utils.getChatTitle(model.id, true)
+            text: utils.replaceEmoji(model.title)
         }
 
         Label {
@@ -61,19 +61,7 @@ Item {
             font.weight: Font.Light
             font.pixelSize: 20
             color: mouseArea.pressed ? "#797979" : "#505050"
-            text: {
-                var dateTime = model.lastMessage.date; // Access the C++ QDateTime
-                var now = new Date();
-                var targetDate = new Date(dateTime.toString()); // Convert QDateTime to JavaScript Date
-                var daysDiff = Math.floor((now - targetDate) / (1000 * 60 * 60 * 24)); // Difference in days
-                if (daysDiff === 0) {
-                    return Qt.formatDateTime(dateTime, "hh:mm a");
-                } else if (daysDiff < 7) {
-                    return Qt.formatDateTime(dateTime, "dddd");
-                } else {
-                    return Qt.formatDateTime(dateTime, "dd.MM.yyyy");
-                }
-            }
+            text: model.date
         }
     }
 
@@ -91,7 +79,7 @@ Item {
             font.pixelSize: 22
             color: model.lastMessage.isService ? theme.selectionColor : mouseArea.pressed ? "#797979" : "#505050"
             elide: Text.ElideRight
-            text: sanitizeText(model.lastMessage.content)
+            text: sanitizeText(model.lastMessage);
         }
 
         Loader {
@@ -166,7 +154,9 @@ Item {
     Ripple {
         id: mouseArea
         anchors.fill: parent
-        onClicked: appWindow.openChat(model.id)
+        onClicked: {
+            appWindow.openChat(model.id)
+        }
         onPressAndHold: root.pressAndHold()
     }
 

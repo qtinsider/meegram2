@@ -1,19 +1,20 @@
 #include "CountryModel.hpp"
 
-#include "Settings.hpp"
-#include "StorageManager.hpp"
+#include "Client.hpp"
 
 #include <QDebug>
+#include <QDir>
+#include <QSettings>
 
 #include <algorithm>
 
-CountryModel::CountryModel(QObject *parent)
+CountryModel::CountryModel(std::shared_ptr<Client> client, QObject *parent)
     : QAbstractListModel(parent)
-    , m_client(StorageManager::instance().client())
+    , m_client(std::move(client))
 {
     setRoleNames(roleNames());
 
-    connect(this, SIGNAL(phoneNumberPrefixChanged()), this, SLOT(updatePhoneInfoFromPrefix()));
+    connect(this, SIGNAL(phoneNumberPrefixChanged()), SLOT(updatePhoneInfoFromPrefix()));
 
     fetchAndLoadCountries();
 }
@@ -111,7 +112,10 @@ void CountryModel::updatePhoneInfoFromPrefix()
 {
     m_phoneNumberPrefix.remove(QRegExp("\\D"));  // Strip all non-digit characters
 
-    const auto languageCode = Settings::instance().languagePackId().toStdString();
+    QString settingsPath = QDir::homePath() + QLatin1String("/.config/insider/MeeGram.ini");
+    QSettings settings(settingsPath, QSettings::IniFormat, this);
+
+    const auto languageCode = settings.value("languagePackId", "en").toString().toStdString();
     const auto phoneNumberPrefix = m_phoneNumberPrefix.toStdString();
 
     auto info = td::ClientManager::execute(td::td_api::make_object<td::td_api::getPhoneNumberInfoSync>(languageCode, phoneNumberPrefix));

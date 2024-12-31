@@ -1,90 +1,119 @@
 #include "ChatManager.hpp"
 
-#include "BasicGroup.hpp"
+#include "Client.hpp"
+#include "Common.hpp"
 #include "Localization.hpp"
 #include "StorageManager.hpp"
-#include "Supergroup.hpp"
 #include "Utils.hpp"
 
 #include <QDateTime>
 
 #include <algorithm>
+#include <ranges>
 
-ChatInfo::ChatInfo(Chat *chat, QObject *parent)
-    : QObject(parent)
-    , m_chat(chat)
-    , m_storageManager(&StorageManager::instance())
+ChatInfoFormatter::ChatInfoFormatter(std::shared_ptr<Chat> chat, std::shared_ptr<Locale> locale, std::shared_ptr<StorageManager> storage)
+    : m_chat(std::move(chat))
+    , m_locale(std::move(locale))
+    , m_storageManager(std::move(storage))
 {
     initializeMembers();
     updateStatus();
 }
 
-QString ChatInfo::title() const noexcept
+QString ChatInfoFormatter::title() const noexcept
 {
-    return Utils::getChatTitle(m_chat->id(), true);
+    return Utils::getChatTitle(m_chat, m_storageManager);
 }
 
-QString ChatInfo::status() const noexcept
+QString ChatInfoFormatter::status() const noexcept
 {
     return m_status;
 }
 
-void ChatInfo::setOnlineCount(int onlineCount)
+void ChatInfoFormatter::handleBasicGroupUpdate(qlonglong groupId) noexcept
 {
-    if (m_onlineCount != onlineCount)
+    if (!m_chat || m_chat->typeId() != groupId)
+        return;
+
+    if (auto group = m_storageManager->basicGroup(groupId))
     {
-        m_onlineCount = onlineCount;
+        m_basicGroup = std::move(group);
         updateStatus();
     }
 }
 
-void ChatInfo::setUser(std::shared_ptr<User> user)
+void ChatInfoFormatter::handleSupergroupUpdate(qlonglong groupId) noexcept
 {
-    m_user = user;
-    updateStatus();
+    if (!m_chat || m_chat->typeId() != groupId)
+        return;
+
+    if (auto group = m_storageManager->supergroup(groupId))
+    {
+        m_supergroup = std::move(group);
+        updateStatus();
+    }
 }
 
-void ChatInfo::setBasicGroup(std::shared_ptr<BasicGroup> group)
+void ChatInfoFormatter::handleUserUpdate(qlonglong userId) noexcept
 {
-    m_basicGroup = group;
-    updateStatus();
+    if (!m_chat || m_chat->typeId() != userId)
+        return;
+
+    if (auto user = m_storageManager->user(userId))
+    {
+        m_user = std::move(user);
+        updateStatus();
+    }
 }
 
-void ChatInfo::setSupergroup(std::shared_ptr<Supergroup> group)
+void ChatInfoFormatter::handleChatOnlineMemberCount(qlonglong chatId, int onlineMemberCount) noexcept
 {
-    m_supergroup = group;
-    updateStatus();
+    if (!m_chat || m_chat->id() != chatId)
+        return;
+
+    if (m_onlineMemberCount != onlineMemberCount)
+    {
+        m_onlineMemberCount = onlineMemberCount;
+        updateStatus();
+    }
 }
 
-void ChatInfo::initializeMembers()
+void ChatInfoFormatter::initializeMembers() noexcept
 {
     const auto chatType = m_chat->type();
     const auto chatTypeId = m_chat->typeId();
 
     if (chatType == Chat::Private || chatType == Chat::Secret)
     {
-        m_user = m_storageManager->getUser(chatTypeId);
+        m_user = m_storageManager->user(chatTypeId);
+
+        connect(m_storageManager.get(), SIGNAL(userUpdated(qlonglong)), SLOT(handleUserUpdate(qlonglong)));
+        connect(m_storageManager.get(), SIGNAL(chatOnlineMemberCountUpdated(qlonglong, int)), SLOT(handleChatOnlineMemberCount(qlonglong, int)));
     }
 
     if (chatType == Chat::BasicGroup)
     {
-        m_basicGroup = m_storageManager->getBasicGroup(chatTypeId);
+        m_basicGroup = m_storageManager->basicGroup(chatTypeId);
+
+        connect(m_storageManager.get(), SIGNAL(basicGroupUpdated(qlonglong)), SLOT(handleBasicGroupUpdate(qlonglong)));
     }
 
     if (chatType == Chat::Supergroup || chatType == Chat::Channel)
     {
-        m_supergroup = m_storageManager->getSupergroup(chatTypeId);
+        m_supergroup = m_storageManager->supergroup(chatTypeId);
+
+        connect(m_storageManager.get(), SIGNAL(supergroupUpdated(qlonglong)), SLOT(handleSupergroupUpdate(qlonglong)));
     }
 }
 
-void ChatInfo::updateStatus()
+void ChatInfoFormatter::updateStatus() noexcept
 {
     QString newStatus;
 
     if (m_basicGroup)
     {
         if (m_basicGroup->status() == BasicGroup::Status::Banned)
-            newStatus = QObject::tr("YouWereKicked");
+            newStatus = tr("YouWereKicked");
         else
             newStatus = formatStatus(m_basicGroup->memberCount(), "Members", "OnlineCount");
     }
@@ -92,14 +121,13 @@ void ChatInfo::updateStatus()
     {
         if (!m_supergroup->isChannel() && m_supergroup->status() == Supergroup::Status::Banned)
         {
-            newStatus = QObject::tr("YouWereKicked");
+            newStatus = tr("YouWereKicked");
         }
         else
         {
             int count = getMemberCountWithFallback();
-            newStatus = (count <= 0) ? (m_supergroup->hasLocation()
-                                            ? QObject::tr("MegaLocation")
-                                            : (m_supergroup->activeUsernames().isEmpty() ? QObject::tr("MegaPrivate") : QObject::tr("MegaPublic")))
+            newStatus = (count <= 0) ? (m_supergroup->hasLocation() ? tr("MegaLocation")
+                                                                    : (m_supergroup->activeUsernames().isEmpty() ? tr("MegaPrivate") : tr("MegaPublic")))
                                      : formatStatus(count, "Members", "OnlineCount");
         }
     }
@@ -107,15 +135,15 @@ void ChatInfo::updateStatus()
     {
         if (isServiceNotification())
         {
-            newStatus = QObject::tr("ServiceNotifications");
+            newStatus = tr("ServiceNotifications");
         }
         else if (m_user->isSupport())
         {
-            newStatus = QObject::tr("SupportStatus");
+            newStatus = tr("SupportStatus");
         }
         else if (m_user->type() == User::Type::Bot)
         {
-            newStatus = QObject::tr("Bot");
+            newStatus = tr("Bot");
         }
         else
         {
@@ -126,16 +154,16 @@ void ChatInfo::updateStatus()
     if (m_status != newStatus)
     {
         m_status = newStatus;
-        emit infoChanged();
+        emit statusChanged();
     }
 }
 
-int ChatInfo::getMemberCountWithFallback() const
+int ChatInfoFormatter::getMemberCountWithFallback() const noexcept
 {
     int count = m_supergroup->memberCount();
     if (count == 0)
     {
-        if (const auto fullInfo = m_storageManager->getSupergroupFullInfo(m_supergroup->id()))
+        if (const auto fullInfo = m_storageManager->supergroupFullInfo(m_supergroup->id()))
         {
             count = fullInfo->memberCount();
         }
@@ -144,62 +172,158 @@ int ChatInfo::getMemberCountWithFallback() const
     return count;
 }
 
-QString ChatInfo::formatStatus(int memberCount, const char *memberKey, const char *onlineKey) const
+QString ChatInfoFormatter::formatStatus(int memberCount, const char *memberKey, const char *onlineKey) const noexcept
 {
-    const auto memberString = Locale::instance().formatPluralString(memberKey, memberCount);
+    const auto memberString = m_locale->formatPluralString(memberKey, memberCount);
     if (memberCount <= 1)
         return memberString;
 
-    if (m_onlineCount > 1)
+    if (m_onlineMemberCount > 1)
     {
-        return memberString + ", " + Locale::instance().formatPluralString(onlineKey, m_onlineCount);
+        return memberString + ", " + m_locale->formatPluralString(onlineKey, m_onlineMemberCount);
     }
 
     return memberString;
 }
 
-bool ChatInfo::isServiceNotification() const
+bool ChatInfoFormatter::isServiceNotification() const noexcept
 {
     return std::ranges::contains(ServiceNotificationsUserIds, m_user->id());
 }
 
-QString ChatInfo::formatUserStatus() const
+QString ChatInfoFormatter::formatUserStatus() const noexcept
 {
     switch (m_user->status())
     {
         case User::Status::Empty:
-            return QObject::tr("ALongTimeAgo");
+            return tr("ALongTimeAgo");
         case User::Status::LastMonth:
-            return QObject::tr("WithinAMonth");
+            return tr("WithinAMonth");
         case User::Status::LastWeek:
-            return QObject::tr("WithinAWeek");
+            return tr("WithinAWeek");
         case User::Status::Offline:
             return formatOfflineStatus();
         case User::Status::Online:
-            return QObject::tr("Online");
+            return tr("Online");
         case User::Status::Recently:
-            return QObject::tr("Lately");
+            return tr("Lately");
         default:
             return {};
     }
 }
 
-QString ChatInfo::formatOfflineStatus() const
+QString ChatInfoFormatter::formatOfflineStatus() const noexcept
 {
     const auto wasOnline = m_user->wasOnline();
     if (wasOnline.isNull())
-        return QObject::tr("Invisible");
+        return tr("Invisible");
 
     const auto currentDate = QDate::currentDate();
     if (currentDate == wasOnline.date())
     {
-        return QObject::tr("LastSeenFormatted").arg(QObject::tr("TodayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
+        return tr("LastSeenFormatted").arg(tr("TodayAtFormatted")).arg(wasOnline.toString(tr("formatterDay12H")));
     }
     else if (wasOnline.date().daysTo(currentDate) < 2)
     {
-        return QObject::tr("LastSeenFormatted").arg(QObject::tr("YesterdayAtFormatted")).arg(wasOnline.toString(QObject::tr("formatterDay12H")));
+        return tr("LastSeenFormatted").arg(tr("YesterdayAtFormatted")).arg(wasOnline.toString(tr("formatterDay12H")));
     }
 
-    return QObject::tr("LastSeenDateFormatted")
-        .arg(QObject::tr("formatDateAtTime").arg(wasOnline.toString(QObject::tr("formatterYear"))).arg(wasOnline.toString(QObject::tr("formatterDay12H"))));
+    return tr("LastSeenDateFormatted").arg(tr("formatDateAtTime").arg(wasOnline.toString(tr("formatterYear"))).arg(wasOnline.toString(tr("formatterDay12H"))));
+}
+
+ChatManager::ChatManager(std::shared_ptr<StorageManager> storageManager, std::shared_ptr<Locale> locale)
+    : m_client(storageManager->client())
+    , m_locale(std::move(locale))
+    , m_storage(std::move(storageManager))
+    , m_mainModel(std::make_unique<ChatModel>(std::make_unique<ChatList>(ChatList::Main), m_locale, m_storage))
+    , m_archivedModel(std::make_unique<ChatModel>(std::make_unique<ChatList>(ChatList::Archive), m_locale, m_storage))
+    , m_folderModel(std::make_unique<ChatFolderModel>())
+{
+    updateFolderModels();
+
+    connect(m_storage.get(), SIGNAL(chatFoldersUpdated()), SLOT(onChatFoldersUpdated()));
+}
+
+QObject *ChatManager::folderModel() const noexcept
+{
+    return m_folderModel.get();
+}
+
+QObject *ChatManager::mainModel() const noexcept
+{
+    return m_mainModel.get();
+}
+
+QObject *ChatManager::archivedModel() const noexcept
+{
+    return m_archivedModel.get();
+}
+
+QList<QObject *> ChatManager::folderModels() const noexcept
+{
+    QList<QObject *> models;
+    models.reserve(m_folderModels.size());
+    for (const auto &model : m_folderModels)
+    {
+        models.append(model.get());
+    }
+
+    return models;
+}
+
+Chat *ChatManager::selectedChat() const noexcept
+{
+    return m_selectedChat.get();
+}
+
+QObject *ChatManager::chatInfoFormatter() const noexcept
+{
+    return m_infoFormatter.get();
+}
+
+QObject *ChatManager::messageModel() const noexcept
+{
+    return m_messageModel.get();
+}
+
+void ChatManager::openChat(qlonglong chatId) noexcept
+{
+    m_client->send(td::td_api::make_object<td::td_api::openChat>(chatId));
+
+    auto chat = m_storage->chat(chatId);
+    if (!chat)
+        return;
+
+    m_selectedChat = std::move(chat);
+
+    m_messageModel = std::make_unique<MessageModel>(m_selectedChat, m_locale, m_storage);
+    m_infoFormatter = std::make_unique<ChatInfoFormatter>(m_selectedChat, m_locale, m_storage);
+
+    emit selectedChatChanged();
+}
+
+void ChatManager::closeChat(qlonglong chatId) noexcept
+{
+    m_client->send(td::td_api::make_object<td::td_api::closeChat>(chatId));
+
+    m_infoFormatter = nullptr;
+    m_messageModel = nullptr;
+    m_selectedChat = nullptr;
+}
+
+void ChatManager::onChatFoldersUpdated() noexcept
+{
+    updateFolderModels();
+    emit folderModelsChanged();
+}
+
+void ChatManager::updateFolderModels() noexcept
+{
+    const auto &chatFolders = m_storage->chatFolders();
+
+    std::ranges::for_each(chatFolders, [this](const auto &folder) {
+        m_folderModels.emplace_back(std::make_unique<ChatModel>(std::make_unique<ChatList>(ChatList::Folder, folder->id()), m_locale, m_storage));
+    });
+
+    m_folderModel->setItems(chatFolders);
 }

@@ -189,7 +189,7 @@ Item {
 
         onAccepted: {
             sheet.state = "closed";
-            authorization.destroy()
+            authorization._destroy()
         }
     }
 

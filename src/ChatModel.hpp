@@ -9,7 +9,6 @@
 #include <memory>
 #include <vector>
 
-class Client;
 class Locale;
 class StorageManager;
 
@@ -20,16 +19,16 @@ class ChatModel : public QAbstractListModel
     Q_PROPERTY(int count READ count NOTIFY countChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
-    Q_PROPERTY(ChatList *list READ list WRITE setList NOTIFY listChanged)
 public:
-    explicit ChatModel(QObject *parent = nullptr);
+    explicit ChatModel(std::unique_ptr<ChatList> list, std::shared_ptr<Locale> locale, std::shared_ptr<StorageManager> storage);
 
     enum Roles {
         IdRole = Qt::UserRole + 1,
         TypeRole,
         TitleRole,
         PhotoRole,
-        LastMessage,
+        DateRole,
+        LastMessageRole,
         IsPinnedRole,
         UnreadMentionCountRole,
         UnreadCountRole,
@@ -48,20 +47,16 @@ public:
     int count() const;
     bool loading() const;
 
-    ChatList *list() const;
-    void setList(ChatList *value);
-
     Q_INVOKABLE void toggleChatIsPinned(qlonglong chatId, bool isPinned);
 
-    Q_INVOKABLE ChatPosition *getChatPosition(Chat *chat, ChatList *list) const;
+    Q_INVOKABLE ChatPosition *getChatPosition(Chat *chat) const;
 
 signals:
     void countChanged();
     void loadingChanged();
 
-    void listChanged();
-
 public slots:
+    void clear();
     void populate();
     void refresh();
 
@@ -73,8 +68,6 @@ private slots:
     void handleChatPosition(qlonglong chatId);
 
 private:
-    void clear();
-
     bool m_loading{true};
 
     int m_count{};
@@ -82,12 +75,10 @@ private:
     QTimer m_sortTimer;
     QTimer m_loadingTimer;
 
-    std::shared_ptr<Client> m_client;
-
-    Locale *m_locale{};
-    StorageManager *m_storageManager{};
-
     std::unique_ptr<ChatList> m_list;
+
+    std::shared_ptr<Locale> m_locale;
+    std::shared_ptr<StorageManager> m_storageManager;
 
     std::vector<std::weak_ptr<Chat>> m_chats;
 };

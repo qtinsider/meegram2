@@ -10,7 +10,8 @@
 #include <string>
 #include <string_view>
 
-Locale::Locale()
+Locale::Locale(QObject *parent)
+    : QTranslator(parent)
 {
     // clang-format off
     addRules(QStringList() << "bem" << "brx" << "da" << "de" << "el" << "en" << "eo" << "es" << "et" << "fi" << "fo" << "gl" << "he" << "iw" << "it" << "nb" <<
@@ -40,12 +41,6 @@ Locale::Locale()
     // clang-format on
 }
 
-Locale &Locale::instance()
-{
-    static Locale staticObject;
-    return staticObject;
-}
-
 QString Locale::translate(const char *key, int plural) const
 {
     if (plural >= 0)
@@ -56,57 +51,57 @@ QString Locale::translate(const char *key, int plural) const
     return getString(key);
 }
 
+QString Locale::translate(const char *context, const char *sourceText, const char *disambiguation) const
+{
+    Q_UNUSED(context);
+    Q_UNUSED(disambiguation);
+
+    // if (n >= 0)
+    // {
+    //     return formatPluralString(sourceText, n);
+    // }
+    // Plural logic that never saw the light of day... 😢
+
+    return getString(sourceText);
+}
+
 QString Locale::getString(const char *key) const
 {
-    if (!m_languagePack.contains(QString(key)))
+    if (!m_languagePack.contains(key))
     {
         qDebug() << "LOC_ERR:" << key;
         return QString::fromUtf8(key);
     }
 
-    auto it = m_languagePack.find(key);
-    const auto &original = (it != m_languagePack.end()) ? it->second.toStdString() : std::string();
+    QString result = m_languagePack.value(key);
 
-    std::string result;
-    result.reserve(original.size());  // Reserve space for potential expansion
-
-    auto view = std::string_view(original);
-    size_t pos = 0, last_pos = 0;
-
-    // Remove $d placeholders
-    while ((pos = view.find("$d", last_pos)) != std::string_view::npos)
+    for (auto index = result.indexOf('$'); index != -1; index = result.indexOf('$', index))
     {
-        result.append(view.substr(last_pos, pos - last_pos));
-        last_pos = pos + 2;
-    }
-    result.append(view.substr(last_pos));
-
-    last_pos = 0;
-    while ((pos = result.find("$s", last_pos)) != std::string::npos)
-    {
-        result.erase(pos, 2);
-        last_pos = pos;
-    }
-
-    static const std::unordered_map<std::string_view, std::string_view> replacements = {{"%%", "%"}, {"%s", "%1"}, {"EEEE", "dddd"}, {"EEE", "ddd"}};
-
-    for (const auto &[from, to] : replacements)
-    {
-        std::string::size_type start_pos = 0;
-        while ((start_pos = result.find(from, start_pos)) != std::string::npos)
+        if (index + 1 < result.length() && (result[index + 1] == 'd' || result[index + 1] == 's'))
         {
-            result.replace(start_pos, from.length(), to);
-            start_pos += to.length();  // Move past the replacement
+            result.remove(index, 2);
+        }
+        else
+        {
+            ++index;
         }
     }
 
-    static std::regex boldRegex(R"(\*\*(.*?)\*\*)");
-    static std::regex italicRegex(R"(\*(.*?)\*)");
+    result.replace("%%", "%").replace("%s", "%1").replace("EEEE", "dddd").replace("EEE", "ddd");
 
-    result = std::regex_replace(result, boldRegex, "<b>$1</b>");
-    result = std::regex_replace(result, italicRegex, "<i>$1</i>");
+    static const std::regex boldRegex(R"(\*\*(.*?)\*\*)", std::regex_constants::optimize);
+    static const std::regex italicRegex(R"(\*(.*?)\*)", std::regex_constants::optimize);
 
-    return QString::fromStdString(result);
+    auto apply_regex = [](std::string_view input, const std::regex &pattern, std::string_view replacement) -> std::string {
+        std::string result(input);
+        return std::regex_replace(result, pattern, replacement.data());
+    };
+
+    std::string temp = result.toStdString();
+    temp = apply_regex(temp, boldRegex, R"(<b>$1</b>)");
+    temp = apply_regex(temp, italicRegex, R"(<i>$1</i>)");
+
+    return QString::fromStdString(temp);
 }
 
 QString Locale::formatPluralString(const char *key, int plural) const
@@ -203,7 +198,7 @@ void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languageP
         {
             case td::td_api::languagePackStringValueOrdinary::ID: {
                 if (auto ordinaryValue = td::td_api::move_object_as<td::td_api::languagePackStringValueOrdinary>(languageString->value_))
-                    m_languagePack.emplace(stringKey, QString::fromStdString(ordinaryValue->value_));
+                    m_languagePack.insert(stringKey, QString::fromStdString(ordinaryValue->value_));
                 break;
             }
 
@@ -219,9 +214,9 @@ void Locale::setLanguagePackStrings(td::td_api::object_ptr<td::td_api::languageP
 
                     std::ranges::for_each(pluralForms | std::views::filter([](const auto &form) { return !form.second.empty(); }) |
                                               std::views::transform([&stringKey](const auto &form) {
-                                                  return std::pair{stringKey + form.first, QString::fromStdString(std::string (form.second))};
+                                                  return std::pair{stringKey + form.first, QString::fromStdString(std::string(form.second))};
                                               }),
-                                          [this](auto &&entry) { m_languagePack.emplace(std::move(entry)); });
+                                          [this](const auto &entry) { m_languagePack.insert(entry.first, entry.second); });
                 }
                 break;
             }
@@ -270,23 +265,4 @@ void Locale::updatePluralRules()
     {
         m_currentPluralRules = m_allRules.at("en")->clone();  // Default to English rules if not found
     }
-}
-
-Translator::Translator(QObject *parent)
-    : QTranslator(parent)
-{
-}
-
-QString Translator::translate(const char *context, const char *sourceText, const char *disambiguation) const
-{
-    Q_UNUSED(context);
-    Q_UNUSED(disambiguation);
-
-    // if (n >= 0)
-    // {
-    //     return formatPluralString(sourceText, n);
-    // }
-    // Plural logic that never saw the light of day... 😢
-
-    return Locale::instance().getString(sourceText);
 }

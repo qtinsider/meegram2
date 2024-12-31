@@ -2,7 +2,7 @@
 
 #include "BasicGroup.hpp"
 #include "Chat.hpp"
-#include "ChatFolderInfo.hpp"
+#include "ChatFolderModel.hpp"
 #include "Client.hpp"
 #include "File.hpp"
 #include "Supergroup.hpp"
@@ -13,33 +13,25 @@
 
 #include <memory>
 #include <unordered_map>
-#include <vector>
 
 class StorageManager : public QObject
 {
     Q_OBJECT
 public:
-    static StorageManager &instance();
-
-    StorageManager(const StorageManager &) = delete;
-    StorageManager &operator=(const StorageManager &) = delete;
+    explicit StorageManager(std::shared_ptr<Client> client, QObject *parent = nullptr);
 
     [[nodiscard]] std::shared_ptr<Client> client() const noexcept;
 
-    [[nodiscard]] qlonglong myId() const noexcept;
+    [[nodiscard]] std::vector<qlonglong> chatIds() const noexcept;
 
-    [[nodiscard]] QVariant getOption(const QString &name) const noexcept;
+    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> chatFolders() const noexcept;
 
-    [[nodiscard]] std::vector<qlonglong> getChatIds() const noexcept;
-
-    [[nodiscard]] std::vector<std::shared_ptr<ChatFolderInfo>> getChatFolders() const noexcept;
-
-    [[nodiscard]] std::shared_ptr<BasicGroup> getBasicGroup(qlonglong groupId) const noexcept;
-    [[nodiscard]] std::shared_ptr<Chat> getChat(qlonglong chatId) const noexcept;
-    [[nodiscard]] std::shared_ptr<File> getFile(int fileId) const noexcept;
-    [[nodiscard]] std::shared_ptr<Supergroup> getSupergroup(qlonglong groupId) const noexcept;
-    [[nodiscard]] std::shared_ptr<SupergroupFullInfo> getSupergroupFullInfo(qlonglong groupId) const noexcept;
-    [[nodiscard]] std::shared_ptr<User> getUser(qlonglong userId) const noexcept;
+    [[nodiscard]] std::shared_ptr<BasicGroup> basicGroup(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<Chat> chat(qlonglong chatId) const noexcept;
+    [[nodiscard]] std::shared_ptr<File> file(int fileId) const noexcept;
+    [[nodiscard]] std::shared_ptr<Supergroup> supergroup(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<SupergroupFullInfo> supergroupFullInfo(qlonglong groupId) const noexcept;
+    [[nodiscard]] std::shared_ptr<User> user(qlonglong userId) const noexcept;
 
 signals:
     void chatFoldersUpdated();
@@ -53,12 +45,24 @@ signals:
     void userUpdated(qlonglong userId);
     void userFullInfoUpdated(qlonglong userId);
 
+    void chatOnlineMemberCountUpdated(qlonglong chatId, int onlineMemberCount);
+
+public slots:
+    qlonglong myId() const noexcept;
+
+    QVariant getOption(const QString &name) const noexcept;
+
+    BasicGroup *getBasicGroup(qlonglong groupId) const noexcept;
+    Chat *getChat(qlonglong chatId) const noexcept;
+    File *getFile(int fileId) const noexcept;
+    Supergroup *getSupergroup(qlonglong groupId) const noexcept;
+    SupergroupFullInfo *getSupergroupFullInfo(qlonglong groupId) const noexcept;
+    User *getUser(qlonglong userId) const noexcept;
+
 private slots:
     void handleResult(td::td_api::Object *object);
 
 private:
-    StorageManager();
-
     QVariantMap m_options;
 
     std::shared_ptr<Client> m_client;
