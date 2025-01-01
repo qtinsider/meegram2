@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/sanitizers-cmake/cmake" ${CMAKE_MODULE_PATH})
+
 find_package(Td REQUIRED)
 find_package(rlottie REQUIRED)
 find_package(Qt4 4.7.4 COMPONENTS QtCore QtDBus QtGui QtSvg QtXml QtDeclarative REQUIRED)
@@ -13,11 +15,16 @@ find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
+find_package(Sanitizers REQUIRED)
+
 option(BUILD_HARMATTAN "Build for MeeGo 1.2 Harmattan Device" OFF)
 
 if (BUILD_HARMATTAN)
     pkg_check_modules(boostable QUIET qdeclarative-boostable)
 endif()
+
+set(SANITIZE_ADDRESS ON CACHE BOOL "Enable AddressSanitizer")
+set(SANITIZE_THREAD ON CACHE BOOL "Enable ThreadSanitizer")
 
 set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
@@ -102,13 +109,6 @@ set(QRC_FILES
     resources/tgs.qrc
 )
 
-if(CMAKE_BUILD_TYPE MATCHES Debug)
-    message(STATUS "Enabling AddressSanitizer")
-    add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-    add_link_options(-fsanitize=address)
-    # add_definitions(-DASAN_OPTIONS="new_delete_type_mismatch=0")
-endif()
-
 add_executable(meegram ${SRC_FILES} ${HEADER_FILES} ${QRC_FILES})
 
 set_target_properties(meegram PROPERTIES AUTOMOC ON AUTORCC ON)
@@ -128,6 +128,8 @@ target_link_libraries(meegram PRIVATE
     ZLIB::ZLIB
     Threads::Threads
 )
+
+add_sanitizers(meegram)
 
 if (BUILD_HARMATTAN)
     target_compile_options(meegram PRIVATE ${boostable_CFLAGS})

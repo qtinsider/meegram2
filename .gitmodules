@@ -1,3 +1,6 @@
 [submodule "lib/QR-Code-generator"]
 	path = lib/QR-Code-generator
 	url = https://github.com/nayuki/QR-Code-generator
+[submodule "cmake/sanitizers-cmake"]
+	path = cmake/sanitizers-cmake
+	url = https://github.com/arsenm/sanitizers-cmake.git
