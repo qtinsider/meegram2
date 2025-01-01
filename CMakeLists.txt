@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MeeGram VERSION 0.1.5 LANGUAGES CXX)
+project(MeeGram VERSION 0.1.6 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -137,7 +137,7 @@ if (BUILD_HARMATTAN)
 
     target_link_options(meegram PRIVATE -Wl,-rpath,/opt/meegram/lib -Wl,--dynamic-linker=/lib/ld-linux.so.3 -pie -rdynamic)
 
-    target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES})
+    target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES} -static-libstdc++)
 
     if(NOT EXISTS "${CMAKE_BINARY_DIR}/debian")
         file(COPY ${CMAKE_SOURCE_DIR}/debian DESTINATION ${CMAKE_BINARY_DIR})
