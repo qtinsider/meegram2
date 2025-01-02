@@ -363,6 +363,9 @@ void MessageModel::handleResult(td::td_api::Object *object) noexcept
 
 void MessageModel::handleNewMessage(td::td_api::object_ptr<td::td_api::message> &&message) noexcept
 {
+    if (m_chat->id() != message->chat_id_)
+        return;
+
     auto messageId = message->id_;
 
     if (m_messageMap.contains(messageId))
