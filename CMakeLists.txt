@@ -15,16 +15,13 @@ find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 find_package(PkgConfig REQUIRED)
 
-find_package(Sanitizers REQUIRED)
+find_package(Sanitizers QUIET)
 
 option(BUILD_HARMATTAN "Build for MeeGo 1.2 Harmattan Device" OFF)
 
 if (BUILD_HARMATTAN)
     pkg_check_modules(boostable QUIET qdeclarative-boostable)
 endif()
-
-set(SANITIZE_ADDRESS ON CACHE BOOL "Enable AddressSanitizer")
-set(SANITIZE_THREAD ON CACHE BOOL "Enable ThreadSanitizer")
 
 set(QML_IMPORT_PATH "/home/insider/QtSDK/Simulator/Qt/gcc/imports" CACHE STRING "")
 
@@ -137,7 +134,7 @@ if (BUILD_HARMATTAN)
 
     target_link_options(meegram PRIVATE -Wl,-rpath,/opt/meegram/lib -Wl,--dynamic-linker=/lib/ld-linux.so.3 -pie -rdynamic)
 
-    target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES} -static-libstdc++)
+    target_link_libraries(meegram PRIVATE ${boostable_LIBRARIES} $<$<BOOL:${SANITIZE_ADDRESS}>:-static-libasan> -static-libstdc++)
 
     if(NOT EXISTS "${CMAKE_BINARY_DIR}/debian")
         file(COPY ${CMAKE_SOURCE_DIR}/debian DESTINATION ${CMAKE_BINARY_DIR})
