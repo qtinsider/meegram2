@@ -9,7 +9,7 @@
 #include <vector>
 
 constexpr auto AppName = "MeeGram";
-constexpr auto AppVersion = "0.1.6";
+constexpr auto AppVersion = "0.1.7";
 
 constexpr auto ApiId = 142713;
 constexpr auto ApiHash = "9e9e687a70150c6436afe3a2b6bfd7d7";
