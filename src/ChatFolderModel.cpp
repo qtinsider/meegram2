@@ -1,7 +1,5 @@
 #include "ChatFolderModel.hpp"
 
-#include "StorageManager.hpp"
-
 ChatFolderInfo::ChatFolderInfo(td::td_api::object_ptr<td::td_api::chatFolderInfo> info)
     : m_id(info->id_)
     , m_title(QString::fromStdString(info->title_))

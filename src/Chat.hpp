@@ -68,11 +68,7 @@ public:
 signals:
     void chatChanged();
 
-private slots:
-    void onFileChanged();
-
 private:
-    void attemptDownload();
     void setType(td::td_api::object_ptr<td::td_api::ChatType> type) noexcept;
 
     td::td_api::object_ptr<td::td_api::chat> m_chat;

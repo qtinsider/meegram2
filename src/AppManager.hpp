@@ -67,6 +67,7 @@ signals:
 public slots:
     void close() noexcept;
     void setOption(const QString &name, const QVariant &value);
+    void downloadFile(int fileId, int priority, qlonglong offset, qlonglong limit, bool synchronous);
 
     void initialize() noexcept;
 

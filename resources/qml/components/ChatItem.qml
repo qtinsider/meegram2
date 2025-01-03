@@ -163,4 +163,13 @@ Item {
     function sanitizeText(text) {
         return text.replace(/\n/g, " ").replace(/\r/g, " ");
     }
+
+    Component.onCompleted: {
+        var chatPhoto = model.photo;
+
+        if (chatPhoto && chatPhoto.canBeDownloaded && !chatPhoto.isDownloadingActive && !chatPhoto.isDownloadingCompleted)
+        {
+            appManager.downloadFile(chatPhoto.id, 1, 0, 0, false);;
+        }
+    }
 }

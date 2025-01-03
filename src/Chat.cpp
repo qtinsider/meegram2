@@ -112,9 +112,6 @@ void Chat::setPhoto(td::td_api::object_ptr<td::td_api::chatPhotoInfo> photo) noe
     if (photo && photo->small_)
     {
         m_file = std::make_unique<File>(std::move(photo->small_));
-
-        attemptDownload();
-
         emit chatChanged();
     }
 }
@@ -134,6 +131,7 @@ void Chat::setPositions(std::vector<td::td_api::object_ptr<td::td_api::chatPosit
     {
         m_positions.clear();
         emit chatChanged();
+
         return;
     }
 
@@ -202,22 +200,6 @@ void Chat::setNotificationSettings(td::td_api::object_ptr<td::td_api::chatNotifi
     {
         m_muteFor = notificationSettings->mute_for_;
         emit chatChanged();
-    }
-}
-
-void Chat::onFileChanged()
-{
-    if (m_file && m_file->isDownloadingCompleted())
-    {
-        emit chatChanged();
-    }
-}
-
-void Chat::attemptDownload()
-{
-    if (m_file && m_file->canBeDownloaded() && !m_file->isDownloadingActive() && !m_file->isDownloadingCompleted())
-    {
-        // m_file->downloadFile();
     }
 }
 

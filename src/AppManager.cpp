@@ -302,6 +302,11 @@ void AppManager::setOption(const QString &name, const QVariant &value)
     m_client->send(td::td_api::make_object<td::td_api::setOption>(name.toStdString(), std::move(optionValue)));
 }
 
+void AppManager::downloadFile(int fileId, int priority, qlonglong offset, qlonglong limit, bool synchronous)
+{
+    m_client->send(td::td_api::make_object<td::td_api::downloadFile>(fileId, priority, offset, limit, synchronous));
+}
+
 void AppManager::initialize() noexcept
 {
     m_client->send(td::td_api::make_object<td::td_api::getOption>("version"), {});
